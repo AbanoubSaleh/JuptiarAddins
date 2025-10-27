@@ -1,10 +1,10 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 <!--Created:ce44715c-8c4e-446b-879c-ea9ebe0f09c8-->
 <!-- To learn about the Office Add-ins XML manifest, see https://go.microsoft.com/fwlink/?linkid=2252563. -->
-<OfficeApp 
-          xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" 
-          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-          xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0" 
+<OfficeApp
+          xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
           xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
           xsi:type="TaskPaneApp">
 
@@ -13,20 +13,20 @@
   <Id>20270141-3bb0-4463-94a9-2ee7bcc96d5a</Id>
 
   <Version>1.0.0.0</Version>
-  <ProviderName>[Provider name]</ProviderName>
+  <ProviderName>Juptiar</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <!-- The display name of your add-in. Used on the store and various places of the Office UI such as the add-ins dialog. -->
-  <DisplayName DefaultValue="JuptiarAddins" />
-  <Description DefaultValue="JuptiarAddins"/>
+  <DisplayName DefaultValue="Juptiar Document Manager" />
+  <Description DefaultValue="Juptiar Document Management System Integration for Microsoft Word"/>
   <!-- Icon for your add-in. Used on installation screens and the add-ins dialog. -->
-  <IconUrl DefaultValue="~remoteAppUrl/Images/Button32x32.png" />
+  <IconUrl DefaultValue="~remoteAppUrl/Images/JuptiarIcon32x32.png" />
 
-  <SupportUrl DefaultValue="http://www.contoso.com" />
+  <SupportUrl DefaultValue="https://www.juptiar.com/support" />
   <!-- Domains that will be allowed when navigating. For example, if you use ShowTaskpane and then have an href link, navigation will only be allowed if the domain is on this list. -->
   <AppDomains>
-    <AppDomain>AppDomain1</AppDomain>
-    <AppDomain>AppDomain2</AppDomain>
-    <AppDomain>AppDomain3</AppDomain>
+    <AppDomain>localhost</AppDomain>
+    <AppDomain>juptiar.com</AppDomain>
+    <AppDomain>api.juptiar.com</AppDomain>
   </AppDomains>
   
 
@@ -57,49 +57,90 @@
           <FunctionFile resid="Contoso.DesktopFunctionFile.Url" />
 
           <ExtensionPoint xsi:type="PrimaryCommandSurface">
-            <OfficeTab id="TabHome">
-              <Group id="Contoso.Group1">
-                <Label resid="Contoso.Group1Label" />
+            <!-- Custom Juptiar Tab -->
+            <CustomTab id="Juptiar.Tab">
+              <Group id="Juptiar.DocumentGroup">
+                <Label resid="Juptiar.DocumentGroup.Label" />
                 <Icon>
-                  <bt:Image size="16" resid="Contoso.tpicon_16x16" />
-                  <bt:Image size="32" resid="Contoso.tpicon_32x32" />
-                  <bt:Image size="80" resid="Contoso.tpicon_80x80" />
+                  <bt:Image size="16" resid="Juptiar.icon_16x16" />
+                  <bt:Image size="32" resid="Juptiar.icon_32x32" />
+                  <bt:Image size="80" resid="Juptiar.icon_80x80" />
                 </Icon>
 
-                <Control xsi:type="Button" id="Contoso.TaskpaneButton">
-                  <Label resid="Contoso.TaskpaneButton.Label" />
+                <!-- Open/Browse Button -->
+                <Control xsi:type="Button" id="Juptiar.OpenBrowseButton">
+                  <Label resid="Juptiar.OpenBrowse.Label" />
                   <Supertip>
-                    <Title resid="Contoso.TaskpaneButton.Label" />
-                    <Description resid="Contoso.TaskpaneButton.Tooltip" />
+                    <Title resid="Juptiar.OpenBrowse.Label" />
+                    <Description resid="Juptiar.OpenBrowse.Tooltip" />
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="Contoso.tpicon_16x16" />
-                    <bt:Image size="32" resid="Contoso.tpicon_32x32" />
-                    <bt:Image size="80" resid="Contoso.tpicon_80x80" />
+                    <bt:Image size="16" resid="Juptiar.open_16x16" />
+                    <bt:Image size="32" resid="Juptiar.open_32x32" />
+                    <bt:Image size="80" resid="Juptiar.open_80x80" />
                   </Icon>
-
                   <Action xsi:type="ShowTaskpane">
-                    <TaskpaneId>ButtonId1</TaskpaneId>
-                    <SourceLocation resid="Contoso.Taskpane.Url" />
+                    <TaskpaneId>JuptiarBrowser</TaskpaneId>
+                    <SourceLocation resid="Juptiar.DocumentBrowser.Url" />
                   </Action>
                 </Control>
-                <Control xsi:type="Button" id="Contoso.FunctionButton">
-                  <Label resid="Contoso.FunctionButton.Label" />
+
+                <!-- Save Button -->
+                <Control xsi:type="Button" id="Juptiar.SaveButton">
+                  <Label resid="Juptiar.Save.Label" />
                   <Supertip>
-                    <Title resid="Contoso.FunctionButton.Label" />
-                    <Description resid="Contoso.FunctionButton.Tooltip" />
+                    <Title resid="Juptiar.Save.Label" />
+                    <Description resid="Juptiar.Save.Tooltip" />
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="Contoso.tpicon_16x16" />
-                    <bt:Image size="32" resid="Contoso.tpicon_32x32" />
-                    <bt:Image size="80" resid="Contoso.tpicon_80x80" />
+                    <bt:Image size="16" resid="Juptiar.save_16x16" />
+                    <bt:Image size="32" resid="Juptiar.save_32x32" />
+                    <bt:Image size="80" resid="Juptiar.save_80x80" />
                   </Icon>
-                  <Action xsi:type="ExecuteFunction">
-                    <FunctionName>sampleFunction</FunctionName>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>JuptiarSave</TaskpaneId>
+                    <SourceLocation resid="Juptiar.SaveDialog.Url" />
+                  </Action>
+                </Control>
+
+                <!-- Settings Button -->
+                <Control xsi:type="Button" id="Juptiar.SettingsButton">
+                  <Label resid="Juptiar.Settings.Label" />
+                  <Supertip>
+                    <Title resid="Juptiar.Settings.Label" />
+                    <Description resid="Juptiar.Settings.Tooltip" />
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Juptiar.settings_16x16" />
+                    <bt:Image size="32" resid="Juptiar.settings_32x32" />
+                    <bt:Image size="80" resid="Juptiar.settings_80x80" />
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>JuptiarSettings</TaskpaneId>
+                    <SourceLocation resid="Juptiar.Settings.Url" />
+                  </Action>
+                </Control>
+
+                <!-- Edit Properties Button -->
+                <Control xsi:type="Button" id="Juptiar.PropertiesButton">
+                  <Label resid="Juptiar.Properties.Label" />
+                  <Supertip>
+                    <Title resid="Juptiar.Properties.Label" />
+                    <Description resid="Juptiar.Properties.Tooltip" />
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Juptiar.properties_16x16" />
+                    <bt:Image size="32" resid="Juptiar.properties_32x32" />
+                    <bt:Image size="80" resid="Juptiar.properties_80x80" />
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>JuptiarProperties</TaskpaneId>
+                    <SourceLocation resid="Juptiar.Properties.Url" />
                   </Action>
                 </Control>
               </Group>
-            </OfficeTab>
+              <Label resid="Juptiar.Tab.Label" />
+            </CustomTab>
           </ExtensionPoint>
         </DesktopFormFactor>
       </Host>
@@ -107,25 +148,60 @@
     
     <Resources>
       <bt:Images>
-        <bt:Image id="Contoso.tpicon_16x16" DefaultValue="~remoteAppUrl/Images/Button16x16.png" />
-        <bt:Image id="Contoso.tpicon_32x32" DefaultValue="~remoteAppUrl/Images/Button32x32.png" />
-        <bt:Image id="Contoso.tpicon_80x80" DefaultValue="~remoteAppUrl/Images/Button80x80.png" />
+        <!-- Juptiar Icons -->
+        <bt:Image id="Juptiar.icon_16x16" DefaultValue="~remoteAppUrl/Images/JuptiarIcon16x16.png" />
+        <bt:Image id="Juptiar.icon_32x32" DefaultValue="~remoteAppUrl/Images/JuptiarIcon32x32.png" />
+        <bt:Image id="Juptiar.icon_80x80" DefaultValue="~remoteAppUrl/Images/JuptiarIcon80x80.png" />
+
+        <!-- Open/Browse Icons -->
+        <bt:Image id="Juptiar.open_16x16" DefaultValue="~remoteAppUrl/Images/Open16x16.png" />
+        <bt:Image id="Juptiar.open_32x32" DefaultValue="~remoteAppUrl/Images/Open32x32.png" />
+        <bt:Image id="Juptiar.open_80x80" DefaultValue="~remoteAppUrl/Images/Open80x80.png" />
+
+        <!-- Save Icons -->
+        <bt:Image id="Juptiar.save_16x16" DefaultValue="~remoteAppUrl/Images/Save16x16.png" />
+        <bt:Image id="Juptiar.save_32x32" DefaultValue="~remoteAppUrl/Images/Save32x32.png" />
+        <bt:Image id="Juptiar.save_80x80" DefaultValue="~remoteAppUrl/Images/Save80x80.png" />
+
+        <!-- Settings Icons -->
+        <bt:Image id="Juptiar.settings_16x16" DefaultValue="~remoteAppUrl/Images/Settings16x16.png" />
+        <bt:Image id="Juptiar.settings_32x32" DefaultValue="~remoteAppUrl/Images/Settings32x32.png" />
+        <bt:Image id="Juptiar.settings_80x80" DefaultValue="~remoteAppUrl/Images/Settings80x80.png" />
+
+        <!-- Properties Icons -->
+        <bt:Image id="Juptiar.properties_16x16" DefaultValue="~remoteAppUrl/Images/Properties16x16.png" />
+        <bt:Image id="Juptiar.properties_32x32" DefaultValue="~remoteAppUrl/Images/Properties32x32.png" />
+        <bt:Image id="Juptiar.properties_80x80" DefaultValue="~remoteAppUrl/Images/Properties80x80.png" />
       </bt:Images>
       <bt:Urls>
         <bt:Url id="Contoso.DesktopFunctionFile.Url" DefaultValue="~remoteAppUrl/Functions/FunctionFile.html" />
-        <bt:Url id="Contoso.Taskpane.Url" DefaultValue="~remoteAppUrl/Home.html" />
-        <bt:Url id="Contoso.GetStarted.LearnMoreUrl" DefaultValue="https://go.microsoft.com/fwlink/?LinkId=276812" />
+        <bt:Url id="Juptiar.DocumentBrowser.Url" DefaultValue="~remoteAppUrl/DocumentBrowser.html" />
+        <bt:Url id="Juptiar.SaveDialog.Url" DefaultValue="~remoteAppUrl/SaveDialog.html" />
+        <bt:Url id="Juptiar.Settings.Url" DefaultValue="~remoteAppUrl/Settings.html" />
+        <bt:Url id="Juptiar.Properties.Url" DefaultValue="~remoteAppUrl/Properties.html" />
+        <bt:Url id="Contoso.GetStarted.LearnMoreUrl" DefaultValue="https://www.juptiar.com/help" />
       </bt:Urls>
       <bt:ShortStrings>
-        <bt:String id="Contoso.TaskpaneButton.Label" DefaultValue="Show Taskpane" />
-				<bt:String id="Contoso.FunctionButton.Label" DefaultValue="Run Function" />
-        <bt:String id="Contoso.Group1Label" DefaultValue="Commands Group" />
-        <bt:String id="Contoso.GetStarted.Title" DefaultValue="Get started with your sample add-in!" />
+        <!-- Juptiar Tab and Group Labels -->
+        <bt:String id="Juptiar.Tab.Label" DefaultValue="Juptiar" />
+        <bt:String id="Juptiar.DocumentGroup.Label" DefaultValue="Document Management" />
+
+        <!-- Button Labels -->
+        <bt:String id="Juptiar.OpenBrowse.Label" DefaultValue="Open/Browse" />
+        <bt:String id="Juptiar.Save.Label" DefaultValue="Save" />
+        <bt:String id="Juptiar.Settings.Label" DefaultValue="Settings" />
+        <bt:String id="Juptiar.Properties.Label" DefaultValue="Edit Properties" />
+
+        <bt:String id="Contoso.GetStarted.Title" DefaultValue="Get started with Juptiar!" />
       </bt:ShortStrings>
       <bt:LongStrings>
-        <bt:String id="Contoso.FunctionButton.Tooltip" DefaultValue="Click to run a sample function." />
-        <bt:String id="Contoso.TaskpaneButton.Tooltip" DefaultValue="Click to Show a Taskpane" />
-        <bt:String id="Contoso.GetStarted.Description" DefaultValue="Your sample add-in loaded succesfully. Go to the HOME tab and click the 'Show Taskpane' button to get started." />
+        <!-- Button Tooltips -->
+        <bt:String id="Juptiar.OpenBrowse.Tooltip" DefaultValue="Browse and open documents from Juptiar document management system" />
+        <bt:String id="Juptiar.Save.Tooltip" DefaultValue="Save current document to Juptiar document management system" />
+        <bt:String id="Juptiar.Settings.Tooltip" DefaultValue="Configure Juptiar connection settings and credentials" />
+        <bt:String id="Juptiar.Properties.Tooltip" DefaultValue="Edit document metadata and properties" />
+
+        <bt:String id="Contoso.GetStarted.Description" DefaultValue="Your Juptiar add-in loaded successfully. Use the Juptiar tab to manage your documents." />
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Juptiar Document Browser</title>
+
+    <!-- Office JavaScript API -->
+    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
+
+    <!-- jQuery -->
+    <script type="text/javascript" src="Scripts/jquery-3.6.0.min.js"></script>
+
+    <!-- Office UI Fabric -->
+    <link rel="stylesheet" href="Content/fabric.min.css" />
+    <link rel="stylesheet" href="Content/OfficeThemes.css" />
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="DocumentBrowser.css" />
+</head>
+
+<body class="ms-font-m ms-welcome ms-Fabric">
+    <div class="ms-Grid">
+        <!-- Header -->
+        <div class="ms-Grid-row header-section">
+            <div class="ms-Grid-col ms-sm12">
+                <h2 class="ms-font-xl ms-fontColor-themePrimary">Juptiar Document Browser</h2>
+                <div class="auth-status" id="authStatus">
+                    <span id="authStatusText">Not authenticated</span>
+                    <button id="loginBtn" class="ms-Button ms-Button--primary">
+                        <span class="ms-Button-label">Login</span>
+                    </button>
+                    <button id="logoutBtn" class="ms-Button" style="display: none;">
+                        <span class="ms-Button-label">Logout</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Section -->
+        <div class="ms-Grid-row search-section" id="searchSection" style="display: none;">
+            <div class="ms-Grid-col ms-sm12">
+                <div class="ms-SearchBox">
+                    <input type="text" id="searchInput" class="ms-SearchBox-field" placeholder="Search documents..." />
+                    <button id="searchBtn" class="ms-SearchBox-icon ms-Button">
+                        <i class="ms-Icon ms-Icon--Search"></i>
+                    </button>
+                    <button id="refreshBtn" class="ms-Button ms-Button--primary refresh-btn">
+                        <span class="ms-Button-label">Refresh</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="ms-Grid-row main-content" id="mainContent" style="display: none;">
+            <!-- Left Panel - Folder Tree -->
+            <div class="ms-Grid-col ms-sm4 folder-panel">
+                <h3 class="ms-font-l">Libraries</h3>
+                <div id="folderTree" class="folder-tree">
+                    <!-- Folder tree will be populated here -->
+                </div>
+            </div>
+
+            <!-- Right Panel - Document List -->
+            <div class="ms-Grid-col ms-sm8 document-panel">
+                <h3 class="ms-font-l">Documents</h3>
+                <div class="document-list-container">
+                    <table id="documentList" class="ms-Table document-table">
+                        <thead>
+                            <tr>
+                                <th class="ms-Table-header">Type</th>
+                                <th class="ms-Table-header">File Name</th>
+                                <th class="ms-Table-header">Date Modified</th>
+                                <th class="ms-Table-header">Size</th>
+                                <th class="ms-Table-header">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="documentTableBody">
+                            <!-- Documents will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div class="ms-Grid-row loading-section" id="loadingSection">
+            <div class="ms-Grid-col ms-sm12 text-center">
+                <div class="ms-Spinner ms-Spinner--large">
+                    <div class="ms-Spinner-circle"></div>
+                </div>
+                <p class="ms-font-m">Loading...</p>
+            </div>
+        </div>
+
+        <!-- Error Message -->
+        <div class="ms-Grid-row error-section" id="errorSection" style="display: none;">
+            <div class="ms-Grid-col ms-sm12">
+                <div class="ms-MessageBar ms-MessageBar--error">
+                    <div class="ms-MessageBar-content">
+                        <div class="ms-MessageBar-icon">
+                            <i class="ms-Icon ms-Icon--ErrorBadge"></i>
+                        </div>
+                        <div class="ms-MessageBar-text" id="errorMessage">
+                            An error occurred while loading documents.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Login to Juptiar</h3>
+                <span class="close" id="closeModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="ms-TextField">
+                    <label class="ms-Label">Username:</label>
+                    <input type="text" id="username" class="ms-TextField-field" />
+                </div>
+                <div class="ms-TextField">
+                    <label class="ms-Label">Password:</label>
+                    <input type="password" id="password" class="ms-TextField-field" />
+                </div>
+                <div class="ms-TextField">
+                    <label class="ms-Label">Server URL:</label>
+                    <input type="text" id="serverUrl" class="ms-TextField-field" placeholder="https://your-juptiar-server.com" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="loginSubmitBtn" class="ms-Button ms-Button--primary">
+                    <span class="ms-Button-label">Login</span>
+                </button>
+                <button id="loginCancelBtn" class="ms-Button">
+                    <span class="ms-Button-label">Cancel</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="contextMenu" class="context-menu" style="display: none;">
+        <ul>
+            <li id="openDocument">Open</li>
+            <li id="editDocument">Edit</li>
+            <li id="deleteDocument">Delete</li>
+            <li id="editProperties">Properties</li>
+        </ul>
+    </div>
+
+    <!-- Custom JavaScript -->
+    <script type="text/javascript" src="Scripts/JuptiarService.js"></script>
+    <script type="text/javascript" src="Scripts/AuthManager.js"></script>
+    <script type="text/javascript" src="Scripts/DocumentBrowser.js"></script>
+</body>
+</html>

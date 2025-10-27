@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Edit Document Properties</title>
+
+    <!-- Office JavaScript API -->
+    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
+
+    <!-- jQuery -->
+    <script type="text/javascript" src="Scripts/jquery-3.6.0.min.js"></script>
+
+    <!-- Office UI Fabric -->
+    <link rel="stylesheet" href="Content/fabric.min.css" />
+    <link rel="stylesheet" href="Content/OfficeThemes.css" />
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="Properties.css" />
+</head>
+
+<body class="ms-font-m ms-welcome ms-Fabric">
+    <div class="ms-Grid properties-container">
+        <!-- Header -->
+        <div class="ms-Grid-row header-section">
+            <div class="ms-Grid-col ms-sm12">
+                <h2 class="ms-font-xl ms-fontColor-themePrimary">Document Properties</h2>
+                <p class="ms-font-s">Edit metadata and properties for the current document.</p>
+            </div>
+        </div>
+
+        <!-- Authentication Check -->
+        <div class="ms-Grid-row auth-section" id="authSection">
+            <div class="ms-Grid-col ms-sm12">
+                <div class="auth-status" id="authStatus">
+                    <div class="status-indicator offline" id="authIndicator"></div>
+                    <span id="authStatusText">Not authenticated</span>
+                    <button id="loginBtn" class="ms-Button ms-Button--primary">
+                        <span class="ms-Button-label">Login</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Document Selection -->
+        <div class="ms-Grid-row document-section" id="documentSection" style="display: none;">
+            <div class="ms-Grid-col ms-sm12">
+                <h3 class="ms-font-l">Document Selection</h3>
+                <div class="document-info" id="documentInfo">
+                    <p><strong>Current Document:</strong> <span id="currentDocName">Untitled Document</span></p>
+                    <p><strong>Status:</strong> <span id="documentStatus">Not saved to Juptiar</span></p>
+                </div>
+                <div class="document-actions">
+                    <button id="loadFromJuptiarBtn" class="ms-Button">
+                        <span class="ms-Button-label">Load from Juptiar</span>
+                    </button>
+                    <button id="useCurrentDocBtn" class="ms-Button ms-Button--primary">
+                        <span class="ms-Button-label">Use Current Document</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Properties Tabs -->
+        <div class="ms-Grid-row tabs-section" id="tabsSection" style="display: none;">
+            <div class="ms-Grid-col ms-sm12">
+                <div class="tabs-container">
+                    <div class="tab-headers">
+                        <button class="tab-header active" data-tab="general">General</button>
+                        <button class="tab-header" data-tab="extended">Extended</button>
+                        <button class="tab-header" data-tab="permissions">Permissions</button>
+                    </div>
+
+                    <!-- General Tab -->
+                    <div class="tab-content active" id="generalTab">
+                        <div class="form-section">
+                            <h3 class="ms-font-l">General Information</h3>
+                            
+                            <div class="ms-TextField">
+                                <label class="ms-Label">Title</label>
+                                <input type="text" id="docTitle" class="ms-TextField-field" 
+                                       placeholder="Document title" />
+                            </div>
+
+                            <div class="ms-TextField">
+                                <label class="ms-Label">Description</label>
+                                <textarea id="docDescription" class="ms-TextField-field textarea" 
+                                          placeholder="Document description" rows="3"></textarea>
+                            </div>
+
+                            <div class="ms-TextField">
+                                <label class="ms-Label">Tags</label>
+                                <input type="text" id="docTags" class="ms-TextField-field" 
+                                       placeholder="Enter tags separated by commas" />
+                                <span class="ms-TextField-description">
+                                    Separate multiple tags with commas
+                                </span>
+                            </div>
+
+                            <div class="ms-TextField">
+                                <label class="ms-Label">Author</label>
+                                <input type="text" id="docAuthor" class="ms-TextField-field" 
+                                       placeholder="Document author" />
+                            </div>
+
+                            <div class="ms-TextField">
+                                <label class="ms-Label">Language</label>
+                                <select id="docLanguage" class="ms-Dropdown-select">
+                                    <option value="en">English</option>
+                                    <option value="es">Spanish</option>
+                                    <option value="fr">French</option>
+                                    <option value="de">German</option>
+                                    <option value="it">Italian</option>
+                                    <option value="pt">Portuguese</option>
+                                    <option value="ar">Arabic</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Extended Tab -->
+                    <div class="tab-content" id="extendedTab">
+                        <div class="form-section">
+                            <h3 class="ms-font-l">Extended Properties</h3>
+                            
+                            <div class="ms-TextField">
+                                <label class="ms-Label">Custom ID</label>
+                                <input type="text" id="customId" class="ms-TextField-field" 
+                                       placeholder="Custom document ID" />
+                            </div>
+
+                            <div class="ms-TextField">
+                                <label class="ms-Label">Source</label>
+                                <input type="text" id="docSource" class="ms-TextField-field" 
+                                       placeholder="Document source" />
+                            </div>
+
+                            <div class="ms-TextField">
+                                <label class="ms-Label">Original ID</label>
+                                <input type="text" id="originalId" class="ms-TextField-field" 
+                                       placeholder="Original document ID" readonly />
+                            </div>
+
+                            <div class="ms-TextField">
+                                <label class="ms-Label">Recipient</label>
+                                <input type="text" id="docRecipient" class="ms-TextField-field" 
+                                       placeholder="Document recipient" />
+                            </div>
+
+                            <div class="ms-TextField">
+                                <label class="ms-Label">Object</label>
+                                <input type="text" id="docObject" class="ms-TextField-field" 
+                                       placeholder="Document object/subject" />
+                            </div>
+
+                            <div class="ms-TextField">
+                                <label class="ms-Label">Coverage</label>
+                                <input type="text" id="docCoverage" class="ms-TextField-field" 
+                                       placeholder="Document coverage" />
+                            </div>
+
+                            <div class="ms-TextField">
+                                <label class="ms-Label">Type</label>
+                                <select id="docType" class="ms-Dropdown-select">
+                                    <option value="">Select document type...</option>
+                                    <option value="contract">Contract</option>
+                                    <option value="report">Report</option>
+                                    <option value="memo">Memo</option>
+                                    <option value="letter">Letter</option>
+                                    <option value="manual">Manual</option>
+                                    <option value="policy">Policy</option>
+                                    <option value="procedure">Procedure</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Permissions Tab -->
+                    <div class="tab-content" id="permissionsTab">
+                        <div class="form-section">
+                            <h3 class="ms-font-l">Document Permissions</h3>
+                            
+                            <div class="permissions-info">
+                                <p class="ms-font-s">Current user permissions for this document:</p>
+                                <div class="permission-list" id="userPermissions">
+                                    <!-- Permissions will be loaded here -->
+                                </div>
+                            </div>
+
+                            <div class="ms-TextField">
+                                <label class="ms-Label">Security Level</label>
+                                <select id="securityLevel" class="ms-Dropdown-select">
+                                    <option value="public">Public</option>
+                                    <option value="internal">Internal</option>
+                                    <option value="confidential">Confidential</option>
+                                    <option value="restricted">Restricted</option>
+                                </select>
+                            </div>
+
+                            <div class="ms-CheckBox">
+                                <input type="checkbox" id="allowDownload" class="ms-CheckBox-input" checked />
+                                <label class="ms-CheckBox-label" for="allowDownload">
+                                    Allow download
+                                </label>
+                            </div>
+
+                            <div class="ms-CheckBox">
+                                <input type="checkbox" id="allowPrint" class="ms-CheckBox-input" checked />
+                                <label class="ms-CheckBox-label" for="allowPrint">
+                                    Allow printing
+                                </label>
+                            </div>
+
+                            <div class="ms-CheckBox">
+                                <input type="checkbox" id="allowEdit" class="ms-CheckBox-input" />
+                                <label class="ms-CheckBox-label" for="allowEdit">
+                                    Allow editing by others
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="ms-Grid-row action-section" id="actionSection" style="display: none;">
+            <div class="ms-Grid-col ms-sm12">
+                <div class="action-buttons">
+                    <button id="savePropertiesBtn" class="ms-Button ms-Button--primary">
+                        <span class="ms-Button-label">Save Properties</span>
+                    </button>
+                    <button id="resetPropertiesBtn" class="ms-Button">
+                        <span class="ms-Button-label">Reset</span>
+                    </button>
+                    <button id="cancelPropertiesBtn" class="ms-Button">
+                        <span class="ms-Button-label">Cancel</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Messages -->
+        <div class="ms-Grid-row message-section" id="messageSection" style="display: none;">
+            <div class="ms-Grid-col ms-sm12">
+                <div class="ms-MessageBar" id="messageBar">
+                    <div class="ms-MessageBar-content">
+                        <div class="ms-MessageBar-icon" id="messageIcon">
+                            <i class="ms-Icon"></i>
+                        </div>
+                        <div class="ms-MessageBar-text" id="messageText">
+                            Properties saved successfully.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div class="ms-Grid-row loading-section" id="loadingSection">
+            <div class="ms-Grid-col ms-sm12 text-center">
+                <div class="ms-Spinner ms-Spinner--large">
+                    <div class="ms-Spinner-circle"></div>
+                </div>
+                <p class="ms-font-m">Loading document properties...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Document Selection Modal -->
+    <div id="documentSelectionModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Select Document</h3>
+                <span class="close" id="closeDocumentModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p>Select a document from Juptiar to edit its properties:</p>
+                <div class="document-search">
+                    <input type="text" id="documentSearch" class="ms-TextField-field" 
+                           placeholder="Search documents..." />
+                </div>
+                <div class="document-list" id="modalDocumentList">
+                    <!-- Document list will be populated here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="selectDocumentBtn" class="ms-Button ms-Button--primary" disabled>
+                    <span class="ms-Button-label">Select</span>
+                </button>
+                <button id="cancelDocumentBtn" class="ms-Button">
+                    <span class="ms-Button-label">Cancel</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom JavaScript -->
+    <script type="text/javascript" src="Scripts/JuptiarService.js"></script>
+    <script type="text/javascript" src="Scripts/AuthManager.js"></script>
+    <script type="text/javascript" src="Scripts/PropertiesEditor.js"></script>
+    <script type="text/javascript" src="Scripts/Properties.js"></script>
+</body>
+</html>

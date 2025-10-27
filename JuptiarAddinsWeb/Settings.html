@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Juptiar Settings</title>
+
+    <!-- Office JavaScript API -->
+    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
+
+    <!-- jQuery -->
+    <script type="text/javascript" src="Scripts/jquery-3.6.0.min.js"></script>
+
+    <!-- Office UI Fabric -->
+    <link rel="stylesheet" href="Content/fabric.min.css" />
+    <link rel="stylesheet" href="Content/OfficeThemes.css" />
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="Settings.css" />
+</head>
+
+<body class="ms-font-m ms-welcome ms-Fabric">
+    <div class="ms-Grid settings-container">
+        <!-- Header -->
+        <div class="ms-Grid-row header-section">
+            <div class="ms-Grid-col ms-sm12">
+                <h2 class="ms-font-xl ms-fontColor-themePrimary">Juptiar Settings</h2>
+                <p class="ms-font-s">Configure your connection to the Juptiar document management system.</p>
+            </div>
+        </div>
+
+        <!-- Connection Settings -->
+        <div class="ms-Grid-row settings-section">
+            <div class="ms-Grid-col ms-sm12">
+                <h3 class="ms-font-l">Connection Settings</h3>
+                
+                <div class="ms-TextField">
+                    <label class="ms-Label">Server URL *</label>
+                    <input type="text" id="serverUrl" class="ms-TextField-field" 
+                           placeholder="https://your-juptiar-server.com" />
+                    <span class="ms-TextField-description">
+                        Enter the base URL of your Juptiar server
+                    </span>
+                </div>
+
+                <div class="ms-TextField">
+                    <label class="ms-Label">API Endpoint</label>
+                    <input type="text" id="apiEndpoint" class="ms-TextField-field" 
+                           placeholder="/api/v1" value="/api/v1" />
+                    <span class="ms-TextField-description">
+                        API endpoint path (default: /api/v1)
+                    </span>
+                </div>
+
+                <div class="ms-TextField">
+                    <label class="ms-Label">Connection Timeout (seconds)</label>
+                    <input type="number" id="connectionTimeout" class="ms-TextField-field" 
+                           value="30" min="5" max="300" />
+                    <span class="ms-TextField-description">
+                        Request timeout in seconds (5-300)
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Authentication Settings -->
+        <div class="ms-Grid-row settings-section">
+            <div class="ms-Grid-col ms-sm12">
+                <h3 class="ms-font-l">Authentication</h3>
+                
+                <div class="ms-TextField">
+                    <label class="ms-Label">Username *</label>
+                    <input type="text" id="username" class="ms-TextField-field" 
+                           placeholder="Enter your username" />
+                </div>
+
+                <div class="ms-TextField">
+                    <label class="ms-Label">Password *</label>
+                    <input type="password" id="password" class="ms-TextField-field" 
+                           placeholder="Enter your password" />
+                </div>
+
+                <div class="ms-CheckBox">
+                    <input type="checkbox" id="rememberCredentials" class="ms-CheckBox-input" />
+                    <label class="ms-CheckBox-label" for="rememberCredentials">
+                        Remember credentials (stored securely)
+                    </label>
+                </div>
+
+                <div class="ms-CheckBox">
+                    <input type="checkbox" id="autoLogin" class="ms-CheckBox-input" />
+                    <label class="ms-CheckBox-label" for="autoLogin">
+                        Auto-login on startup
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advanced Settings -->
+        <div class="ms-Grid-row settings-section">
+            <div class="ms-Grid-col ms-sm12">
+                <h3 class="ms-font-l">Advanced Settings</h3>
+                
+                <div class="ms-TextField">
+                    <label class="ms-Label">Default Library</label>
+                    <select id="defaultLibrary" class="ms-Dropdown-select">
+                        <option value="">Select default library...</option>
+                        <!-- Options will be populated dynamically -->
+                    </select>
+                    <span class="ms-TextField-description">
+                        Default library to open when browsing documents
+                    </span>
+                </div>
+
+                <div class="ms-TextField">
+                    <label class="ms-Label">Documents per page</label>
+                    <input type="number" id="documentsPerPage" class="ms-TextField-field" 
+                           value="50" min="10" max="200" />
+                    <span class="ms-TextField-description">
+                        Number of documents to display per page (10-200)
+                    </span>
+                </div>
+
+                <div class="ms-CheckBox">
+                    <input type="checkbox" id="enableLogging" class="ms-CheckBox-input" />
+                    <label class="ms-CheckBox-label" for="enableLogging">
+                        Enable debug logging
+                    </label>
+                </div>
+
+                <div class="ms-CheckBox">
+                    <input type="checkbox" id="enableNotifications" class="ms-CheckBox-input" checked />
+                    <label class="ms-CheckBox-label" for="enableNotifications">
+                        Show notifications
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Connection Status -->
+        <div class="ms-Grid-row status-section">
+            <div class="ms-Grid-col ms-sm12">
+                <h3 class="ms-font-l">Connection Status</h3>
+                <div class="connection-status" id="connectionStatus">
+                    <div class="status-indicator offline" id="statusIndicator"></div>
+                    <span id="statusText">Not connected</span>
+                    <button id="testConnectionBtn" class="ms-Button ms-Button--primary test-btn">
+                        <span class="ms-Button-label">Test Connection</span>
+                    </button>
+                </div>
+                <div id="connectionDetails" class="connection-details" style="display: none;">
+                    <p><strong>Server:</strong> <span id="connectedServer">-</span></p>
+                    <p><strong>User:</strong> <span id="connectedUser">-</span></p>
+                    <p><strong>Last Connected:</strong> <span id="lastConnected">-</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="ms-Grid-row action-section">
+            <div class="ms-Grid-col ms-sm12">
+                <div class="action-buttons">
+                    <button id="saveBtn" class="ms-Button ms-Button--primary">
+                        <span class="ms-Button-label">Save Settings</span>
+                    </button>
+                    <button id="resetBtn" class="ms-Button">
+                        <span class="ms-Button-label">Reset to Defaults</span>
+                    </button>
+                    <button id="clearCredentialsBtn" class="ms-Button ms-Button--danger">
+                        <span class="ms-Button-label">Clear Stored Credentials</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Messages -->
+        <div class="ms-Grid-row message-section" id="messageSection" style="display: none;">
+            <div class="ms-Grid-col ms-sm12">
+                <div class="ms-MessageBar" id="messageBar">
+                    <div class="ms-MessageBar-content">
+                        <div class="ms-MessageBar-icon" id="messageIcon">
+                            <i class="ms-Icon"></i>
+                        </div>
+                        <div class="ms-MessageBar-text" id="messageText">
+                            Settings saved successfully.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div class="ms-Grid-row loading-section" id="loadingSection" style="display: none;">
+            <div class="ms-Grid-col ms-sm12 text-center">
+                <div class="ms-Spinner ms-Spinner--large">
+                    <div class="ms-Spinner-circle"></div>
+                </div>
+                <p class="ms-font-m" id="loadingText">Testing connection...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom JavaScript -->
+    <script type="text/javascript" src="Scripts/JuptiarService.js"></script>
+    <script type="text/javascript" src="Scripts/AuthManager.js"></script>
+    <script type="text/javascript" src="Scripts/Settings.js"></script>
+</body>
+</html>

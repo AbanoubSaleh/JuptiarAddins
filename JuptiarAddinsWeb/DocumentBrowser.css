@@ -1,0 +1,301 @@
+/* Document Browser Styles */
+.header-section {
+    padding: 15px;
+    border-bottom: 1px solid #e1e1e1;
+    background-color: #f8f9fa;
+}
+
+.auth-status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+
+.search-section {
+    padding: 15px;
+    border-bottom: 1px solid #e1e1e1;
+}
+
+.ms-SearchBox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ms-SearchBox-field {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.refresh-btn {
+    margin-left: 10px;
+}
+
+.main-content {
+    height: calc(100vh - 200px);
+    overflow: hidden;
+}
+
+.folder-panel {
+    border-right: 1px solid #e1e1e1;
+    padding: 15px;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.document-panel {
+    padding: 15px;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.folder-tree {
+    margin-top: 10px;
+}
+
+.folder-item {
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 4px;
+    margin: 2px 0;
+    display: flex;
+    align-items: center;
+}
+
+.folder-item:hover {
+    background-color: #f3f2f1;
+}
+
+.folder-item.selected {
+    background-color: #0078d4;
+    color: white;
+}
+
+.folder-icon {
+    margin-right: 8px;
+    width: 16px;
+    height: 16px;
+}
+
+.folder-children {
+    margin-left: 20px;
+}
+
+.document-list-container {
+    margin-top: 10px;
+    height: calc(100% - 50px);
+    overflow-y: auto;
+}
+
+.document-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.document-table th,
+.document-table td {
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid #e1e1e1;
+}
+
+.document-table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+
+.document-row {
+    cursor: pointer;
+}
+
+.document-row:hover {
+    background-color: #f3f2f1;
+}
+
+.document-row.selected {
+    background-color: #deecf9;
+}
+
+.file-icon {
+    width: 16px;
+    height: 16px;
+    margin-right: 5px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 5px;
+}
+
+.action-btn {
+    padding: 4px 8px;
+    font-size: 12px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.action-btn.view {
+    background-color: #0078d4;
+    color: white;
+}
+
+.action-btn.edit {
+    background-color: #107c10;
+    color: white;
+}
+
+.action-btn.delete {
+    background-color: #d13438;
+    color: white;
+}
+
+.action-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.loading-section {
+    padding: 50px;
+    text-align: center;
+}
+
+.error-section {
+    padding: 15px;
+}
+
+.text-center {
+    text-align: center;
+}
+
+/* Modal Styles */
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background-color: white;
+    margin: 15% auto;
+    padding: 0;
+    border-radius: 8px;
+    width: 400px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+    padding: 20px;
+    border-bottom: 1px solid #e1e1e1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+}
+
+.close {
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    color: #666;
+}
+
+.close:hover {
+    color: #000;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-body .ms-TextField {
+    margin-bottom: 15px;
+}
+
+.modal-footer {
+    padding: 20px;
+    border-top: 1px solid #e1e1e1;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+/* Context Menu */
+.context-menu {
+    position: absolute;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    min-width: 120px;
+}
+
+.context-menu ul {
+    list-style: none;
+    margin: 0;
+    padding: 5px 0;
+}
+
+.context-menu li {
+    padding: 8px 15px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.context-menu li:hover {
+    background-color: #f3f2f1;
+}
+
+.context-menu li:disabled {
+    color: #ccc;
+    cursor: not-allowed;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .main-content .ms-Grid-col {
+        width: 100%;
+    }
+    
+    .folder-panel {
+        border-right: none;
+        border-bottom: 1px solid #e1e1e1;
+        height: 200px;
+    }
+    
+    .document-panel {
+        height: calc(100vh - 400px);
+    }
+}
+
+/* Status indicators */
+.status-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 5px;
+}
+
+.status-indicator.online {
+    background-color: #107c10;
+}
+
+.status-indicator.offline {
+    background-color: #d13438;
+}
+
+.status-indicator.pending {
+    background-color: #ff8c00;
+}

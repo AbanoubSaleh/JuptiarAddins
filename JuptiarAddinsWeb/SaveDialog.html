@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Save to Juptiar</title>
+
+    <!-- Office JavaScript API -->
+    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
+
+    <!-- jQuery -->
+    <script type="text/javascript" src="Scripts/jquery-3.6.0.min.js"></script>
+
+    <!-- Office UI Fabric -->
+    <link rel="stylesheet" href="Content/fabric.min.css" />
+    <link rel="stylesheet" href="Content/OfficeThemes.css" />
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="SaveDialog.css" />
+</head>
+
+<body class="ms-font-m ms-welcome ms-Fabric">
+    <div class="ms-Grid save-container">
+        <!-- Header -->
+        <div class="ms-Grid-row header-section">
+            <div class="ms-Grid-col ms-sm12">
+                <h2 class="ms-font-xl ms-fontColor-themePrimary">Save Document to Juptiar</h2>
+                <p class="ms-font-s">Save the current Word document to your Juptiar document management system.</p>
+            </div>
+        </div>
+
+        <!-- Authentication Check -->
+        <div class="ms-Grid-row auth-section" id="authSection">
+            <div class="ms-Grid-col ms-sm12">
+                <div class="auth-status" id="authStatus">
+                    <div class="status-indicator offline" id="authIndicator"></div>
+                    <span id="authStatusText">Not authenticated</span>
+                    <button id="loginBtn" class="ms-Button ms-Button--primary">
+                        <span class="ms-Button-label">Login</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Save Form -->
+        <div class="ms-Grid-row save-form-section" id="saveFormSection" style="display: none;">
+            <!-- Library Selection -->
+            <div class="ms-Grid-col ms-sm12 form-section">
+                <h3 class="ms-font-l">Destination</h3>
+                
+                <div class="ms-TextField">
+                    <label class="ms-Label">Library *</label>
+                    <select id="librarySelect" class="ms-Dropdown-select">
+                        <option value="">Select a library...</option>
+                        <!-- Options will be populated dynamically -->
+                    </select>
+                </div>
+
+                <div class="ms-TextField">
+                    <label class="ms-Label">Folder</label>
+                    <select id="folderSelect" class="ms-Dropdown-select" disabled>
+                        <option value="">Select a folder...</option>
+                        <!-- Options will be populated dynamically -->
+                    </select>
+                </div>
+            </div>
+
+            <!-- Document Information -->
+            <div class="ms-Grid-col ms-sm12 form-section">
+                <h3 class="ms-font-l">Document Information</h3>
+                
+                <div class="ms-TextField">
+                    <label class="ms-Label">File Name *</label>
+                    <input type="text" id="fileName" class="ms-TextField-field" 
+                           placeholder="Enter file name" />
+                    <span class="ms-TextField-description">
+                        File name without extension (will be added automatically)
+                    </span>
+                </div>
+
+                <div class="ms-TextField">
+                    <label class="ms-Label">Title</label>
+                    <input type="text" id="documentTitle" class="ms-TextField-field" 
+                           placeholder="Document title" />
+                </div>
+
+                <div class="ms-TextField">
+                    <label class="ms-Label">Description</label>
+                    <textarea id="documentDescription" class="ms-TextField-field textarea" 
+                              placeholder="Document description" rows="3"></textarea>
+                </div>
+
+                <div class="ms-TextField">
+                    <label class="ms-Label">Tags</label>
+                    <input type="text" id="documentTags" class="ms-TextField-field" 
+                           placeholder="Enter tags separated by commas" />
+                    <span class="ms-TextField-description">
+                        Separate multiple tags with commas
+                    </span>
+                </div>
+            </div>
+
+            <!-- Metadata -->
+            <div class="ms-Grid-col ms-sm12 form-section">
+                <h3 class="ms-font-l">Metadata</h3>
+                
+                <div class="ms-TextField">
+                    <label class="ms-Label">Author</label>
+                    <input type="text" id="documentAuthor" class="ms-TextField-field" 
+                           placeholder="Document author" />
+                </div>
+
+                <div class="ms-TextField">
+                    <label class="ms-Label">Language</label>
+                    <select id="documentLanguage" class="ms-Dropdown-select">
+                        <option value="en">English</option>
+                        <option value="es">Spanish</option>
+                        <option value="fr">French</option>
+                        <option value="de">German</option>
+                        <option value="it">Italian</option>
+                        <option value="pt">Portuguese</option>
+                        <option value="ar">Arabic</option>
+                        <!-- Add more languages as needed -->
+                    </select>
+                </div>
+
+                <div class="ms-TextField">
+                    <label class="ms-Label">Custom ID</label>
+                    <input type="text" id="customId" class="ms-TextField-field" 
+                           placeholder="Custom document ID" />
+                </div>
+
+                <div class="ms-TextField">
+                    <label class="ms-Label">Source</label>
+                    <input type="text" id="documentSource" class="ms-TextField-field" 
+                           placeholder="Document source" />
+                </div>
+            </div>
+
+            <!-- Save Options -->
+            <div class="ms-Grid-col ms-sm12 form-section">
+                <h3 class="ms-font-l">Save Options</h3>
+                
+                <div class="ms-CheckBox">
+                    <input type="checkbox" id="overwriteExisting" class="ms-CheckBox-input" />
+                    <label class="ms-CheckBox-label" for="overwriteExisting">
+                        Overwrite if file already exists
+                    </label>
+                </div>
+
+                <div class="ms-CheckBox">
+                    <input type="checkbox" id="createVersion" class="ms-CheckBox-input" checked />
+                    <label class="ms-CheckBox-label" for="createVersion">
+                        Create new version if file exists
+                    </label>
+                </div>
+
+                <div class="ms-CheckBox">
+                    <input type="checkbox" id="notifyUsers" class="ms-CheckBox-input" />
+                    <label class="ms-CheckBox-label" for="notifyUsers">
+                        Notify other users about this document
+                    </label>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="ms-Grid-col ms-sm12 action-section">
+                <div class="action-buttons">
+                    <button id="saveBtn" class="ms-Button ms-Button--primary">
+                        <span class="ms-Button-label">Save Document</span>
+                    </button>
+                    <button id="previewBtn" class="ms-Button">
+                        <span class="ms-Button-label">Preview</span>
+                    </button>
+                    <button id="cancelBtn" class="ms-Button">
+                        <span class="ms-Button-label">Cancel</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Section -->
+        <div class="ms-Grid-row progress-section" id="progressSection" style="display: none;">
+            <div class="ms-Grid-col ms-sm12">
+                <h3 class="ms-font-l">Saving Document...</h3>
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="progress-text" id="progressText">Preparing document...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Messages -->
+        <div class="ms-Grid-row message-section" id="messageSection" style="display: none;">
+            <div class="ms-Grid-col ms-sm12">
+                <div class="ms-MessageBar" id="messageBar">
+                    <div class="ms-MessageBar-content">
+                        <div class="ms-MessageBar-icon" id="messageIcon">
+                            <i class="ms-Icon"></i>
+                        </div>
+                        <div class="ms-MessageBar-text" id="messageText">
+                            Document saved successfully.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div class="ms-Grid-row loading-section" id="loadingSection">
+            <div class="ms-Grid-col ms-sm12 text-center">
+                <div class="ms-Spinner ms-Spinner--large">
+                    <div class="ms-Spinner-circle"></div>
+                </div>
+                <p class="ms-font-m">Loading libraries...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview Modal -->
+    <div id="previewModal" class="modal" style="display: none;">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3>Document Preview</h3>
+                <span class="close" id="closePreview">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="preview-info">
+                    <p><strong>Library:</strong> <span id="previewLibrary">-</span></p>
+                    <p><strong>Folder:</strong> <span id="previewFolder">-</span></p>
+                    <p><strong>File Name:</strong> <span id="previewFileName">-</span></p>
+                    <p><strong>Title:</strong> <span id="previewTitle">-</span></p>
+                    <p><strong>Description:</strong> <span id="previewDescription">-</span></p>
+                    <p><strong>Tags:</strong> <span id="previewTags">-</span></p>
+                    <p><strong>Author:</strong> <span id="previewAuthor">-</span></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="confirmSaveBtn" class="ms-Button ms-Button--primary">
+                    <span class="ms-Button-label">Confirm Save</span>
+                </button>
+                <button id="editDetailsBtn" class="ms-Button">
+                    <span class="ms-Button-label">Edit Details</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom JavaScript -->
+    <script type="text/javascript" src="Scripts/JuptiarService.js"></script>
+    <script type="text/javascript" src="Scripts/AuthManager.js"></script>
+    <script type="text/javascript" src="Scripts/DocumentSaver.js"></script>
+    <script type="text/javascript" src="Scripts/SaveDialog.js"></script>
+</body>
+</html>
