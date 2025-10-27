@@ -1,0 +1,33 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35913.81 d17.13
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JuptiarAddins", "JuptiarAddins.csproj", "{F098F17C-144A-4E57-AEC3-4D48B8ED9AF3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JuptiarAddinsWeb", "..\JuptiarAddinsWeb\JuptiarAddinsWeb.csproj", "{FBFABCB8-EBF3-4718-957A-856A82D6EA8D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F098F17C-144A-4E57-AEC3-4D48B8ED9AF3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F098F17C-144A-4E57-AEC3-4D48B8ED9AF3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F098F17C-144A-4E57-AEC3-4D48B8ED9AF3}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{F098F17C-144A-4E57-AEC3-4D48B8ED9AF3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F098F17C-144A-4E57-AEC3-4D48B8ED9AF3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F098F17C-144A-4E57-AEC3-4D48B8ED9AF3}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{FBFABCB8-EBF3-4718-957A-856A82D6EA8D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FBFABCB8-EBF3-4718-957A-856A82D6EA8D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FBFABCB8-EBF3-4718-957A-856A82D6EA8D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FBFABCB8-EBF3-4718-957A-856A82D6EA8D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {AD3EE38D-CEA2-4291-B6D9-5909AEA3E8C3}
+	EndGlobalSection
+EndGlobal
