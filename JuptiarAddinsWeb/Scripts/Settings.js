@@ -150,28 +150,14 @@ class SettingsPage {
     }
 
     /**
-     * Validate server URL
+     * Validate server URL (now pre-configured, always valid)
      */
     validateServerUrl() {
-        const url = $('#serverUrl').val().trim();
+        // Server URL is pre-configured, so always return true
         const $field = $('#serverUrl');
-        
-        if (!url) {
-            $field.addClass('error');
-            this.showFieldError($field, 'Server URL is required');
-            return false;
-        }
-        
-        try {
-            new URL(url);
-            $field.removeClass('error');
-            this.hideFieldError($field);
-            return true;
-        } catch (error) {
-            $field.addClass('error');
-            this.showFieldError($field, 'Please enter a valid URL');
-            return false;
-        }
+        $field.removeClass('error');
+        this.hideFieldError($field);
+        return true;
     }
 
     /**

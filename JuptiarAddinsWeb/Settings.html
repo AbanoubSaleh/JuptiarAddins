@@ -36,11 +36,11 @@
                 <h3 class="ms-font-l">Connection Settings</h3>
                 
                 <div class="ms-TextField">
-                    <label class="ms-Label">Server URL *</label>
-                    <input type="text" id="serverUrl" class="ms-TextField-field" 
-                           placeholder="https://your-juptiar-server.com" />
+                    <label class="ms-Label">Server URL (Pre-configured)</label>
+                    <input type="text" id="serverUrl" class="ms-TextField-field"
+                           readonly="readonly" style="background-color: #f4f4f4;" />
                     <span class="ms-TextField-description">
-                        Enter the base URL of your Juptiar server
+                        Server URL is pre-configured for this installation
                     </span>
                 </div>
 
@@ -202,6 +202,7 @@
     </div>
 
     <!-- Custom JavaScript -->
+    <script type="text/javascript" src="Scripts/config.js"></script>
     <script type="text/javascript" src="Scripts/JupiterService.js"></script>
     <script type="text/javascript" src="Scripts/AuthManager.js"></script>
     <script type="text/javascript" src="Scripts/Settings.js"></script>

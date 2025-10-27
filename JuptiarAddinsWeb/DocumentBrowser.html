@@ -128,10 +128,7 @@
                     <label class="ms-Label">Password:</label>
                     <input type="password" id="password" class="ms-TextField-field" />
                 </div>
-                <div class="ms-TextField">
-                    <label class="ms-Label">Server URL:</label>
-                    <input type="text" id="serverUrl" class="ms-TextField-field" placeholder="https://your-juptiar-server.com" />
-                </div>
+                <!-- Server URL is now pre-configured, no need for user input -->
             </div>
             <div class="modal-footer">
                 <button id="loginSubmitBtn" class="ms-Button ms-Button--primary">
@@ -155,6 +152,7 @@
     </div>
 
     <!-- Custom JavaScript -->
+    <script type="text/javascript" src="Scripts/config.js"></script>
     <script type="text/javascript" src="Scripts/JupiterService.js"></script>
     <script type="text/javascript" src="Scripts/AuthManager.js"></script>
     <script type="text/javascript" src="Scripts/DocumentBrowser.js"></script>

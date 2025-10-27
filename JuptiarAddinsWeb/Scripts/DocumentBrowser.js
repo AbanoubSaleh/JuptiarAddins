@@ -69,7 +69,16 @@ class DocumentBrowser {
      */
     async checkAuthenticationStatus() {
         try {
+            console.log('Checking authentication status...');
+
+            if (!window.authManager) {
+                console.error('AuthManager not available!');
+                this.handleAuthStateChange({ isAuthenticated: false });
+                return;
+            }
+
             const authStatus = window.authManager.getAuthStatus();
+            console.log('Auth status:', authStatus);
             this.handleAuthStateChange(authStatus);
         } catch (error) {
             console.error('Error checking auth status:', error);
@@ -122,10 +131,8 @@ class DocumentBrowser {
      */
     showLoginModal() {
         const credentials = window.authManager.getStoredCredentials();
-        const settings = window.authManager.getSettings();
-        
+
         $('#username').val(credentials.username);
-        $('#serverUrl').val(settings.serverUrl);
         $('#loginModal').show();
         $('#username').focus();
     }
@@ -146,21 +153,17 @@ class DocumentBrowser {
         try {
             const username = $('#username').val().trim();
             const password = $('#password').val();
-            const serverUrl = $('#serverUrl').val().trim();
 
-            if (!username || !password || !serverUrl) {
-                this.showError('Please fill in all required fields');
+            if (!username || !password) {
+                this.showError('Please enter username and password');
                 return;
             }
 
-            // Update settings with server URL
-            await window.authManager.saveSettings({ serverUrl: serverUrl });
-
-            // Attempt login
+            // Attempt login (server URL is pre-configured)
             $('#loginSubmitBtn').prop('disabled', true).text('Logging in...');
-            
+
             await window.authManager.login(username, password, true);
-            
+
             this.hideLoginModal();
             this.showSuccess('Successfully logged in');
             
@@ -606,5 +609,29 @@ class DocumentBrowser {
 
 // Initialize when Office is ready
 Office.onReady(() => {
+    console.log('Office is ready, initializing DocumentBrowser...');
+
+    // Ensure all dependencies are loaded
+    if (typeof JupiterConfig === 'undefined') {
+        console.error('JupiterConfig not loaded!');
+        return;
+    }
+
+    if (typeof JupiterService === 'undefined') {
+        console.error('JupiterService not loaded!');
+        return;
+    }
+
+    if (typeof AuthManager === 'undefined') {
+        console.error('AuthManager not loaded!');
+        return;
+    }
+
+    // Initialize global instances
+    window.jupiterConfig = JupiterConfig; // JupiterConfig is an object, not a constructor
+    window.jupiterService = new JupiterService();
+    window.authManager = new AuthManager();
+
+    console.log('Dependencies loaded, creating DocumentBrowser...');
     window.documentBrowser = new DocumentBrowser();
 });

@@ -7,12 +7,13 @@ class AuthManager {
         this.isAuthenticated = false;
         this.currentUser = null;
         this.authToken = null;
+        // Initialize settings from configuration
         this.settings = {
-            serverUrl: '',
-            apiEndpoint: '/api/v1',
-            timeout: 30000,
-            rememberCredentials: false,
-            autoLogin: false
+            serverUrl: window.JupiterConfig?.get('server.baseUrl') || 'https://localhost:7001',
+            apiEndpoint: window.JupiterConfig?.get('server.apiEndpoint') || '/api',
+            timeout: window.JupiterConfig?.get('server.timeout') || 30000,
+            rememberCredentials: window.JupiterConfig?.get('auth.rememberCredentials') || false,
+            autoLogin: window.JupiterConfig?.get('auth.autoLogin') || false
         };
         
         this.loadSettings();
@@ -136,7 +137,11 @@ class AuthManager {
      */
     async login(username, password, rememberCredentials = false) {
         try {
+            console.log('AuthManager: Attempting login for user:', username);
+            console.log('AuthManager: Using server URL:', this.settings.serverUrl);
+
             if (!window.jupiterService) {
+                console.error('Jupiter service not initialized');
                 throw new Error('Jupiter service not initialized');
             }
 
@@ -150,7 +155,9 @@ class AuthManager {
             }
 
             // Attempt login
+            console.log('AuthManager: Calling jupiterService.login...');
             const response = await window.jupiterService.login(username, password);
+            console.log('AuthManager: Login response:', response);
             
             if (response.success && response.token) {
                 this.isAuthenticated = true;
@@ -252,7 +259,7 @@ class AuthManager {
     /**
      * Test connection to server
      */
-    async testConnection(serverUrl, apiEndpoint = '/api/v1') {
+    async testConnection(serverUrl, apiEndpoint = '/api') {
         try {
             const tempService = new JupiterService();
             tempService.initialize({
@@ -261,8 +268,22 @@ class AuthManager {
                 timeout: 10000 // Shorter timeout for testing
             });
 
-            // Try to make a simple request (like getting server info)
-            const response = await tempService.makeRequest('GET', '/health');
+            // Try to make a simple request to test connectivity
+            // Use a POST to Auth/login with empty body to test if endpoint exists
+            // This should return 400 (bad request) but not 404 (not found)
+            try {
+                await tempService.makeRequest('POST', '/Auth/login', {});
+            } catch (error) {
+                // If we get 400 (bad request), the endpoint exists - connection is good
+                // If we get 404 (not found), the endpoint doesn't exist - connection failed
+                if (error.message.includes('400')) {
+                    return { success: true, message: 'Connection successful - endpoint found' };
+                } else if (error.message.includes('404')) {
+                    throw new Error('API endpoint not found (404)');
+                } else {
+                    throw error;
+                }
+            }
             return { success: true, response: response };
         } catch (error) {
             return { success: false, error: error.message };
