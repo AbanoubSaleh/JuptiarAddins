@@ -205,11 +205,11 @@ class PropertiesEditor {
         // If document is from Juptiar, load additional metadata
         if (this.currentDocument.id) {
             try {
-                const juptiarMetadata = await window.juptiarService.getDocumentMetadata(this.currentDocument.id);
-                this.documentMetadata = { ...this.documentMetadata, ...juptiarMetadata };
-                
+                const jupiterMetadata = await window.jupiterService.getDocumentMetadata(this.currentDocument.id);
+                this.documentMetadata = { ...this.documentMetadata, ...jupiterMetadata };
+
                 // Load user permissions
-                this.userPermissions = await window.juptiarService.getUserPermissions(this.currentDocument.id);
+                this.userPermissions = await window.jupiterService.getUserPermissions(this.currentDocument.id);
             } catch (error) {
                 console.warn('Could not load Juptiar metadata:', error);
             }
@@ -223,9 +223,9 @@ class PropertiesEditor {
         try {
             this.showLoading('Loading document from Juptiar...');
             
-            const document = await window.juptiarService.getDocument(documentId);
-            const metadata = await window.juptiarService.getDocumentMetadata(documentId);
-            const permissions = await window.juptiarService.getUserPermissions(documentId);
+            const document = await window.jupiterService.getDocument(documentId);
+            const metadata = await window.jupiterService.getDocumentMetadata(documentId);
+            const permissions = await window.jupiterService.getUserPermissions(documentId);
             
             this.currentDocument = document;
             this.documentMetadata = metadata;
@@ -250,7 +250,7 @@ class PropertiesEditor {
             this.showLoading('Loading documents...');
             
             // Load available documents
-            const response = await window.juptiarService.searchDocuments('', 'all');
+            const response = await window.jupiterService.searchDocuments('', 'all');
             this.availableDocuments = response.documents || [];
             
             this.populateDocumentList(this.availableDocuments);
@@ -447,7 +447,7 @@ class PropertiesEditor {
 
             // Save to Juptiar if document exists there
             if (this.currentDocument?.id) {
-                await window.juptiarService.updateDocumentMetadata(this.currentDocument.id, updatedMetadata);
+                await window.jupiterService.updateDocumentMetadata(this.currentDocument.id, updatedMetadata);
             }
 
             // Update Word document properties

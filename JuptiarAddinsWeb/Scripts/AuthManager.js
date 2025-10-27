@@ -31,8 +31,8 @@ class AuthManager {
                 this.settings = { ...this.settings, ...savedSettings };
                 
                 // Initialize service with settings
-                if (window.juptiarService) {
-                    window.juptiarService.initialize(this.settings);
+                if (window.jupiterService) {
+                    window.jupiterService.initialize(this.settings);
                 }
             }
         } catch (error) {
@@ -51,8 +51,8 @@ class AuthManager {
             await Office.context.document.settings.saveAsync();
             
             // Update service configuration
-            if (window.juptiarService) {
-                window.juptiarService.initialize(this.settings);
+            if (window.jupiterService) {
+                window.jupiterService.initialize(this.settings);
             }
             
             return true;
@@ -136,8 +136,8 @@ class AuthManager {
      */
     async login(username, password, rememberCredentials = false) {
         try {
-            if (!window.juptiarService) {
-                throw new Error('Juptiar service not initialized');
+            if (!window.jupiterService) {
+                throw new Error('Jupiter service not initialized');
             }
 
             // Validate inputs
@@ -150,7 +150,7 @@ class AuthManager {
             }
 
             // Attempt login
-            const response = await window.juptiarService.login(username, password);
+            const response = await window.jupiterService.login(username, password);
             
             if (response.success && response.token) {
                 this.isAuthenticated = true;
@@ -175,8 +175,8 @@ class AuthManager {
             this.authToken = null;
             this.currentUser = null;
             
-            if (window.juptiarService) {
-                window.juptiarService.clearAuthToken();
+            if (window.jupiterService) {
+                window.jupiterService.clearAuthToken();
             }
             
             throw error;
@@ -188,8 +188,8 @@ class AuthManager {
      */
     async logout() {
         try {
-            if (window.juptiarService && this.isAuthenticated) {
-                await window.juptiarService.logout();
+            if (window.jupiterService && this.isAuthenticated) {
+                await window.jupiterService.logout();
             }
         } catch (error) {
             console.warn('Logout request failed:', error);
@@ -198,8 +198,8 @@ class AuthManager {
             this.authToken = null;
             this.currentUser = null;
             
-            if (window.juptiarService) {
-                window.juptiarService.clearAuthToken();
+            if (window.jupiterService) {
+                window.jupiterService.clearAuthToken();
             }
             
             this.notifyAuthStateChange();
@@ -215,11 +215,11 @@ class AuthManager {
                 return false;
             }
 
-            if (!window.juptiarService) {
+            if (!window.jupiterService) {
                 return false;
             }
 
-            const response = await window.juptiarService.validateSession();
+            const response = await window.jupiterService.validateSession();
             
             if (response.valid) {
                 return true;
@@ -254,7 +254,7 @@ class AuthManager {
      */
     async testConnection(serverUrl, apiEndpoint = '/api/v1') {
         try {
-            const tempService = new JuptiarService();
+            const tempService = new JupiterService();
             tempService.initialize({
                 serverUrl: serverUrl,
                 apiEndpoint: apiEndpoint,

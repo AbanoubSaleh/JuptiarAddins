@@ -1,5 +1,6 @@
 /**
  * Document Browser - Main functionality for browsing and opening documents
+ * Integrates with Jupiter document management system
  */
 
 class DocumentBrowser {
@@ -191,7 +192,7 @@ class DocumentBrowser {
         try {
             this.showLoading('Loading libraries...');
             
-            const treeData = await window.juptiarService.getLibraryTree();
+            const treeData = await window.jupiterService.getLibraryTree();
             this.folderTree = treeData;
             
             this.renderFolderTree(treeData);
@@ -260,7 +261,7 @@ class DocumentBrowser {
         try {
             this.showLoading('Loading documents...');
             
-            const response = await window.juptiarService.getDocuments(libraryId, folderId);
+            const response = await window.jupiterService.getDocuments(libraryId, folderId);
             this.documents = response.documents || [];
             
             this.renderDocumentList(this.documents);
@@ -409,7 +410,7 @@ class DocumentBrowser {
         try {
             this.showLoading('Searching...');
             
-            const results = await window.juptiarService.searchDocuments(query);
+            const results = await window.jupiterService.searchDocuments(query);
             this.renderDocumentList(results.documents || []);
             
             this.hideLoading();
@@ -471,7 +472,7 @@ class DocumentBrowser {
             this.showLoading('Opening document...');
 
             // Download document content
-            const blob = await window.juptiarService.downloadDocument(documentId);
+            const blob = await window.jupiterService.downloadDocument(documentId);
 
             // Convert blob to base64
             const reader = new FileReader();
@@ -559,7 +560,7 @@ class DocumentBrowser {
 
             this.showLoading('Deleting document...');
 
-            await window.juptiarService.deleteDocument(documentId);
+            await window.jupiterService.deleteDocument(documentId);
 
             // Refresh the document list
             await this.refreshCurrentView();

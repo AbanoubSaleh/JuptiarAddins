@@ -120,7 +120,7 @@ class SettingsPage {
     async loadDefaultLibraryOptions() {
         try {
             if (window.authManager.getAuthStatus().isAuthenticated) {
-                const libraries = await window.juptiarService.getLibraryTree();
+                const libraries = await window.jupiterService.getLibraryTree();
                 this.populateDefaultLibrarySelect(libraries);
             }
         } catch (error) {

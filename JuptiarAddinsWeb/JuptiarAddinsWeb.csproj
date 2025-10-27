@@ -143,8 +143,8 @@
     <Content Include="Properties.html" />
     <Content Include="Properties.css" />
 
-    <!-- Juptiar JavaScript Files -->
-    <Content Include="Scripts\JuptiarService.js" />
+    <!-- Jupiter JavaScript Files -->
+    <Content Include="Scripts\JupiterService.js" />
     <Content Include="Scripts\AuthManager.js" />
     <Content Include="Scripts\DocumentBrowser.js" />
     <Content Include="Scripts\DocumentSaver.js" />
@@ -160,10 +160,10 @@
     <Content Include="Images\Button80x80.png" />
     <Content Include="Images\Close.png" />
 
-    <!-- Juptiar Icons -->
-    <Content Include="Images\JuptiarIcon16x16.png" />
-    <Content Include="Images\JuptiarIcon32x32.png" />
-    <Content Include="Images\JuptiarIcon80x80.png" />
+    <!-- Jupiter Icons -->
+    <Content Include="Images\JupiterIcon16x16.png" />
+    <Content Include="Images\JupiterIcon32x32.png" />
+    <Content Include="Images\JupiterIcon80x80.png" />
     <Content Include="Images\Open16x16.png" />
     <Content Include="Images\Open32x32.png" />
     <Content Include="Images\Open80x80.png" />

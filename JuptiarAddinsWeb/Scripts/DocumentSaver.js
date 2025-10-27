@@ -95,7 +95,7 @@ class DocumentSaver {
         try {
             this.showLoading('Loading libraries...');
             
-            const treeData = await window.juptiarService.getLibraryTree();
+            const treeData = await window.jupiterService.getLibraryTree();
             this.libraries = treeData;
             
             this.populateLibrarySelect(treeData);
@@ -413,7 +413,7 @@ class DocumentSaver {
             });
 
             // Upload to Juptiar
-            const response = await window.juptiarService.uploadDocument(
+            const response = await window.jupiterService.uploadDocument(
                 formData.libraryId,
                 formData.folderId,
                 file,

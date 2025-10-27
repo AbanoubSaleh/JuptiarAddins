@@ -13,20 +13,20 @@
   <Id>20270141-3bb0-4463-94a9-2ee7bcc96d5a</Id>
 
   <Version>1.0.0.0</Version>
-  <ProviderName>Juptiar</ProviderName>
+  <ProviderName>Jupiter</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <!-- The display name of your add-in. Used on the store and various places of the Office UI such as the add-ins dialog. -->
-  <DisplayName DefaultValue="Juptiar Document Manager" />
-  <Description DefaultValue="Juptiar Document Management System Integration for Microsoft Word"/>
+  <DisplayName DefaultValue="Jupiter Document Manager" />
+  <Description DefaultValue="Jupiter Document Management System Integration for Microsoft Word"/>
   <!-- Icon for your add-in. Used on installation screens and the add-ins dialog. -->
-  <IconUrl DefaultValue="~remoteAppUrl/Images/JuptiarIcon32x32.png" />
+  <IconUrl DefaultValue="~remoteAppUrl/Images/JupiterIcon32x32.png" />
 
-  <SupportUrl DefaultValue="https://www.juptiar.com/support" />
+  <SupportUrl DefaultValue="https://www.jupiter.com/support" />
   <!-- Domains that will be allowed when navigating. For example, if you use ShowTaskpane and then have an href link, navigation will only be allowed if the domain is on this list. -->
   <AppDomains>
     <AppDomain>localhost</AppDomain>
-    <AppDomain>juptiar.com</AppDomain>
-    <AppDomain>api.juptiar.com</AppDomain>
+    <AppDomain>jupiter.com</AppDomain>
+    <AppDomain>api.jupiter.com</AppDomain>
   </AppDomains>
   
 
@@ -57,89 +57,89 @@
           <FunctionFile resid="Contoso.DesktopFunctionFile.Url" />
 
           <ExtensionPoint xsi:type="PrimaryCommandSurface">
-            <!-- Custom Juptiar Tab -->
-            <CustomTab id="Juptiar.Tab">
-              <Group id="Juptiar.DocumentGroup">
-                <Label resid="Juptiar.DocumentGroup.Label" />
+            <!-- Custom Jupiter Tab -->
+            <CustomTab id="Jupiter.Tab">
+              <Group id="Jupiter.DocumentGroup">
+                <Label resid="Jupiter.DocumentGroup.Label" />
                 <Icon>
-                  <bt:Image size="16" resid="Juptiar.icon_16x16" />
-                  <bt:Image size="32" resid="Juptiar.icon_32x32" />
-                  <bt:Image size="80" resid="Juptiar.icon_80x80" />
+                  <bt:Image size="16" resid="Jupiter.icon_16x16" />
+                  <bt:Image size="32" resid="Jupiter.icon_32x32" />
+                  <bt:Image size="80" resid="Jupiter.icon_80x80" />
                 </Icon>
 
                 <!-- Open/Browse Button -->
-                <Control xsi:type="Button" id="Juptiar.OpenBrowseButton">
-                  <Label resid="Juptiar.OpenBrowse.Label" />
+                <Control xsi:type="Button" id="Jupiter.OpenBrowseButton">
+                  <Label resid="Jupiter.OpenBrowse.Label" />
                   <Supertip>
-                    <Title resid="Juptiar.OpenBrowse.Label" />
-                    <Description resid="Juptiar.OpenBrowse.Tooltip" />
+                    <Title resid="Jupiter.OpenBrowse.Label" />
+                    <Description resid="Jupiter.OpenBrowse.Tooltip" />
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="Juptiar.open_16x16" />
-                    <bt:Image size="32" resid="Juptiar.open_32x32" />
-                    <bt:Image size="80" resid="Juptiar.open_80x80" />
+                    <bt:Image size="16" resid="Jupiter.open_16x16" />
+                    <bt:Image size="32" resid="Jupiter.open_32x32" />
+                    <bt:Image size="80" resid="Jupiter.open_80x80" />
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
-                    <TaskpaneId>JuptiarBrowser</TaskpaneId>
-                    <SourceLocation resid="Juptiar.DocumentBrowser.Url" />
+                    <TaskpaneId>JupiterBrowser</TaskpaneId>
+                    <SourceLocation resid="Jupiter.DocumentBrowser.Url" />
                   </Action>
                 </Control>
 
                 <!-- Save Button -->
-                <Control xsi:type="Button" id="Juptiar.SaveButton">
-                  <Label resid="Juptiar.Save.Label" />
+                <Control xsi:type="Button" id="Jupiter.SaveButton">
+                  <Label resid="Jupiter.Save.Label" />
                   <Supertip>
-                    <Title resid="Juptiar.Save.Label" />
-                    <Description resid="Juptiar.Save.Tooltip" />
+                    <Title resid="Jupiter.Save.Label" />
+                    <Description resid="Jupiter.Save.Tooltip" />
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="Juptiar.save_16x16" />
-                    <bt:Image size="32" resid="Juptiar.save_32x32" />
-                    <bt:Image size="80" resid="Juptiar.save_80x80" />
+                    <bt:Image size="16" resid="Jupiter.save_16x16" />
+                    <bt:Image size="32" resid="Jupiter.save_32x32" />
+                    <bt:Image size="80" resid="Jupiter.save_80x80" />
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
-                    <TaskpaneId>JuptiarSave</TaskpaneId>
-                    <SourceLocation resid="Juptiar.SaveDialog.Url" />
+                    <TaskpaneId>JupiterSave</TaskpaneId>
+                    <SourceLocation resid="Jupiter.SaveDialog.Url" />
                   </Action>
                 </Control>
 
                 <!-- Settings Button -->
-                <Control xsi:type="Button" id="Juptiar.SettingsButton">
-                  <Label resid="Juptiar.Settings.Label" />
+                <Control xsi:type="Button" id="Jupiter.SettingsButton">
+                  <Label resid="Jupiter.Settings.Label" />
                   <Supertip>
-                    <Title resid="Juptiar.Settings.Label" />
-                    <Description resid="Juptiar.Settings.Tooltip" />
+                    <Title resid="Jupiter.Settings.Label" />
+                    <Description resid="Jupiter.Settings.Tooltip" />
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="Juptiar.settings_16x16" />
-                    <bt:Image size="32" resid="Juptiar.settings_32x32" />
-                    <bt:Image size="80" resid="Juptiar.settings_80x80" />
+                    <bt:Image size="16" resid="Jupiter.settings_16x16" />
+                    <bt:Image size="32" resid="Jupiter.settings_32x32" />
+                    <bt:Image size="80" resid="Jupiter.settings_80x80" />
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
-                    <TaskpaneId>JuptiarSettings</TaskpaneId>
-                    <SourceLocation resid="Juptiar.Settings.Url" />
+                    <TaskpaneId>JupiterSettings</TaskpaneId>
+                    <SourceLocation resid="Jupiter.Settings.Url" />
                   </Action>
                 </Control>
 
                 <!-- Edit Properties Button -->
-                <Control xsi:type="Button" id="Juptiar.PropertiesButton">
-                  <Label resid="Juptiar.Properties.Label" />
+                <Control xsi:type="Button" id="Jupiter.PropertiesButton">
+                  <Label resid="Jupiter.Properties.Label" />
                   <Supertip>
-                    <Title resid="Juptiar.Properties.Label" />
-                    <Description resid="Juptiar.Properties.Tooltip" />
+                    <Title resid="Jupiter.Properties.Label" />
+                    <Description resid="Jupiter.Properties.Tooltip" />
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="Juptiar.properties_16x16" />
-                    <bt:Image size="32" resid="Juptiar.properties_32x32" />
-                    <bt:Image size="80" resid="Juptiar.properties_80x80" />
+                    <bt:Image size="16" resid="Jupiter.properties_16x16" />
+                    <bt:Image size="32" resid="Jupiter.properties_32x32" />
+                    <bt:Image size="80" resid="Jupiter.properties_80x80" />
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
-                    <TaskpaneId>JuptiarProperties</TaskpaneId>
-                    <SourceLocation resid="Juptiar.Properties.Url" />
+                    <TaskpaneId>JupiterProperties</TaskpaneId>
+                    <SourceLocation resid="Jupiter.Properties.Url" />
                   </Action>
                 </Control>
               </Group>
-              <Label resid="Juptiar.Tab.Label" />
+              <Label resid="Jupiter.Tab.Label" />
             </CustomTab>
           </ExtensionPoint>
         </DesktopFormFactor>
@@ -148,60 +148,60 @@
     
     <Resources>
       <bt:Images>
-        <!-- Juptiar Icons -->
-        <bt:Image id="Juptiar.icon_16x16" DefaultValue="~remoteAppUrl/Images/JuptiarIcon16x16.png" />
-        <bt:Image id="Juptiar.icon_32x32" DefaultValue="~remoteAppUrl/Images/JuptiarIcon32x32.png" />
-        <bt:Image id="Juptiar.icon_80x80" DefaultValue="~remoteAppUrl/Images/JuptiarIcon80x80.png" />
+        <!-- Jupiter Icons -->
+        <bt:Image id="Jupiter.icon_16x16" DefaultValue="~remoteAppUrl/Images/JupiterIcon16x16.png" />
+        <bt:Image id="Jupiter.icon_32x32" DefaultValue="~remoteAppUrl/Images/JupiterIcon32x32.png" />
+        <bt:Image id="Jupiter.icon_80x80" DefaultValue="~remoteAppUrl/Images/JupiterIcon80x80.png" />
 
         <!-- Open/Browse Icons -->
-        <bt:Image id="Juptiar.open_16x16" DefaultValue="~remoteAppUrl/Images/Open16x16.png" />
-        <bt:Image id="Juptiar.open_32x32" DefaultValue="~remoteAppUrl/Images/Open32x32.png" />
-        <bt:Image id="Juptiar.open_80x80" DefaultValue="~remoteAppUrl/Images/Open80x80.png" />
+        <bt:Image id="Jupiter.open_16x16" DefaultValue="~remoteAppUrl/Images/Open16x16.png" />
+        <bt:Image id="Jupiter.open_32x32" DefaultValue="~remoteAppUrl/Images/Open32x32.png" />
+        <bt:Image id="Jupiter.open_80x80" DefaultValue="~remoteAppUrl/Images/Open80x80.png" />
 
         <!-- Save Icons -->
-        <bt:Image id="Juptiar.save_16x16" DefaultValue="~remoteAppUrl/Images/Save16x16.png" />
-        <bt:Image id="Juptiar.save_32x32" DefaultValue="~remoteAppUrl/Images/Save32x32.png" />
-        <bt:Image id="Juptiar.save_80x80" DefaultValue="~remoteAppUrl/Images/Save80x80.png" />
+        <bt:Image id="Jupiter.save_16x16" DefaultValue="~remoteAppUrl/Images/Save16x16.png" />
+        <bt:Image id="Jupiter.save_32x32" DefaultValue="~remoteAppUrl/Images/Save32x32.png" />
+        <bt:Image id="Jupiter.save_80x80" DefaultValue="~remoteAppUrl/Images/Save80x80.png" />
 
         <!-- Settings Icons -->
-        <bt:Image id="Juptiar.settings_16x16" DefaultValue="~remoteAppUrl/Images/Settings16x16.png" />
-        <bt:Image id="Juptiar.settings_32x32" DefaultValue="~remoteAppUrl/Images/Settings32x32.png" />
-        <bt:Image id="Juptiar.settings_80x80" DefaultValue="~remoteAppUrl/Images/Settings80x80.png" />
+        <bt:Image id="Jupiter.settings_16x16" DefaultValue="~remoteAppUrl/Images/Settings16x16.png" />
+        <bt:Image id="Jupiter.settings_32x32" DefaultValue="~remoteAppUrl/Images/Settings32x32.png" />
+        <bt:Image id="Jupiter.settings_80x80" DefaultValue="~remoteAppUrl/Images/Settings80x80.png" />
 
         <!-- Properties Icons -->
-        <bt:Image id="Juptiar.properties_16x16" DefaultValue="~remoteAppUrl/Images/Properties16x16.png" />
-        <bt:Image id="Juptiar.properties_32x32" DefaultValue="~remoteAppUrl/Images/Properties32x32.png" />
-        <bt:Image id="Juptiar.properties_80x80" DefaultValue="~remoteAppUrl/Images/Properties80x80.png" />
+        <bt:Image id="Jupiter.properties_16x16" DefaultValue="~remoteAppUrl/Images/Properties16x16.png" />
+        <bt:Image id="Jupiter.properties_32x32" DefaultValue="~remoteAppUrl/Images/Properties32x32.png" />
+        <bt:Image id="Jupiter.properties_80x80" DefaultValue="~remoteAppUrl/Images/Properties80x80.png" />
       </bt:Images>
       <bt:Urls>
         <bt:Url id="Contoso.DesktopFunctionFile.Url" DefaultValue="~remoteAppUrl/Functions/FunctionFile.html" />
-        <bt:Url id="Juptiar.DocumentBrowser.Url" DefaultValue="~remoteAppUrl/DocumentBrowser.html" />
-        <bt:Url id="Juptiar.SaveDialog.Url" DefaultValue="~remoteAppUrl/SaveDialog.html" />
-        <bt:Url id="Juptiar.Settings.Url" DefaultValue="~remoteAppUrl/Settings.html" />
-        <bt:Url id="Juptiar.Properties.Url" DefaultValue="~remoteAppUrl/Properties.html" />
-        <bt:Url id="Contoso.GetStarted.LearnMoreUrl" DefaultValue="https://www.juptiar.com/help" />
+        <bt:Url id="Jupiter.DocumentBrowser.Url" DefaultValue="~remoteAppUrl/DocumentBrowser.html" />
+        <bt:Url id="Jupiter.SaveDialog.Url" DefaultValue="~remoteAppUrl/SaveDialog.html" />
+        <bt:Url id="Jupiter.Settings.Url" DefaultValue="~remoteAppUrl/Settings.html" />
+        <bt:Url id="Jupiter.Properties.Url" DefaultValue="~remoteAppUrl/Properties.html" />
+        <bt:Url id="Contoso.GetStarted.LearnMoreUrl" DefaultValue="https://www.jupiter.com/help" />
       </bt:Urls>
       <bt:ShortStrings>
-        <!-- Juptiar Tab and Group Labels -->
-        <bt:String id="Juptiar.Tab.Label" DefaultValue="Juptiar" />
-        <bt:String id="Juptiar.DocumentGroup.Label" DefaultValue="Document Management" />
+        <!-- Jupiter Tab and Group Labels -->
+        <bt:String id="Jupiter.Tab.Label" DefaultValue="Jupiter" />
+        <bt:String id="Jupiter.DocumentGroup.Label" DefaultValue="Document Management" />
 
         <!-- Button Labels -->
-        <bt:String id="Juptiar.OpenBrowse.Label" DefaultValue="Open/Browse" />
-        <bt:String id="Juptiar.Save.Label" DefaultValue="Save" />
-        <bt:String id="Juptiar.Settings.Label" DefaultValue="Settings" />
-        <bt:String id="Juptiar.Properties.Label" DefaultValue="Edit Properties" />
+        <bt:String id="Jupiter.OpenBrowse.Label" DefaultValue="Open/Browse" />
+        <bt:String id="Jupiter.Save.Label" DefaultValue="Save" />
+        <bt:String id="Jupiter.Settings.Label" DefaultValue="Settings" />
+        <bt:String id="Jupiter.Properties.Label" DefaultValue="Edit Properties" />
 
-        <bt:String id="Contoso.GetStarted.Title" DefaultValue="Get started with Juptiar!" />
+        <bt:String id="Contoso.GetStarted.Title" DefaultValue="Get started with Jupiter!" />
       </bt:ShortStrings>
       <bt:LongStrings>
         <!-- Button Tooltips -->
-        <bt:String id="Juptiar.OpenBrowse.Tooltip" DefaultValue="Browse and open documents from Juptiar document management system" />
-        <bt:String id="Juptiar.Save.Tooltip" DefaultValue="Save current document to Juptiar document management system" />
-        <bt:String id="Juptiar.Settings.Tooltip" DefaultValue="Configure Juptiar connection settings and credentials" />
-        <bt:String id="Juptiar.Properties.Tooltip" DefaultValue="Edit document metadata and properties" />
+        <bt:String id="Jupiter.OpenBrowse.Tooltip" DefaultValue="Browse and open documents from Jupiter document management system" />
+        <bt:String id="Jupiter.Save.Tooltip" DefaultValue="Save current document to Jupiter document management system" />
+        <bt:String id="Jupiter.Settings.Tooltip" DefaultValue="Configure Jupiter connection settings and credentials" />
+        <bt:String id="Jupiter.Properties.Tooltip" DefaultValue="Edit document metadata and properties" />
 
-        <bt:String id="Contoso.GetStarted.Description" DefaultValue="Your Juptiar add-in loaded successfully. Use the Juptiar tab to manage your documents." />
+        <bt:String id="Contoso.GetStarted.Description" DefaultValue="Your Jupiter add-in loaded successfully. Use the Jupiter tab to manage your documents." />
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>

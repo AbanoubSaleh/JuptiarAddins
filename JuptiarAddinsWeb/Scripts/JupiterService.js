@@ -1,9 +1,9 @@
 /**
- * Juptiar Service - Core API communication layer
- * Handles all HTTP requests to the Juptiar document management system
+ * Jupiter Service - Core API communication layer
+ * Handles all HTTP requests to the Jupiter document management system
  */
 
-class JuptiarService {
+class JupiterService {
     constructor() {
         this.baseUrl = '';
         this.apiEndpoint = '/api/v1';
@@ -237,8 +237,8 @@ class JuptiarService {
 
     // Error handling helper
     handleError(error) {
-        console.error('Juptiar Service Error:', error);
-        
+        console.error('Jupiter Service Error:', error);
+
         if (error.message.includes('401')) {
             this.clearAuthToken();
             throw new Error('Authentication required. Please login again.');
@@ -255,4 +255,4 @@ class JuptiarService {
 }
 
 // Create global instance
-window.juptiarService = new JuptiarService();
+window.jupiterService = new JupiterService();
