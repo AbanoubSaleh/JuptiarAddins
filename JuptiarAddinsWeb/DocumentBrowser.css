@@ -214,11 +214,41 @@ body {
     color: white;
 }
 
+.expand-icon {
+    margin-right: 4px;
+    width: 12px;
+    height: 12px;
+    font-size: 10px;
+    cursor: pointer;
+    display: inline-block;
+    text-align: center;
+    transition: transform 0.2s ease;
+    user-select: none;
+}
+
+.expand-icon:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 2px;
+}
+
 .folder-icon {
     margin-right: 6px;
     width: 16px;
     height: 16px;
     font-size: 14px;
+}
+
+.children-container {
+    overflow: hidden;
+}
+
+.library-item {
+    font-weight: 500;
+    border-left: 3px solid transparent;
+}
+
+.library-item.selected {
+    border-left-color: #0078d4;
 }
 
 .folder-children {

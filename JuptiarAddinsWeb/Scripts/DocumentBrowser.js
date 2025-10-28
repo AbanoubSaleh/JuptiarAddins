@@ -70,9 +70,28 @@ class DocumentBrowser {
             this.openSelectedDocument();
         });
 
-        // Folder selection
+        // Folder expand/collapse and selection
+        $(document).on('click', '.expand-icon', (e) => {
+            e.stopPropagation();
+            this.toggleFolderExpansion($(e.currentTarget).parent());
+        });
+
         $(document).on('click', '.folder-item', (e) => {
-            this.selectFolder($(e.currentTarget));
+            // If clicking on expand icon, don't select folder
+            if ($(e.target).hasClass('expand-icon')) {
+                return;
+            }
+
+            const $folderItem = $(e.currentTarget);
+            const type = $folderItem.data('type');
+
+            if (type === 'library') {
+                // For libraries, toggle expansion
+                this.toggleLibraryExpansion($folderItem);
+            } else {
+                // For folders, select and load documents
+                this.selectFolder($folderItem);
+            }
         });
 
         // Listen for authentication state changes
@@ -263,34 +282,153 @@ class DocumentBrowser {
     }
 
     /**
-     * Render folder tree in the UI
+     * Render folder tree with collapsible functionality
      */
     renderFolderTree(treeData) {
         const $treeContainer = $('#folderTree');
         $treeContainer.empty();
 
-        const renderNode = (node, level = 0) => {
-            const isLibrary = node.type === 'library';
-            const icon = isLibrary ? '📚' : '📁';
-            const folderId = node.type === 'folder' ? node.id : '';
-            const libraryId = isLibrary ? node.id : node.libraryId || this.currentLibrary;
+        if (Array.isArray(treeData)) {
+            treeData.forEach(library => this.renderLibrary(library, $treeContainer));
+        }
+    }
 
-            const $item = $(`
-                <div class="folder-item" data-library-id="${libraryId}" data-folder-id="${folderId}" data-type="${node.type}" style="margin-left: ${level * 16}px">
-                    <span class="folder-icon">${icon}</span>
-                    <span class="folder-name">${node.name}</span>
+    /**
+     * Render a library with collapsible folders
+     */
+    renderLibrary(library, $container) {
+        console.log('Rendering library with new code:', library.name);
+        const hasChildren = library.children && library.children.length > 0;
+        const expandIcon = hasChildren ? '▶' : '';
+
+        // Use folder icon for libraries as requested
+        const $libraryItem = $(`
+            <div class="folder-item library-item"
+                 data-library-id="${library.id}"
+                 data-folder-id=""
+                 data-type="library"
+                 data-node-id="${library.id}"
+                 data-has-children="${hasChildren}"
+                 data-expanded="false">
+                <span class="expand-icon">${expandIcon}</span>
+                <span class="folder-icon">📁</span>
+                <span class="folder-name">${library.name}</span>
+            </div>
+        `);
+
+        $container.append($libraryItem);
+
+        // Create children container (initially hidden)
+        if (hasChildren) {
+            const $childrenContainer = $(`
+                <div class="children-container"
+                     data-parent-id="${library.id}"
+                     style="display: none;">
                 </div>
             `);
 
-            $treeContainer.append($item);
+            library.children.forEach(folder => {
+                this.renderFolder(folder, $childrenContainer, library.id, 1);
+            });
 
-            if (node.children && node.children.length > 0) {
-                node.children.forEach(child => renderNode(child, level + 1));
-            }
-        };
+            $container.append($childrenContainer);
+        }
+    }
 
-        if (Array.isArray(treeData)) {
-            treeData.forEach(library => renderNode(library));
+    /**
+     * Render a folder
+     */
+    renderFolder(folder, $container, libraryId, level) {
+        const hasChildren = folder.children && folder.children.length > 0;
+        const expandIcon = hasChildren ? '▶' : '';
+
+        const $folderItem = $(`
+            <div class="folder-item"
+                 data-library-id="${libraryId}"
+                 data-folder-id="${folder.id}"
+                 data-type="folder"
+                 data-node-id="${folder.id}"
+                 data-has-children="${hasChildren}"
+                 data-expanded="false"
+                 style="margin-left: ${level * 16}px">
+                <span class="expand-icon">${expandIcon}</span>
+                <span class="folder-icon">📁</span>
+                <span class="folder-name">${folder.name}</span>
+            </div>
+        `);
+
+        $container.append($folderItem);
+
+        // Add children if they exist
+        if (hasChildren) {
+            const $childrenContainer = $(`
+                <div class="children-container"
+                     data-parent-id="${folder.id}"
+                     style="display: none;">
+                </div>
+            `);
+
+            folder.children.forEach(child => {
+                this.renderFolder(child, $childrenContainer, libraryId, level + 1);
+            });
+
+            $container.append($childrenContainer);
+        }
+    }
+
+    /**
+     * Toggle library expansion (show/hide folders)
+     */
+    toggleLibraryExpansion($libraryItem) {
+        const nodeId = $libraryItem.data('node-id');
+        const hasChildren = $libraryItem.data('has-children');
+        const isExpanded = $libraryItem.data('expanded') === 'true';
+
+        if (!hasChildren) {
+            return; // No children to expand
+        }
+
+        const $childrenContainer = $(`.children-container[data-parent-id="${nodeId}"]`);
+        const $expandIcon = $libraryItem.find('.expand-icon');
+
+        if (isExpanded) {
+            // Collapse
+            $childrenContainer.slideUp(200);
+            $expandIcon.text('▶');
+            $libraryItem.data('expanded', 'false');
+        } else {
+            // Expand
+            $childrenContainer.slideDown(200);
+            $expandIcon.text('▼');
+            $libraryItem.data('expanded', 'true');
+        }
+    }
+
+    /**
+     * Toggle folder expansion (show/hide subfolders)
+     */
+    toggleFolderExpansion($folderItem) {
+        const nodeId = $folderItem.data('node-id');
+        const hasChildren = $folderItem.data('has-children');
+        const isExpanded = $folderItem.data('expanded') === 'true';
+
+        if (!hasChildren) {
+            return; // No children to expand
+        }
+
+        const $childrenContainer = $(`.children-container[data-parent-id="${nodeId}"]`);
+        const $expandIcon = $folderItem.find('.expand-icon');
+
+        if (isExpanded) {
+            // Collapse
+            $childrenContainer.slideUp(200);
+            $expandIcon.text('▶');
+            $folderItem.data('expanded', 'false');
+        } else {
+            // Expand
+            $childrenContainer.slideDown(200);
+            $expandIcon.text('▼');
+            $folderItem.data('expanded', 'true');
         }
     }
 
@@ -299,6 +437,8 @@ class DocumentBrowser {
      */
     async selectFolder($folderItem) {
         try {
+            console.log('Folder selected:', $folderItem);
+
             // Update UI selection
             $('.folder-item').removeClass('selected');
             $folderItem.addClass('selected');
@@ -307,17 +447,47 @@ class DocumentBrowser {
             const folderId = $folderItem.data('folder-id');
             const type = $folderItem.data('type');
 
+            console.log('Selected folder data:', { libraryId, folderId, type });
+
             this.currentLibrary = libraryId;
             this.currentFolder = folderId || null;
 
-            // Only load documents if we have a valid library
-            if (libraryId) {
-                await this.loadDocuments(libraryId, folderId || null);
+            // Only load documents for folders (not libraries)
+            if (type === 'folder' && folderId) {
+                console.log('Loading documents for folder:', folderId);
+                await this.loadDocumentsByFolder(folderId);
+            } else {
+                console.log('No documents to load - not a folder or no folder ID');
+                // Clear document list for libraries
+                this.renderDocumentList([]);
             }
 
         } catch (error) {
             console.error('Error selecting folder:', error);
-            this.showError('Failed to load folder contents');
+            this.showError('Failed to load folder contents: ' + error.message);
+        }
+    }
+
+    /**
+     * Load documents for a specific folder using the folder endpoint
+     */
+    async loadDocumentsByFolder(folderId) {
+        try {
+            console.log('Loading documents for folder ID:', folderId);
+            this.showLoading('Loading documents...');
+
+            const documents = await window.jupiterService.getDocumentsByFolder(folderId);
+            console.log('Documents response:', documents);
+
+            this.documents = documents || [];
+            console.log('Processed documents:', this.documents);
+
+            this.renderDocumentList(this.documents);
+            this.hideLoading();
+
+        } catch (error) {
+            console.error('Error loading documents by folder:', error);
+            this.showError('Failed to load documents: ' + error.message);
         }
     }
 

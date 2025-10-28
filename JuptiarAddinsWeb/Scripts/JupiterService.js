@@ -173,6 +173,13 @@ class JupiterService {
         return await this.makeRequest('GET', endpoint);
     }
 
+    /**
+     * Get documents by folder ID using the folder endpoint
+     */
+    async getDocumentsByFolder(folderId) {
+        return await this.makeRequest('GET', `/documents/folder/${folderId}`);
+    }
+
     // Document Methods
     async getDocument(documentId) {
         return await this.makeRequest('GET', `/documents/${documentId}`);
