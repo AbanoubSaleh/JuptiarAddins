@@ -94,6 +94,14 @@
                         Auto-login on startup
                     </label>
                 </div>
+
+                <div class="ms-MessageBar ms-MessageBar--info" style="margin-top: 15px; padding: 10px; background-color: #f3f9ff; border-left: 4px solid #0078d4;">
+                    <div class="ms-MessageBar-content">
+                        <div class="ms-MessageBar-text">
+                            <strong>🔐 Security:</strong> Credentials are validated immediately when saving. Only authentication tokens are stored long-term for security.
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -145,8 +153,14 @@
                 <div class="connection-status" id="connectionStatus">
                     <div class="status-indicator offline" id="statusIndicator"></div>
                     <span id="statusText">Not connected</span>
-                    <button id="testConnectionBtn" class="ms-Button ms-Button--primary test-btn">
+                    <button id="testConnectionBtn" class="ms-Button test-btn">
                         <span class="ms-Button-label">Test Connection</span>
+                    </button>
+                    <button id="loginBtn" class="ms-Button ms-Button--primary test-btn">
+                        <span class="ms-Button-label">Login</span>
+                    </button>
+                    <button id="logoutBtn" class="ms-Button ms-Button--danger test-btn" style="display: none;">
+                        <span class="ms-Button-label">Logout</span>
                     </button>
                 </div>
                 <div id="connectionDetails" class="connection-details" style="display: none;">
@@ -162,7 +176,7 @@
             <div class="ms-Grid-col ms-sm12">
                 <div class="action-buttons">
                     <button id="saveBtn" class="ms-Button ms-Button--primary">
-                        <span class="ms-Button-label">Save Settings</span>
+                        <span class="ms-Button-label">Save Settings & Login</span>
                     </button>
                     <button id="resetBtn" class="ms-Button">
                         <span class="ms-Button-label">Reset to Defaults</span>

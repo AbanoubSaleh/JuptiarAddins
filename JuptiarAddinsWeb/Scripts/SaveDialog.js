@@ -21,11 +21,25 @@ Office.onReady(() => {
 
     if (!window.authManager) {
         window.authManager = new AuthManager();
-    }
-
-    // Initialize the document saver when the page loads
-    if (window.documentSaver) {
-        window.documentSaver.initialize();
+        // Initialize AuthManager asynchronously and then initialize document saver
+        window.authManager.initialize().then(() => {
+            console.log('AuthManager initialized, initializing document saver...');
+            // Initialize the document saver when AuthManager is ready
+            if (window.documentSaver) {
+                window.documentSaver.initialize();
+            }
+        }).catch(error => {
+            console.error('Failed to initialize AuthManager:', error);
+            // Still initialize document saver even if AuthManager fails
+            if (window.documentSaver) {
+                window.documentSaver.initialize();
+            }
+        });
+    } else {
+        // AuthManager already exists, initialize document saver immediately
+        if (window.documentSaver) {
+            window.documentSaver.initialize();
+        }
     }
     
     // Handle authentication button clicks

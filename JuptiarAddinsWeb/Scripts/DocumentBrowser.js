@@ -12,6 +12,14 @@ class DocumentBrowser {
         this.folderTree = [];
 
         this.initializeEventListeners();
+
+        // Listen for authentication state changes from AuthManager
+        window.addEventListener('juptiarAuthStateChanged', (e) => {
+            console.log('DocumentBrowser: Received auth state change:', e.detail);
+            this.handleAuthStateChange(e.detail);
+        });
+
+        // Check authentication status (but don't rely on it being accurate yet)
         this.checkAuthenticationStatus();
 
         // Show the modal dialog
@@ -105,32 +113,40 @@ class DocumentBrowser {
      */
     async checkAuthenticationStatus() {
         try {
-            console.log('Checking authentication status...');
+            console.log('DocumentBrowser: Checking authentication status...');
 
             if (!window.authManager) {
-                console.error('AuthManager not available!');
+                console.error('DocumentBrowser: AuthManager not available!');
                 this.handleAuthStateChange({ isAuthenticated: false });
                 return;
             }
 
+            // Wait a bit for AuthManager to finish initialization if it's still initializing
+            let retries = 0;
+            while (retries < 10 && window.authManager && !window.authManager.isInitialized) {
+                console.log('DocumentBrowser: Waiting for AuthManager to initialize...');
+                await new Promise(resolve => setTimeout(resolve, 100));
+                retries++;
+            }
+
             const authStatus = window.authManager.getAuthStatus();
-            console.log('Auth status:', authStatus);
+            console.log('DocumentBrowser: Auth status:', authStatus);
 
             // Also check if JupiterService has the token
             if (authStatus.isAuthenticated && window.jupiterService) {
                 const token = window.authManager.getToken();
                 if (token) {
                     window.jupiterService.setAuthToken(token);
-                    console.log('Token set in JupiterService');
+                    console.log('DocumentBrowser: Token set in JupiterService');
                 } else {
-                    console.warn('Auth status shows authenticated but no token found');
+                    console.warn('DocumentBrowser: Auth status shows authenticated but no token found');
                     authStatus.isAuthenticated = false;
                 }
             }
 
             this.handleAuthStateChange(authStatus);
         } catch (error) {
-            console.error('Error checking auth status:', error);
+            console.error('DocumentBrowser: Error checking auth status:', error);
             this.handleAuthStateChange({ isAuthenticated: false });
         }
     }
@@ -632,6 +648,10 @@ class DocumentBrowser {
      * Refresh current view
      */
     async refreshCurrentView() {
+        // First re-check authentication status
+        await this.checkAuthenticationStatus();
+
+        // Then refresh the current view if authenticated
         if (this.currentLibrary) {
             await this.loadDocuments(this.currentLibrary, this.currentFolder);
         } else {
@@ -966,8 +986,24 @@ Office.onReady(() => {
 
     if (!window.authManager) {
         window.authManager = new AuthManager();
+        // Initialize AuthManager asynchronously and then create DocumentBrowser
+        window.authManager.initialize().then(() => {
+            console.log('AuthManager initialized, creating DocumentBrowser...');
+            if (!window.documentBrowser) {
+                window.documentBrowser = new DocumentBrowser();
+            }
+        }).catch(error => {
+            console.error('Failed to initialize AuthManager:', error);
+            // Still create DocumentBrowser even if AuthManager fails
+            if (!window.documentBrowser) {
+                window.documentBrowser = new DocumentBrowser();
+            }
+        });
+    } else {
+        // AuthManager already exists, create DocumentBrowser immediately
+        console.log('Dependencies loaded, creating DocumentBrowser...');
+        if (!window.documentBrowser) {
+            window.documentBrowser = new DocumentBrowser();
+        }
     }
-
-    console.log('Dependencies loaded, creating DocumentBrowser...');
-    window.documentBrowser = new DocumentBrowser();
 });

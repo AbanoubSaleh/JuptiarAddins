@@ -24,9 +24,11 @@ class SettingsPage {
         // Clear credentials
         $('#clearCredentialsBtn').on('click', () => this.clearCredentials());
         
-        // Test connection
+        // Test connection, login, and logout
         $('#testConnectionBtn').on('click', () => this.testConnection());
-        
+        $('#loginBtn').on('click', () => this.performLogin());
+        $('#logoutBtn').on('click', () => this.performLogout());
+
         // Form validation
         $('#serverUrl').on('blur', () => this.validateServerUrl());
         $('#username').on('blur', () => this.validateUsername());
@@ -101,16 +103,24 @@ class SettingsPage {
         if (authStatus.isAuthenticated) {
             $indicator.removeClass('offline testing').addClass('online');
             $statusText.text('Connected');
-            
+
             $('#connectedServer').text(authStatus.serverUrl || '-');
             $('#connectedUser').text(authStatus.user?.username || '-');
             $('#lastConnected').text(new Date().toLocaleString());
-            
+
             $details.show();
+
+            // Show logout button, hide login button
+            $('#loginBtn').hide();
+            $('#logoutBtn').show();
         } else {
             $indicator.removeClass('online testing').addClass('offline');
             $statusText.text('Not connected');
             $details.hide();
+
+            // Show login button, hide logout button
+            $('#loginBtn').show();
+            $('#logoutBtn').hide();
         }
     }
 
@@ -283,7 +293,89 @@ class SettingsPage {
     }
 
     /**
-     * Save settings
+     * Perform login with current credentials
+     */
+    async performLogin() {
+        if (this.isLoggingIn) return;
+
+        try {
+            this.isLoggingIn = true;
+
+            // Validate credentials
+            if (!this.validateUsername() || !this.validatePassword()) {
+                this.showError('Please enter valid username and password');
+                return;
+            }
+
+            const username = $('#username').val().trim();
+            const password = $('#password').val();
+            const rememberCredentials = $('#rememberCredentials').is(':checked');
+
+            // Update UI
+            $('#loginBtn').prop('disabled', true);
+            this.showLoading('Logging in...');
+
+            // Perform login
+            const result = await window.authManager.login(username, password, rememberCredentials);
+
+            if (result.success) {
+                this.showSuccess('Login successful! You are now authenticated.');
+
+                // Update connection status
+                const authStatus = window.authManager.getAuthStatus();
+                this.updateConnectionStatus(authStatus);
+
+                // Load library options if authenticated
+                await this.loadDefaultLibraryOptions();
+
+                // Clear password field for security (unless remember is checked)
+                if (!rememberCredentials) {
+                    $('#password').val('');
+                }
+            } else {
+                this.showError('Login failed: ' + (result.message || 'Invalid credentials'));
+            }
+
+        } catch (error) {
+            console.error('Login error:', error);
+            this.showError('Login failed: ' + error.message);
+        } finally {
+            this.isLoggingIn = false;
+            $('#loginBtn').prop('disabled', false);
+            this.hideLoading();
+        }
+    }
+
+    /**
+     * Perform logout
+     */
+    async performLogout() {
+        try {
+            this.showLoading('Logging out...');
+
+            // Perform logout
+            await window.authManager.logout();
+
+            // Update UI
+            this.updateConnectionStatus({ isAuthenticated: false });
+            $('#logoutBtn').hide();
+            $('#loginBtn').show();
+
+            // Clear password field for security
+            $('#password').val('');
+
+            this.showSuccess('Logged out successfully');
+
+        } catch (error) {
+            console.error('Logout error:', error);
+            this.showError('Logout failed: ' + error.message);
+        } finally {
+            this.hideLoading();
+        }
+    }
+
+    /**
+     * Save settings with credential validation (Best Practice)
      */
     async saveSettings() {
         try {
@@ -293,9 +385,9 @@ class SettingsPage {
                 this.showError('Please fix validation errors before saving');
                 return;
             }
-            
-            this.showLoading('Saving settings...');
-            
+
+            this.showLoading('Validating credentials and saving settings...');
+
             // Collect form data
             const newSettings = {
                 serverUrl: $('#serverUrl').val().trim(),
@@ -308,25 +400,64 @@ class SettingsPage {
                 enableLogging: $('#enableLogging').is(':checked'),
                 enableNotifications: $('#enableNotifications').is(':checked')
             };
-            
-            // Save settings
-            await window.authManager.saveSettings(newSettings);
-            
-            // Save credentials if remember is checked
+
             const username = $('#username').val().trim();
             const password = $('#password').val();
-            
-            if (newSettings.rememberCredentials && username && password) {
-                await window.authManager.storeCredentials(username, password);
+
+            // SECURITY BEST PRACTICE: Validate credentials before saving anything
+            if (username && password) {
+                console.log('Settings: Validating credentials before saving...');
+
+                // First save settings so AuthManager can use the new server URL
+                await window.authManager.saveSettings(newSettings);
+
+                // Attempt login to validate credentials
+                const loginResult = await window.authManager.login(username, password, newSettings.rememberCredentials);
+
+                if (loginResult.success) {
+                    // ✅ Credentials are valid
+                    console.log('Settings: Credentials validated successfully');
+
+                    // Update connection status
+                    const authStatus = window.authManager.getAuthStatus();
+                    this.updateConnectionStatus(authStatus);
+
+                    // Load library options if authenticated
+                    await this.loadDefaultLibraryOptions();
+
+                    // Clear password field for security (token is now stored)
+                    $('#password').val('');
+
+                    this.showSuccess('✅ Settings saved and login successful! You are now authenticated.');
+
+                } else {
+                    // ❌ Invalid credentials
+                    console.log('Settings: Invalid credentials provided');
+
+                    // Still save settings (server URL, etc.) but don't store credentials
+                    await window.authManager.clearStoredCredentials();
+
+                    this.showError('❌ Settings saved, but login failed: ' + (loginResult.message || 'Invalid username or password'));
+                }
+            } else {
+                // No credentials provided, just save settings
+                await window.authManager.saveSettings(newSettings);
+
+                // Clear any stored credentials if remember is unchecked
+                if (!newSettings.rememberCredentials) {
+                    await window.authManager.clearStoredCredentials();
+                }
+
+                this.showSuccess('Settings saved successfully. Enter credentials to login.');
             }
-            
+
             this.currentSettings = newSettings;
-            this.hideLoading();
-            this.showSuccess('Settings saved successfully');
-            
+
         } catch (error) {
             console.error('Error saving settings:', error);
             this.showError('Failed to save settings: ' + error.message);
+        } finally {
+            this.hideLoading();
         }
     }
 
@@ -474,7 +605,23 @@ Office.onReady(() => {
 
     if (!window.authManager) {
         window.authManager = new AuthManager();
+        // Initialize AuthManager asynchronously and then create SettingsPage
+        window.authManager.initialize().then(() => {
+            console.log('AuthManager initialized, creating SettingsPage...');
+            if (!window.settingsPage) {
+                window.settingsPage = new SettingsPage();
+            }
+        }).catch(error => {
+            console.error('Failed to initialize AuthManager:', error);
+            // Still create SettingsPage even if AuthManager fails
+            if (!window.settingsPage) {
+                window.settingsPage = new SettingsPage();
+            }
+        });
+    } else {
+        // AuthManager already exists, create SettingsPage immediately
+        if (!window.settingsPage) {
+            window.settingsPage = new SettingsPage();
+        }
     }
-
-    window.settingsPage = new SettingsPage();
 });

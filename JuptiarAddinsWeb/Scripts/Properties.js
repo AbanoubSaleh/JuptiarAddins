@@ -21,11 +21,25 @@ Office.onReady(() => {
 
     if (!window.authManager) {
         window.authManager = new AuthManager();
-    }
-
-    // Initialize the properties editor when the page loads
-    if (window.propertiesEditor) {
-        window.propertiesEditor.initialize();
+        // Initialize AuthManager asynchronously and then initialize properties editor
+        window.authManager.initialize().then(() => {
+            console.log('AuthManager initialized, initializing properties editor...');
+            // Initialize the properties editor when AuthManager is ready
+            if (window.propertiesEditor) {
+                window.propertiesEditor.initialize();
+            }
+        }).catch(error => {
+            console.error('Failed to initialize AuthManager:', error);
+            // Still initialize properties editor even if AuthManager fails
+            if (window.propertiesEditor) {
+                window.propertiesEditor.initialize();
+            }
+        });
+    } else {
+        // AuthManager already exists, initialize properties editor immediately
+        if (window.propertiesEditor) {
+            window.propertiesEditor.initialize();
+        }
     }
     
     // Handle authentication button clicks
