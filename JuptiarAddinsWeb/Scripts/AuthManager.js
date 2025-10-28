@@ -4,17 +4,24 @@
 
 class AuthManager {
     constructor() {
+        console.log('AuthManager: Constructor called');
         this.isAuthenticated = false;
         this.currentUser = null;
         this.authToken = null;
         // Initialize settings from configuration
+        const configBaseUrl = window.JupiterConfig?.get('server.baseUrl');
+        console.log('AuthManager: Reading config baseUrl:', configBaseUrl);
+        console.log('AuthManager: JupiterConfig object:', window.JupiterConfig);
+
         this.settings = {
-            serverUrl: window.JupiterConfig?.get('server.baseUrl') || 'https://localhost:7001',
+            serverUrl: configBaseUrl || 'https://localhost:7001',
             apiEndpoint: window.JupiterConfig?.get('server.apiEndpoint') || '/api',
             timeout: window.JupiterConfig?.get('server.timeout') || 30000,
             rememberCredentials: window.JupiterConfig?.get('auth.rememberCredentials') || false,
             autoLogin: window.JupiterConfig?.get('auth.autoLogin') || false
         };
+
+        console.log('AuthManager: Initial settings:', this.settings);
         
         this.loadSettings();
         this.loadStoredCredentials();
@@ -26,14 +33,25 @@ class AuthManager {
     async loadSettings() {
         try {
             await Office.context.document.settings.refreshAsync();
-            
+
             const savedSettings = Office.context.document.settings.get('juptiarSettings');
+            console.log('AuthManager: Loaded saved settings from Office:', savedSettings);
             if (savedSettings) {
                 this.settings = { ...this.settings, ...savedSettings };
                 
-                // Initialize service with settings
+                // Initialize service with settings only if it doesn't have a baseUrl
                 if (window.jupiterService) {
-                    window.jupiterService.initialize(this.settings);
+                    console.log('AuthManager: Current JupiterService baseUrl:', window.jupiterService.baseUrl);
+                    console.log('AuthManager: Saved settings:', this.settings);
+
+                    // Only re-initialize if the service doesn't have a baseUrl or if our settings are different
+                    if (!window.jupiterService.baseUrl || window.jupiterService.baseUrl === '') {
+                        console.log('AuthManager: Re-initializing JupiterService with saved settings:', this.settings);
+                        window.jupiterService.initialize(this.settings);
+                        console.log('AuthManager: JupiterService baseUrl after re-init:', window.jupiterService.baseUrl);
+                    } else {
+                        console.log('AuthManager: JupiterService already has baseUrl, not re-initializing');
+                    }
                 }
             }
         } catch (error) {
@@ -154,6 +172,20 @@ class AuthManager {
                 throw new Error('Server URL not configured. Please check settings.');
             }
 
+            // Ensure JupiterService is properly configured before login
+            if (!window.jupiterService.baseUrl || window.jupiterService.baseUrl === '') {
+                console.log('AuthManager: JupiterService baseUrl is empty, re-initializing...');
+
+                // Force re-initialization with correct settings
+                window.jupiterService.initialize({
+                    serverUrl: this.settings.serverUrl,
+                    apiEndpoint: this.settings.apiEndpoint,
+                    timeout: this.settings.timeout
+                });
+
+                console.log('AuthManager: JupiterService re-initialized with baseUrl:', window.jupiterService.baseUrl);
+            }
+
             // Attempt login
             console.log('AuthManager: Calling jupiterService.login...');
             const response = await window.jupiterService.login(username, password);
@@ -163,15 +195,21 @@ class AuthManager {
                 this.isAuthenticated = true;
                 this.authToken = response.token;
                 this.currentUser = response.user || { username: username };
-                
+
+                // Set token in JupiterService
+                if (window.jupiterService) {
+                    window.jupiterService.setAuthToken(response.token);
+                    console.log('AuthManager: Token set in JupiterService');
+                }
+
                 // Store credentials if requested
                 if (rememberCredentials) {
                     await this.storeCredentials(username, password);
                 }
-                
+
                 // Update settings
                 await this.saveSettings({ rememberCredentials: rememberCredentials });
-                
+
                 this.notifyAuthStateChange();
                 return { success: true, user: this.currentUser };
             } else {
@@ -302,6 +340,13 @@ class AuthManager {
     }
 
     /**
+     * Get current authentication token
+     */
+    getToken() {
+        return this.authToken;
+    }
+
+    /**
      * Get current settings
      */
     getSettings() {
@@ -350,10 +395,4 @@ class AuthManager {
     }
 }
 
-// Create global instance
-window.authManager = new AuthManager();
 
-// Initialize when Office is ready
-Office.onReady(() => {
-    window.authManager.initialize();
-});

@@ -21,91 +21,110 @@
 </head>
 
 <body class="ms-font-m ms-welcome ms-Fabric">
-    <div class="ms-Grid">
-        <!-- Header -->
-        <div class="ms-Grid-row header-section">
-            <div class="ms-Grid-col ms-sm12">
-                <h2 class="ms-font-xl ms-fontColor-themePrimary">Jupiter Document Browser</h2>
-                <div class="auth-status" id="authStatus">
+    <!-- Modal Dialog Overlay -->
+    <div id="dialogOverlay" class="dialog-overlay">
+        <!-- Open Document Dialog -->
+        <div id="openDocumentDialog" class="open-document-dialog">
+            <!-- Dialog Header -->
+            <div class="dialog-header">
+                <h3 class="dialog-title">Open Document</h3>
+                <div class="auth-status-mini" id="authStatusMini">
                     <span id="authStatusText">Not authenticated</span>
-                    <button id="loginBtn" class="ms-Button ms-Button--primary">
+                    <button id="loginBtn" class="ms-Button ms-Button--small">
                         <span class="ms-Button-label">Login</span>
                     </button>
-                    <button id="logoutBtn" class="ms-Button" style="display: none;">
+                    <button id="logoutBtn" class="ms-Button ms-Button--small" style="display: none;">
                         <span class="ms-Button-label">Logout</span>
                     </button>
                 </div>
             </div>
-        </div>
 
-        <!-- Search Section -->
-        <div class="ms-Grid-row search-section" id="searchSection" style="display: none;">
-            <div class="ms-Grid-col ms-sm12">
-                <div class="ms-SearchBox">
-                    <input type="text" id="searchInput" class="ms-SearchBox-field" placeholder="Search documents..." />
-                    <button id="searchBtn" class="ms-SearchBox-icon ms-Button">
-                        <i class="ms-Icon ms-Icon--Search"></i>
-                    </button>
-                    <button id="refreshBtn" class="ms-Button ms-Button--primary refresh-btn">
-                        <span class="ms-Button-label">Refresh</span>
+            <!-- Search Controls -->
+            <div class="search-controls">
+                <div class="search-left">
+                    <button id="refreshBtn" class="refresh-btn" title="Refresh">
+                        <span class="ms-Icon ms-Icon--Refresh"></span>
+                        Refresh
                     </button>
                 </div>
-            </div>
-        </div>
-
-        <!-- Main Content -->
-        <div class="ms-Grid-row main-content" id="mainContent" style="display: none;">
-            <!-- Left Panel - Folder Tree -->
-            <div class="ms-Grid-col ms-sm4 folder-panel">
-                <h3 class="ms-font-l">Libraries</h3>
-                <div id="folderTree" class="folder-tree">
-                    <!-- Folder tree will be populated here -->
+                <div class="search-right">
+                    <input type="text" id="fileSearchInput" placeholder="File search" class="file-search-input" />
+                    <input type="text" id="fullTextSearchInput" placeholder="Full-text search" class="fulltext-search-input" />
                 </div>
             </div>
 
-            <!-- Right Panel - Document List -->
-            <div class="ms-Grid-col ms-sm8 document-panel">
-                <h3 class="ms-font-l">Documents</h3>
-                <div class="document-list-container">
-                    <table id="documentList" class="ms-Table document-table">
-                        <thead>
-                            <tr>
-                                <th class="ms-Table-header">Type</th>
-                                <th class="ms-Table-header">File Name</th>
-                                <th class="ms-Table-header">Date Modified</th>
-                                <th class="ms-Table-header">Size</th>
-                                <th class="ms-Table-header">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="documentTableBody">
-                            <!-- Documents will be populated here -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- Loading Indicator -->
-        <div class="ms-Grid-row loading-section" id="loadingSection">
-            <div class="ms-Grid-col ms-sm12 text-center">
-                <div class="ms-Spinner ms-Spinner--large">
-                    <div class="ms-Spinner-circle"></div>
-                </div>
-                <p class="ms-font-m">Loading...</p>
-            </div>
-        </div>
-
-        <!-- Error Message -->
-        <div class="ms-Grid-row error-section" id="errorSection" style="display: none;">
-            <div class="ms-Grid-col ms-sm12">
-                <div class="ms-MessageBar ms-MessageBar--error">
-                    <div class="ms-MessageBar-content">
-                        <div class="ms-MessageBar-icon">
-                            <i class="ms-Icon ms-Icon--ErrorBadge"></i>
+            <!-- Main Content Area -->
+            <div class="dialog-content" id="mainContent">
+                <!-- Two-Panel Layout -->
+                <div class="content-panels">
+                    <!-- Left Panel - Folder Tree -->
+                    <div class="left-panel">
+                        <div class="panel-header">
+                            <span class="ms-Icon ms-Icon--FolderOpen"></span>
+                            Libraries
                         </div>
-                        <div class="ms-MessageBar-text" id="errorMessage">
-                            An error occurred while loading documents.
+                        <div id="folderTree" class="folder-tree">
+                            <!-- Folder tree will be populated here -->
                         </div>
+                    </div>
+
+                    <!-- Right Panel - Document List -->
+                    <div class="right-panel">
+                        <div class="panel-header">
+                            <span class="ms-Icon ms-Icon--Document"></span>
+                            Documents
+                        </div>
+                        <div class="document-list-container">
+                            <table id="documentList" class="document-table">
+                                <thead>
+                                    <tr>
+                                        <th class="col-type">Type</th>
+                                        <th class="col-name">File Name</th>
+                                        <th class="col-date">Date Modified</th>
+                                        <th class="col-size">Size</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="documentTableBody">
+                                    <!-- Documents will be populated here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dialog Footer -->
+            <div class="dialog-footer">
+                <button id="openBtn" class="ms-Button ms-Button--primary" disabled>
+                    <span class="ms-Button-label">Open</span>
+                </button>
+                <button id="cancelBtn" class="ms-Button">
+                    <span class="ms-Button-label">Cancel</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div class="loading-overlay" id="loadingSection" style="display: none;">
+        <div class="loading-content">
+            <div class="ms-Spinner ms-Spinner--large">
+                <div class="ms-Spinner-circle"></div>
+            </div>
+            <p class="ms-font-m" id="loadingMessage">Loading...</p>
+        </div>
+    </div>
+
+    <!-- Error Message -->
+    <div class="error-overlay" id="errorSection" style="display: none;">
+        <div class="error-content">
+            <div class="ms-MessageBar ms-MessageBar--error">
+                <div class="ms-MessageBar-content">
+                    <div class="ms-MessageBar-icon">
+                        <i class="ms-Icon ms-Icon--ErrorBadge"></i>
+                    </div>
+                    <div class="ms-MessageBar-text" id="errorMessage">
+                        An error occurred while loading documents.
                     </div>
                 </div>
             </div>

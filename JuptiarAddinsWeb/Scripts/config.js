@@ -10,7 +10,7 @@ window.JupiterConfig = {
         baseUrl: 'https://localhost:7001',
 
         // API endpoint path
-        apiEndpoint: '',
+        apiEndpoint: '/api',
 
         // Request timeout in milliseconds
         timeout: 30000,

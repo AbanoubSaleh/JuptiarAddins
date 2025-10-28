@@ -15,10 +15,12 @@ class JupiterService {
      * Initialize the service with configuration
      */
     initialize(config) {
+        console.log('JupiterService.initialize called with config:', config);
         this.baseUrl = config.serverUrl || '';
         this.apiEndpoint = config.apiEndpoint || '/api';
         this.timeout = config.timeout || 30000;
         this.authToken = config.authToken || null;
+        console.log('JupiterService.initialize completed. New baseUrl:', this.baseUrl);
     }
 
     /**
@@ -228,8 +230,8 @@ class JupiterService {
         return await response.json();
     }
 
-    async updateDocument(documentId, data) {
-        return await this.makeRequest('PUT', `/documents/${documentId}`, data);
+    async updateDocument(data) {
+        return await this.makeRequest('PUT', `/documents`, data);
     }
 
     async deleteDocument(documentId) {

@@ -10,9 +10,12 @@ class DocumentBrowser {
         this.documents = [];
         this.selectedDocument = null;
         this.folderTree = [];
-        
+
         this.initializeEventListeners();
         this.checkAuthenticationStatus();
+
+        // Show the modal dialog
+        this.showDialog();
     }
 
     /**
@@ -26,12 +29,21 @@ class DocumentBrowser {
         $('#loginCancelBtn').on('click', () => this.hideLoginModal());
         $('#closeModal').on('click', () => this.hideLoginModal());
 
+        // Dialog controls
+        $('#closeDialogBtn').on('click', () => this.closeDialog());
+
         // Search and refresh
-        $('#searchBtn').on('click', () => this.performSearch());
-        $('#searchInput').on('keypress', (e) => {
-            if (e.which === 13) this.performSearch();
+        $('#fileSearchInput').on('keypress', (e) => {
+            if (e.which === 13) this.performFileSearch();
+        });
+        $('#fullTextSearchInput').on('keypress', (e) => {
+            if (e.which === 13) this.performFullTextSearch();
         });
         $('#refreshBtn').on('click', () => this.refreshCurrentView());
+
+        // Action buttons
+        $('#openBtn').on('click', () => this.openSelectedDocument());
+        $('#cancelBtn').on('click', () => this.closeDialog());
 
         // Context menu
         $(document).on('contextmenu', '.document-row', (e) => {
@@ -51,6 +63,11 @@ class DocumentBrowser {
         // Document selection
         $(document).on('click', '.document-row', (e) => {
             this.selectDocument($(e.currentTarget));
+        });
+
+        // Double-click to open document
+        $(document).on('dblclick', '.document-row', (e) => {
+            this.openSelectedDocument();
         });
 
         // Folder selection
@@ -79,10 +96,23 @@ class DocumentBrowser {
 
             const authStatus = window.authManager.getAuthStatus();
             console.log('Auth status:', authStatus);
+
+            // Also check if JupiterService has the token
+            if (authStatus.isAuthenticated && window.jupiterService) {
+                const token = window.authManager.getToken();
+                if (token) {
+                    window.jupiterService.setAuthToken(token);
+                    console.log('Token set in JupiterService');
+                } else {
+                    console.warn('Auth status shows authenticated but no token found');
+                    authStatus.isAuthenticated = false;
+                }
+            }
+
             this.handleAuthStateChange(authStatus);
         } catch (error) {
             console.error('Error checking auth status:', error);
-            this.showError('Failed to check authentication status');
+            this.handleAuthStateChange({ isAuthenticated: false });
         }
     }
 
@@ -92,7 +122,10 @@ class DocumentBrowser {
     handleAuthStateChange(authStatus) {
         if (authStatus.isAuthenticated) {
             this.showAuthenticatedState(authStatus.user);
-            this.loadLibraryTree();
+            // Only load library tree if we have a valid token
+            if (window.jupiterService && window.jupiterService.authToken) {
+                this.loadLibraryTree();
+            }
         } else {
             this.showUnauthenticatedState();
         }
@@ -116,14 +149,18 @@ class DocumentBrowser {
      * Show unauthenticated state
      */
     showUnauthenticatedState() {
-        $('#authStatusText').text('Not authenticated');
+        $('#authStatusText').text('Not authenticated - Please log in to access libraries');
         $('#loginBtn').show();
         $('#logoutBtn').hide();
         $('#searchSection').hide();
         $('#mainContent').hide();
         $('#loadingSection').hide();
-        
-        $('.status-indicator').removeClass('online').addClass('online');
+
+        $('.status-indicator').removeClass('online').addClass('offline');
+
+        // Clear any existing tree data
+        $('#folderTree').empty();
+        $('#documentTableBody').empty();
     }
 
     /**
@@ -164,6 +201,13 @@ class DocumentBrowser {
 
             await window.authManager.login(username, password, true);
 
+            // Ensure token is set in JupiterService
+            const token = window.authManager.getToken();
+            if (token && window.jupiterService) {
+                window.jupiterService.setAuthToken(token);
+                console.log('Token set in JupiterService after login');
+            }
+
             this.hideLoginModal();
             this.showSuccess('Successfully logged in');
             
@@ -193,17 +237,28 @@ class DocumentBrowser {
      */
     async loadLibraryTree() {
         try {
+            // Check if we have authentication before making the request
+            if (!window.jupiterService || !window.jupiterService.authToken) {
+                console.log('No authentication token available, skipping library tree load');
+                this.showError('Please log in to access libraries');
+                return;
+            }
+
             this.showLoading('Loading libraries...');
-            
+
             const treeData = await window.jupiterService.getLibraryTree();
             this.folderTree = treeData;
-            
+
             this.renderFolderTree(treeData);
             this.hideLoading();
-            
+
         } catch (error) {
             console.error('Error loading library tree:', error);
-            this.showError('Failed to load libraries: ' + error.message);
+            if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+                this.showError('Authentication required. Please log in to access libraries.');
+            } else {
+                this.showError('Failed to load libraries: ' + error.message);
+            }
         }
     }
 
@@ -215,9 +270,14 @@ class DocumentBrowser {
         $treeContainer.empty();
 
         const renderNode = (node, level = 0) => {
+            const isLibrary = node.type === 'library';
+            const icon = isLibrary ? '📚' : '📁';
+            const folderId = node.type === 'folder' ? node.id : '';
+            const libraryId = isLibrary ? node.id : node.libraryId || this.currentLibrary;
+
             const $item = $(`
-                <div class="folder-item" data-library-id="${node.id}" data-folder-id="${node.folderId || ''}" style="margin-left: ${level * 20}px">
-                    <span class="folder-icon">📁</span>
+                <div class="folder-item" data-library-id="${libraryId}" data-folder-id="${folderId}" data-type="${node.type}" style="margin-left: ${level * 16}px">
+                    <span class="folder-icon">${icon}</span>
                     <span class="folder-name">${node.name}</span>
                 </div>
             `);
@@ -245,12 +305,16 @@ class DocumentBrowser {
 
             const libraryId = $folderItem.data('library-id');
             const folderId = $folderItem.data('folder-id');
+            const type = $folderItem.data('type');
 
             this.currentLibrary = libraryId;
-            this.currentFolder = folderId;
+            this.currentFolder = folderId || null;
 
-            await this.loadDocuments(libraryId, folderId);
-            
+            // Only load documents if we have a valid library
+            if (libraryId) {
+                await this.loadDocuments(libraryId, folderId || null);
+            }
+
         } catch (error) {
             console.error('Error selecting folder:', error);
             this.showError('Failed to load folder contents');
@@ -284,7 +348,7 @@ class DocumentBrowser {
         $tbody.empty();
 
         if (!documents || documents.length === 0) {
-            $tbody.append('<tr><td colspan="5" class="text-center">No documents found</td></tr>');
+            $tbody.append('<tr><td colspan="4" class="text-center">No documents found</td></tr>');
             return;
         }
 
@@ -292,32 +356,28 @@ class DocumentBrowser {
             const $row = $(`
                 <tr class="document-row" data-document-id="${doc.id}">
                     <td>
-                        <span class="file-icon">📄</span>
-                        ${this.getFileTypeIcon(doc.fileName)}
+                        <span class="file-icon">${this.getFileTypeIcon(doc.fileName)}</span>
                     </td>
                     <td>${doc.fileName || 'Untitled'}</td>
-                    <td>${this.formatDate(doc.dateModified)}</td>
+                    <td>${this.formatDate(doc.modifiedOn || doc.dateModified)}</td>
                     <td>${this.formatFileSize(doc.size)}</td>
-                    <td>
-                        <div class="action-buttons">
-                            <button class="action-btn view" onclick="documentBrowser.openDocument('${doc.id}')">View</button>
-                            <button class="action-btn edit" onclick="documentBrowser.editDocument('${doc.id}')" ${!doc.canEdit ? 'disabled' : ''}>Edit</button>
-                            <button class="action-btn delete" onclick="documentBrowser.deleteDocument('${doc.id}')" ${!doc.canDelete ? 'disabled' : ''}>Delete</button>
-                        </div>
-                    </td>
                 </tr>
             `);
-            
+
             $tbody.append($row);
         });
+
+        // Clear selection and disable open button
+        this.selectedDocument = null;
+        $('#openBtn').prop('disabled', true);
     }
 
     /**
      * Get file type icon based on extension
      */
     getFileTypeIcon(fileName) {
-        if (!fileName) return '';
-        
+        if (!fileName) return '📄';
+
         const ext = fileName.split('.').pop().toLowerCase();
         const icons = {
             'doc': '📝', 'docx': '📝',
@@ -327,7 +387,7 @@ class DocumentBrowser {
             'txt': '📄',
             'jpg': '🖼️', 'jpeg': '🖼️', 'png': '🖼️', 'gif': '🖼️'
         };
-        
+
         return icons[ext] || '📄';
     }
 
@@ -360,7 +420,7 @@ class DocumentBrowser {
      * Show loading indicator
      */
     showLoading(message = 'Loading...') {
-        $('#loadingSection p').text(message);
+        $('#loadingMessage').text(message);
         $('#loadingSection').show();
         $('#errorSection').hide();
     }
@@ -379,6 +439,15 @@ class DocumentBrowser {
         $('#errorMessage').text(message);
         $('#errorSection').show();
         $('#loadingSection').hide();
+    }
+
+    /**
+     * Show success message
+     */
+    showSuccess(message) {
+        // For now, just log to console. Could add a success overlay later
+        console.log('Success:', message);
+        // Could show a temporary success message in the dialog
     }
 
     /**
@@ -404,7 +473,7 @@ class DocumentBrowser {
      * Perform search
      */
     async performSearch() {
-        const query = $('#searchInput').val().trim();
+        const query = $('#fileSearchInput').val().trim();
         if (!query) {
             this.refreshCurrentView();
             return;
@@ -412,14 +481,60 @@ class DocumentBrowser {
 
         try {
             this.showLoading('Searching...');
-            
+
             const results = await window.jupiterService.searchDocuments(query);
             this.renderDocumentList(results.documents || []);
-            
+
             this.hideLoading();
         } catch (error) {
             console.error('Search error:', error);
             this.showError('Search failed: ' + error.message);
+        }
+    }
+
+    /**
+     * Perform file name search
+     */
+    async performFileSearch() {
+        const query = $('#fileSearchInput').val().trim();
+        if (!query) {
+            this.refreshCurrentView();
+            return;
+        }
+
+        try {
+            this.showLoading('Searching files...');
+
+            const results = await window.jupiterService.searchDocuments(query, 'filename');
+            this.renderDocuments(results);
+
+            this.hideLoading();
+        } catch (error) {
+            console.error('File search failed:', error);
+            this.showError('File search failed: ' + error.message);
+        }
+    }
+
+    /**
+     * Perform full-text search
+     */
+    async performFullTextSearch() {
+        const query = $('#fullTextSearchInput').val().trim();
+        if (!query) {
+            this.showError('Please enter a search term for full-text search');
+            return;
+        }
+
+        try {
+            this.showLoading('Searching content...');
+
+            const results = await window.jupiterService.searchDocuments(query, 'fulltext');
+            this.renderDocuments(results);
+
+            this.hideLoading();
+        } catch (error) {
+            console.error('Full-text search failed:', error);
+            this.showError('Full-text search failed: ' + error.message);
         }
     }
 
@@ -430,6 +545,26 @@ class DocumentBrowser {
         $('.document-row').removeClass('selected');
         $row.addClass('selected');
         this.selectedDocument = $row.data('document-id');
+
+        // Enable open button when document is selected
+        $('#openBtn').prop('disabled', false);
+    }
+
+    /**
+     * Show the modal dialog
+     */
+    showDialog() {
+        $('#dialogOverlay').show();
+        $('#openDocumentDialog').show();
+    }
+
+    /**
+     * Close the dialog/task pane
+     */
+    closeDialog() {
+        $('#dialogOverlay').hide();
+        $('#openDocumentDialog').hide();
+        console.log('Dialog closed');
     }
 
     /**
@@ -629,8 +764,39 @@ Office.onReady(() => {
 
     // Initialize global instances
     window.jupiterConfig = JupiterConfig; // JupiterConfig is an object, not a constructor
-    window.jupiterService = new JupiterService();
-    window.authManager = new AuthManager();
+
+    // Initialize JupiterConfig first (this might not have been called)
+    if (typeof window.JupiterConfig.init === 'function') {
+        window.JupiterConfig.init();
+    }
+
+    // Initialize global services if not already done
+    if (!window.jupiterService) {
+        window.jupiterService = new JupiterService();
+
+        // Debug configuration values
+        const baseUrl = window.JupiterConfig.get('server.baseUrl');
+        const apiEndpoint = window.JupiterConfig.get('server.apiEndpoint') || '/api';
+        const timeout = window.JupiterConfig.get('server.timeout') || 30000;
+
+        console.log('DocumentBrowser: Initializing JupiterService with config:', {
+            baseUrl: baseUrl,
+            apiEndpoint: apiEndpoint,
+            timeout: timeout
+        });
+
+        window.jupiterService.initialize({
+            serverUrl: baseUrl,
+            apiEndpoint: apiEndpoint,
+            timeout: timeout
+        });
+
+        console.log('DocumentBrowser: JupiterService initialized. Current baseUrl:', window.jupiterService.baseUrl);
+    }
+
+    if (!window.authManager) {
+        window.authManager = new AuthManager();
+    }
 
     console.log('Dependencies loaded, creating DocumentBrowser...');
     window.documentBrowser = new DocumentBrowser();
