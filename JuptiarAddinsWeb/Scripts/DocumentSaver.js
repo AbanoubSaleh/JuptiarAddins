@@ -16,24 +16,24 @@ class DocumentSaver {
      */
     initializeEventListeners() {
         // Library selection change
-        $('#librarySelect').on('change', () => this.onLibraryChange());
-        
+        $.on('#librarySelect', 'change', () => this.onLibraryChange());
+
         // Auto-fill document name from Word document
-        $('#fileName').on('blur', () => this.validateFileName());
-        
+        $.on('#fileName', 'blur', () => this.validateFileName());
+
         // Save button
-        $('#saveBtn').on('click', () => this.saveDocument());
-        
+        $.on('#saveBtn', 'click', () => this.saveDocument());
+
         // Preview button
-        $('#previewBtn').on('click', () => this.showPreview());
-        
+        $.on('#previewBtn', 'click', () => this.showPreview());
+
         // Cancel button
-        $('#cancelBtn').on('click', () => this.cancelSave());
-        
+        $.on('#cancelBtn', 'click', () => this.cancelSave());
+
         // Preview modal events
-        $('#closePreview').on('click', () => this.hidePreview());
-        $('#confirmSaveBtn').on('click', () => this.confirmSave());
-        $('#editDetailsBtn').on('click', () => this.hidePreview());
+        $.on('#closePreview', 'click', () => this.hidePreview());
+        $.on('#confirmSaveBtn', 'click', () => this.confirmSave());
+        $.on('#editDetailsBtn', 'click', () => this.hidePreview());
     }
 
     /**
@@ -502,20 +502,21 @@ class DocumentSaver {
      * Reset form to initial state
      */
     resetForm() {
-        $('#librarySelect').val('');
-        $('#folderSelect').val('').prop('disabled', true);
-        $('#fileName').val('');
-        $('#documentTitle').val('');
-        $('#documentDescription').val('');
-        $('#documentTags').val('');
-        $('#documentAuthor').val('');
-        $('#customId').val('');
-        $('#documentSource').val('');
-        $('#overwriteExisting').prop('checked', false);
-        $('#createVersion').prop('checked', true);
-        $('#notifyUsers').prop('checked', false);
+        $.val('#librarySelect', '');
+        $.val('#folderSelect', '');
+        $.prop('#folderSelect', 'disabled', true);
+        $.val('#fileName', '');
+        $.val('#documentTitle', '');
+        $.val('#documentDescription', '');
+        $.val('#documentTags', '');
+        $.val('#documentAuthor', '');
+        $.val('#customId', '');
+        $.val('#documentSource', '');
+        $.prop('#overwriteExisting', 'checked', false);
+        $.prop('#createVersion', 'checked', true);
+        $.prop('#notifyUsers', 'checked', false);
 
-        $('.ms-TextField-field').removeClass('error');
+        $.removeClass('.ms-TextField-field', 'error');
         this.hideMessage();
     }
 
@@ -523,9 +524,9 @@ class DocumentSaver {
      * Show loading indicator
      */
     showLoading(message = 'Loading...') {
-        $('#loadingSection p').text(message);
-        $('#loadingSection').show();
-        $('#messageSection').hide();
+        $.text('#loadingSection p', message);
+        $.show('#loadingSection');
+        $.hide('#messageSection');
     }
 
     /**

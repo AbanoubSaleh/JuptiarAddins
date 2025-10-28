@@ -17,29 +17,29 @@ class PropertiesEditor {
      */
     initializeEventListeners() {
         // Authentication
-        $('#loginBtn').on('click', () => this.showLoginDialog());
-        
+        $.on('#loginBtn', 'click', () => this.showLoginDialog());
+
         // Document selection
-        $('#loadFromJuptiarBtn').on('click', () => this.showDocumentSelectionModal());
-        $('#useCurrentDocBtn').on('click', () => this.useCurrentDocument());
-        
+        $.on('#loadFromJuptiarBtn', 'click', () => this.showDocumentSelectionModal());
+        $.on('#useCurrentDocBtn', 'click', () => this.useCurrentDocument());
+
         // Tab switching
-        $('.tab-header').on('click', (e) => this.switchTab($(e.currentTarget)));
-        
+        $.on('.tab-header', 'click', (e) => this.switchTab(e.currentTarget));
+
         // Document selection modal
-        $('#closeDocumentModal').on('click', () => this.hideDocumentSelectionModal());
-        $('#selectDocumentBtn').on('click', () => this.selectDocumentFromModal());
-        $('#cancelDocumentBtn').on('click', () => this.hideDocumentSelectionModal());
-        $('#documentSearch').on('input', () => this.filterDocuments());
-        
+        $.on('#closeDocumentModal', 'click', () => this.hideDocumentSelectionModal());
+        $.on('#selectDocumentBtn', 'click', () => this.selectDocumentFromModal());
+        $.on('#cancelDocumentBtn', 'click', () => this.hideDocumentSelectionModal());
+        $.on('#documentSearch', 'input', () => this.filterDocuments());
+
         // Document list selection
-        $(document).on('click', '.document-item', (e) => this.selectDocumentItem($(e.currentTarget)));
-        
+        $.on(document, 'click', '.document-item', (e) => this.selectDocumentItem(e.currentTarget));
+
         // Action buttons
-        $('#savePropertiesBtn').on('click', () => this.saveProperties());
-        $('#resetPropertiesBtn').on('click', () => this.resetProperties());
-        $('#cancelPropertiesBtn').on('click', () => this.cancelEditing());
-        
+        $.on('#savePropertiesBtn', 'click', () => this.saveProperties());
+        $.on('#resetPropertiesBtn', 'click', () => this.resetProperties());
+        $.on('#cancelPropertiesBtn', 'click', () => this.cancelEditing());
+
         // Listen for authentication state changes
         window.addEventListener('juptiarAuthStateChanged', (e) => {
             this.handleAuthStateChange(e.detail);
@@ -302,17 +302,17 @@ class PropertiesEditor {
      * Filter documents in modal
      */
     filterDocuments() {
-        const query = $('#documentSearch').val().toLowerCase();
-        
-        $('.document-item').each(function() {
-            const $item = $(this);
-            const name = $item.find('.document-name').text().toLowerCase();
-            const path = $item.find('.document-path').text().toLowerCase();
-            
+        const query = $.val('#documentSearch').toLowerCase();
+
+        const items = $.selectAll('.document-item');
+        items.forEach(item => {
+            const name = $.text($.select('.document-name', item)).toLowerCase();
+            const path = $.text($.select('.document-path', item)).toLowerCase();
+
             if (name.includes(query) || path.includes(query)) {
-                $item.show();
+                $.show(item);
             } else {
-                $item.hide();
+                $.hide(item);
             }
         });
     }
@@ -320,10 +320,10 @@ class PropertiesEditor {
     /**
      * Select document item in modal
      */
-    selectDocumentItem($item) {
-        $('.document-item').removeClass('selected');
-        $item.addClass('selected');
-        $('#selectDocumentBtn').prop('disabled', false);
+    selectDocumentItem(item) {
+        $.removeClass('.document-item', 'selected');
+        $.addClass(item, 'selected');
+        $.prop('#selectDocumentBtn', 'disabled', false);
     }
 
     /**

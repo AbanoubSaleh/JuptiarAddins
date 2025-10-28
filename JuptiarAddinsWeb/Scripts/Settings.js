@@ -16,27 +16,27 @@ class SettingsPage {
      */
     initializeEventListeners() {
         // Save settings
-        $.on('#saveBtn', 'click', () => this.saveSettings());
+        DOMUtils.on('#saveBtn', 'click', () => this.saveSettings());
 
         // Reset to defaults
-        $.on('#resetBtn', 'click', () => this.resetToDefaults());
+        DOMUtils.on('#resetBtn', 'click', () => this.resetToDefaults());
 
         // Clear credentials
-        $.on('#clearCredentialsBtn', 'click', () => this.clearCredentials());
+        DOMUtils.on('#clearCredentialsBtn', 'click', () => this.clearCredentials());
 
         // Test connection, login, and logout
-        $.on('#testConnectionBtn', 'click', () => this.testConnection());
-        $.on('#loginBtn', 'click', () => this.performLogin());
-        $.on('#logoutBtn', 'click', () => this.performLogout());
+        DOMUtils.on('#testConnectionBtn', 'click', () => this.testConnection());
+        DOMUtils.on('#loginBtn', 'click', () => this.performLogin());
+        DOMUtils.on('#logoutBtn', 'click', () => this.performLogout());
 
         // Form validation
-        $.on('#serverUrl', 'blur', () => this.validateServerUrl());
-        $.on('#username', 'blur', () => this.validateUsername());
-        $.on('#password', 'blur', () => this.validatePassword());
+        DOMUtils.on('#serverUrl', 'blur', () => this.validateServerUrl());
+        DOMUtils.on('#username', 'blur', () => this.validateUsername());
+        DOMUtils.on('#password', 'blur', () => this.validatePassword());
 
         // Auto-login checkbox dependency
-        $.on('#autoLogin', 'change', () => this.handleAutoLoginChange());
-        $.on('#rememberCredentials', 'change', () => this.handleRememberCredentialsChange());
+        DOMUtils.on('#autoLogin', 'change', () => this.handleAutoLoginChange());
+        DOMUtils.on('#rememberCredentials', 'change', () => this.handleRememberCredentialsChange());
     }
 
     /**
@@ -73,21 +73,21 @@ class SettingsPage {
      */
     populateForm(settings, credentials) {
         // Connection settings
-        $.val('#serverUrl', settings.serverUrl || '');
-        $.val('#apiEndpoint', settings.apiEndpoint || '/api/v1');
-        $.val('#connectionTimeout', settings.timeout / 1000 || 30);
+        DOMUtils.val('#serverUrl', settings.serverUrl || '');
+        DOMUtils.val('#apiEndpoint', settings.apiEndpoint || '/api/v1');
+        DOMUtils.val('#connectionTimeout', settings.timeout / 1000 || 30);
 
         // Authentication
-        $.val('#username', credentials.username || '');
+        DOMUtils.val('#username', credentials.username || '');
         // Map old settings to new "Stay Logged In" option
         const stayLoggedIn = settings.rememberCredentials || settings.autoLogin || false;
-        $.prop('#stayLoggedIn', 'checked', stayLoggedIn);
+        DOMUtils.prop('#stayLoggedIn', 'checked', stayLoggedIn);
 
         // Advanced settings
-        $.val('#defaultLibrary', settings.defaultLibrary || '');
-        $.val('#documentsPerPage', settings.documentsPerPage || 50);
+        DOMUtils.val('#defaultLibrary', settings.defaultLibrary || '');
+        DOMUtils.val('#documentsPerPage', settings.documentsPerPage || 50);
 
-        $.prop('#enableNotifications', 'checked', settings.enableNotifications !== false);
+        DOMUtils.prop('#enableNotifications', 'checked', settings.enableNotifications !== false);
         
         // Handle auto-login dependency
         this.handleRememberCredentialsChange();
@@ -97,33 +97,35 @@ class SettingsPage {
      * Update connection status display
      */
     updateConnectionStatus(authStatus) {
-        const indicator = $.select('#statusIndicator');
-        const statusText = $.select('#statusText');
-        const details = $.select('#connectionDetails');
+        const indicator = DOMUtils.select('#statusIndicator');
+        const statusText = DOMUtils.select('#statusText');
+        const details = DOMUtils.select('#connectionDetails');
 
         if (authStatus.isAuthenticated) {
-            $.removeClass(indicator, 'offline testing');
-            $.addClass(indicator, 'online');
-            $.text(statusText, 'Connected');
+            DOMUtils.removeClass(indicator, 'offline');
+            DOMUtils.removeClass(indicator, 'testing');
+            DOMUtils.addClass(indicator, 'online');
+            DOMUtils.text(statusText, 'Connected');
 
-            $.text('#connectedServer', authStatus.serverUrl || '-');
-            $.text('#connectedUser', authStatus.user?.username || '-');
-            $.text('#lastConnected', new Date().toLocaleString());
+            DOMUtils.text('#connectedServer', authStatus.serverUrl || '-');
+            DOMUtils.text('#connectedUser', authStatus.user?.username || '-');
+            DOMUtils.text('#lastConnected', new Date().toLocaleString());
 
-            $.show(details);
+            DOMUtils.show(details);
 
             // Show logout button, hide login button
-            $.hide('#loginBtn');
-            $.show('#logoutBtn');
+            DOMUtils.hide('#loginBtn');
+            DOMUtils.show('#logoutBtn');
         } else {
-            $.removeClass(indicator, 'online testing');
-            $.addClass(indicator, 'offline');
-            $.text(statusText, 'Not connected');
-            $.hide(details);
+            DOMUtils.removeClass(indicator, 'online');
+            DOMUtils.removeClass(indicator, 'testing');
+            DOMUtils.addClass(indicator, 'offline');
+            DOMUtils.text(statusText, 'Not connected');
+            DOMUtils.hide(details);
 
             // Show login button, hide logout button
-            $.show('#loginBtn');
-            $.hide('#logoutBtn');
+            DOMUtils.show('#loginBtn');
+            DOMUtils.hide('#logoutBtn');
         }
     }
 
@@ -145,20 +147,21 @@ class SettingsPage {
      * Populate default library select
      */
     populateDefaultLibrarySelect(libraries) {
-        const $select = $('#defaultLibrary');
-        const currentValue = $select.val();
-        
-        $select.empty().append('<option value="">Select default library...</option>');
-        
+        const select = DOMUtils.select('#defaultLibrary');
+        const currentValue = DOMUtils.val('#defaultLibrary');
+
+        DOMUtils.empty(select);
+        DOMUtils.append(select, '<option value="">Select default library...</option>');
+
         if (Array.isArray(libraries)) {
             libraries.forEach(library => {
-                $select.append(`<option value="${library.id}">${library.name}</option>`);
+                DOMUtils.append(select, `<option value="${library.id}">${library.name}</option>`);
             });
         }
-        
+
         // Restore previous selection
         if (currentValue) {
-            $select.val(currentValue);
+            DOMUtils.val('#defaultLibrary', currentValue);
         }
     }
 
@@ -167,8 +170,8 @@ class SettingsPage {
      */
     validateServerUrl() {
         // Server URL is pre-configured, so always return true
-        const field = $.select('#serverUrl');
-        $.removeClass(field, 'error');
+        const field = DOMUtils.select('#serverUrl');
+        DOMUtils.removeClass(field, 'error');
         this.hideFieldError(field);
         return true;
     }
@@ -177,16 +180,16 @@ class SettingsPage {
      * Validate username
      */
     validateUsername() {
-        const username = $.val('#username').trim();
-        const field = $.select('#username');
-        
+        const username = DOMUtils.val('#username').trim();
+        const field = DOMUtils.select('#username');
+
         if (!username) {
-            $.addClass(field, 'error');
+            DOMUtils.addClass(field, 'error');
             this.showFieldError(field, 'Username is required');
             return false;
         }
 
-        $.removeClass(field, 'error');
+        DOMUtils.removeClass(field, 'error');
         this.hideFieldError(field);
         return true;
     }
@@ -195,16 +198,16 @@ class SettingsPage {
      * Validate password
      */
     validatePassword() {
-        const password = $.val('#password');
-        const field = $.select('#password');
+        const password = DOMUtils.val('#password');
+        const field = DOMUtils.select('#password');
 
         if (!password) {
-            $.addClass(field, 'error');
+            DOMUtils.addClass(field, 'error');
             this.showFieldError(field, 'Password is required');
             return false;
         }
 
-        $.removeClass(field, 'error');
+        DOMUtils.removeClass(field, 'error');
         this.hideFieldError(field);
         return true;
     }
@@ -236,11 +239,11 @@ class SettingsPage {
      * Handle remember credentials checkbox change
      */
     handleRememberCredentialsChange() {
-        const rememberChecked = $('#rememberCredentials').is(':checked');
-        $('#autoLogin').prop('disabled', !rememberChecked);
-        
+        const rememberChecked = DOMUtils.prop('#rememberCredentials', 'checked');
+        DOMUtils.prop('#autoLogin', 'disabled', !rememberChecked);
+
         if (!rememberChecked) {
-            $('#autoLogin').prop('checked', false);
+            DOMUtils.prop('#autoLogin', 'checked', false);
         }
     }
 
@@ -248,10 +251,10 @@ class SettingsPage {
      * Handle auto-login checkbox change
      */
     handleAutoLoginChange() {
-        const autoLoginChecked = $('#autoLogin').is(':checked');
-        
-        if (autoLoginChecked && !$('#rememberCredentials').is(':checked')) {
-            $('#rememberCredentials').prop('checked', true);
+        const autoLoginChecked = DOMUtils.prop('#autoLogin', 'checked');
+
+        if (autoLoginChecked && !DOMUtils.prop('#rememberCredentials', 'checked')) {
+            DOMUtils.prop('#rememberCredentials', 'checked', true);
         }
     }
 
@@ -269,36 +272,44 @@ class SettingsPage {
                 return;
             }
             
-            const serverUrl = $('#serverUrl').val().trim();
-            const apiEndpoint = $('#apiEndpoint').val().trim();
-            
+            const serverUrl = DOMUtils.val('#serverUrl').trim();
+            const apiEndpoint = DOMUtils.val('#apiEndpoint').trim();
+
             // Update UI
-            $('#statusIndicator').removeClass('online offline').addClass('testing');
-            $('#statusText').text('Testing connection...');
-            $('#testConnectionBtn').prop('disabled', true);
+            DOMUtils.removeClass('#statusIndicator', 'online');
+            DOMUtils.removeClass('#statusIndicator', 'offline');
+            DOMUtils.addClass('#statusIndicator', 'testing');
+            DOMUtils.text('#statusText', 'Testing connection...');
+            DOMUtils.prop('#testConnectionBtn', 'disabled', true);
             this.showLoading('Testing connection...');
             
             // Test connection
             const result = await window.authManager.testConnection(serverUrl, apiEndpoint);
             
             if (result.success) {
-                $('#statusIndicator').removeClass('testing offline').addClass('online');
-                $('#statusText').text('Connection successful');
+                DOMUtils.removeClass('#statusIndicator', 'testing');
+                DOMUtils.removeClass('#statusIndicator', 'offline');
+                DOMUtils.addClass('#statusIndicator', 'online');
+                DOMUtils.text('#statusText', 'Connection successful');
                 this.showSuccess('Connection test successful');
             } else {
-                $('#statusIndicator').removeClass('testing online').addClass('offline');
-                $('#statusText').text('Connection failed');
+                DOMUtils.removeClass('#statusIndicator', 'testing');
+                DOMUtils.removeClass('#statusIndicator', 'online');
+                DOMUtils.addClass('#statusIndicator', 'offline');
+                DOMUtils.text('#statusText', 'Connection failed');
                 this.showError('Connection test failed: ' + result.error);
             }
-            
+
         } catch (error) {
             console.error('Connection test error:', error);
-            $('#statusIndicator').removeClass('testing online').addClass('offline');
-            $('#statusText').text('Connection failed');
+            DOMUtils.removeClass('#statusIndicator', 'testing');
+            DOMUtils.removeClass('#statusIndicator', 'online');
+            DOMUtils.addClass('#statusIndicator', 'offline');
+            DOMUtils.text('#statusText', 'Connection failed');
             this.showError('Connection test failed: ' + error.message);
         } finally {
             this.isTestingConnection = false;
-            $('#testConnectionBtn').prop('disabled', false);
+            DOMUtils.prop('#testConnectionBtn', 'disabled', false);
             this.hideLoading();
         }
     }
@@ -318,12 +329,12 @@ class SettingsPage {
                 return;
             }
 
-            const username = $('#username').val().trim();
-            const password = $('#password').val();
-            const stayLoggedIn = $('#stayLoggedIn').is(':checked');
+            const username = DOMUtils.val('#username').trim();
+            const password = DOMUtils.val('#password');
+            const stayLoggedIn = DOMUtils.prop('#stayLoggedIn', 'checked');
 
             // Update UI
-            $('#loginBtn').prop('disabled', true);
+            DOMUtils.prop('#loginBtn', 'disabled', true);
             this.showLoading('Logging in...');
 
             // Perform login
@@ -341,7 +352,7 @@ class SettingsPage {
 
                 // Clear password field for security (unless stay logged in is checked)
                 if (!stayLoggedIn) {
-                    $('#password').val('');
+                    DOMUtils.val('#password', '');
                 }
             } else {
                 this.showError('Login failed: ' + (result.message || 'Invalid credentials'));
@@ -352,7 +363,7 @@ class SettingsPage {
             this.showError('Login failed: ' + error.message);
         } finally {
             this.isLoggingIn = false;
-            $('#loginBtn').prop('disabled', false);
+            DOMUtils.prop('#loginBtn', 'disabled', false);
             this.hideLoading();
         }
     }
@@ -369,11 +380,11 @@ class SettingsPage {
 
             // Update UI
             this.updateConnectionStatus({ isAuthenticated: false });
-            $('#logoutBtn').hide();
-            $('#loginBtn').show();
+            DOMUtils.hide('#logoutBtn');
+            DOMUtils.show('#loginBtn');
 
             // Clear password field for security
-            $('#password').val('');
+            DOMUtils.val('#password', '');
 
             this.showSuccess('Logged out successfully');
 
@@ -400,22 +411,22 @@ class SettingsPage {
             this.showLoading('Validating credentials and saving settings...');
 
             // Collect form data
-            const stayLoggedIn = $.prop('#stayLoggedIn', 'checked');
+            const stayLoggedIn = DOMUtils.prop('#stayLoggedIn', 'checked');
             const newSettings = {
-                serverUrl: $.val('#serverUrl').trim(),
-                apiEndpoint: $.val('#apiEndpoint').trim(),
-                timeout: parseInt($.val('#connectionTimeout')) * 1000,
+                serverUrl: DOMUtils.val('#serverUrl').trim(),
+                apiEndpoint: DOMUtils.val('#apiEndpoint').trim(),
+                timeout: parseInt(DOMUtils.val('#connectionTimeout')) * 1000,
                 // Map new "Stay Logged In" to both old options for backward compatibility
                 rememberCredentials: stayLoggedIn,
                 autoLogin: stayLoggedIn,
-                defaultLibrary: $.val('#defaultLibrary'),
-                documentsPerPage: parseInt($.val('#documentsPerPage')),
+                defaultLibrary: DOMUtils.val('#defaultLibrary'),
+                documentsPerPage: parseInt(DOMUtils.val('#documentsPerPage')),
 
-                enableNotifications: $.prop('#enableNotifications', 'checked')
+                enableNotifications: DOMUtils.prop('#enableNotifications', 'checked')
             };
 
-            const username = $.val('#username').trim();
-            const password = $.val('#password');
+            const username = DOMUtils.val('#username').trim();
+            const password = DOMUtils.val('#password');
 
             // SECURITY BEST PRACTICE: Validate credentials before saving anything
             if (username && password) {
@@ -439,7 +450,7 @@ class SettingsPage {
                     await this.loadDefaultLibraryOptions();
 
                     // Clear password field for security (token is now stored)
-                    $('#password').val('');
+                    DOMUtils.val('#password', '');
 
                     this.showSuccess('✅ Settings saved and login successful! You are now authenticated.');
 
@@ -496,23 +507,24 @@ class SettingsPage {
         const defaultApiEndpoint = window.JupiterConfig?.get('server.apiEndpoint') || '/api';
 
         // Only reset server URL if it's empty, otherwise keep the current value
-        if (!$('#serverUrl').val().trim()) {
-            $('#serverUrl').val(defaultServerUrl);
+        if (!DOMUtils.val('#serverUrl').trim()) {
+            DOMUtils.val('#serverUrl', defaultServerUrl);
         }
 
-        $('#apiEndpoint').val(defaultApiEndpoint);
-        $('#connectionTimeout').val('30');
-        $('#username').val('');
-        $('#password').val('');
-        $('#stayLoggedIn').prop('checked', false);
-        $('#defaultLibrary').val('');
-        $('#documentsPerPage').val('50');
+        DOMUtils.val('#apiEndpoint', defaultApiEndpoint);
+        DOMUtils.val('#connectionTimeout', '30');
+        DOMUtils.val('#username', '');
+        DOMUtils.val('#password', '');
+        DOMUtils.prop('#stayLoggedIn', 'checked', false);
+        DOMUtils.val('#defaultLibrary', '');
+        DOMUtils.val('#documentsPerPage', '50');
 
-        $('#enableNotifications').prop('checked', true);
+        DOMUtils.prop('#enableNotifications', 'checked', true);
 
         // Clear validation errors
-        $('.ms-TextField-field').removeClass('error');
-        $('.error-message').remove();
+        DOMUtils.removeClass('.ms-TextField-field', 'error');
+        const errorMessages = DOMUtils.selectAll('.error-message');
+        errorMessages.forEach(el => el.remove());
 
         this.handleRememberCredentialsChange();
         this.showSuccess('Settings reset to defaults (server URL preserved)');
@@ -539,16 +551,17 @@ class SettingsPage {
         `;
 
         // Show the confirmation
-        $('#messageSection').html(confirmHtml).show();
+        DOMUtils.html('#messageSection', confirmHtml);
+        DOMUtils.show('#messageSection');
 
         // Handle confirmation buttons
-        $('#confirmYes').on('click', () => {
-            $('#messageSection').hide();
+        DOMUtils.on('#confirmYes', 'click', () => {
+            DOMUtils.hide('#messageSection');
             onConfirm();
         });
 
-        $('#confirmNo').on('click', () => {
-            $('#messageSection').hide();
+        DOMUtils.on('#confirmNo', 'click', () => {
+            DOMUtils.hide('#messageSection');
         });
     }
 
@@ -562,10 +575,10 @@ class SettingsPage {
         try {
             await window.authManager.clearStoredCredentials();
             
-            $('#username').val('');
-            $('#password').val('');
-            $('#rememberCredentials').prop('checked', false);
-            $('#autoLogin').prop('checked', false);
+            DOMUtils.val('#username', '');
+            DOMUtils.val('#password', '');
+            DOMUtils.prop('#rememberCredentials', 'checked', false);
+            DOMUtils.prop('#autoLogin', 'checked', false);
             
             this.handleRememberCredentialsChange();
             this.showSuccess('Stored credentials cleared');
@@ -580,48 +593,56 @@ class SettingsPage {
      * Show loading indicator
      */
     showLoading(message = 'Loading...') {
-        $.text('#loadingText', message);
-        $.show('#loadingSection');
-        $.hide('#messageSection');
+        DOMUtils.text('#loadingText', message);
+        DOMUtils.show('#loadingSection');
+        DOMUtils.hide('#messageSection');
     }
 
     /**
      * Hide loading indicator
      */
     hideLoading() {
-        $.hide('#loadingSection');
+        DOMUtils.hide('#loadingSection');
     }
 
     /**
      * Show error message
      */
     showError(message) {
-        const messageBar = $.select('#messageBar');
-        const messageIcon = $.select('#messageIcon i');
+        const messageBar = DOMUtils.select('#messageBar');
+        const messageIcon = DOMUtils.select('#messageIcon i');
 
-        messageBar.className = 'ms-MessageBar ms-MessageBar--error';
-        messageIcon.className = 'ms-Icon ms-Icon--ErrorBadge';
-        $.text('#messageText', message);
-        $.show('#messageSection');
-        $.hide('#loadingSection');
+        if (messageBar) {
+            messageBar.className = 'ms-MessageBar ms-MessageBar--error';
+        }
+        if (messageIcon) {
+            messageIcon.className = 'ms-Icon ms-Icon--ErrorBadge';
+        }
+        DOMUtils.text('#messageText', message);
+        DOMUtils.show('#messageSection');
+        DOMUtils.hide('#loadingSection');
     }
 
     /**
      * Show success message
      */
     showSuccess(message) {
-        const messageBar = $.select('#messageBar');
-        const messageIcon = $.select('#messageIcon i');
+        const messageBar = DOMUtils.select('#messageBar');
+        const messageIcon = DOMUtils.select('#messageIcon i');
 
-        messageBar.className = 'ms-MessageBar ms-MessageBar--success';
-        messageIcon.className = 'ms-Icon ms-Icon--CheckMark';
-        $.text('#messageText', message);
-        $.show('#messageSection');
-        $.hide('#loadingSection');
+        if (messageBar) {
+            messageBar.className = 'ms-MessageBar ms-MessageBar--success';
+        }
+        if (messageIcon) {
+            messageIcon.className = 'ms-Icon ms-Icon--CheckMark';
+        }
+        DOMUtils.text('#messageText', message);
+        DOMUtils.show('#messageSection');
+        DOMUtils.hide('#loadingSection');
 
         // Auto-hide success message after 3 seconds
         setTimeout(() => {
-            $.hide('#messageSection');
+            DOMUtils.hide('#messageSection');
         }, 3000);
     }
 
@@ -629,29 +650,41 @@ class SettingsPage {
      * Show warning message
      */
     showWarning(message) {
-        $('#messageBar').removeClass().addClass('ms-MessageBar ms-MessageBar--warning');
-        $('#messageIcon i').removeClass().addClass('ms-Icon ms-Icon--Warning');
-        $('#messageText').text(message);
-        $('#messageSection').show();
-        $('#loadingSection').hide();
+        const messageBar = DOMUtils.select('#messageBar');
+        if (messageBar) {
+            messageBar.className = 'ms-MessageBar ms-MessageBar--warning';
+        }
+        const messageIcon = DOMUtils.select('#messageIcon i');
+        if (messageIcon) {
+            messageIcon.className = 'ms-Icon ms-Icon--Warning';
+        }
+        DOMUtils.text('#messageText', message);
+        DOMUtils.show('#messageSection');
+        DOMUtils.hide('#loadingSection');
     }
 
     /**
      * Show info message
      */
     showInfo(message) {
-        $('#messageBar').removeClass().addClass('ms-MessageBar ms-MessageBar--info');
-        $('#messageIcon i').removeClass().addClass('ms-Icon ms-Icon--Info');
-        $('#messageText').text(message);
-        $('#messageSection').show();
-        $('#loadingSection').hide();
+        const messageBar = DOMUtils.select('#messageBar');
+        if (messageBar) {
+            messageBar.className = 'ms-MessageBar ms-MessageBar--info';
+        }
+        const messageIcon = DOMUtils.select('#messageIcon i');
+        if (messageIcon) {
+            messageIcon.className = 'ms-Icon ms-Icon--Info';
+        }
+        DOMUtils.text('#messageText', message);
+        DOMUtils.show('#messageSection');
+        DOMUtils.hide('#loadingSection');
     }
 
     /**
      * Hide message
      */
     hideMessage() {
-        $('#messageSection').hide();
+        DOMUtils.hide('#messageSection');
     }
 }
 

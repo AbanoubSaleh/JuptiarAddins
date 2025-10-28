@@ -3,7 +3,7 @@ let messageBanner;
 
     // The initialize function must be run each time a new page is loaded.
     Office.onReady(() => {
-        $(() => {
+        DOMUtils.ready(() => {
             // Initialize he Office Fabric UI notification mechanism and hide it.
             let element = document.querySelector('.MessageBanner');
             messageBanner = new components.MessageBanner(element);
@@ -11,11 +11,11 @@ let messageBanner;
 
             // If not using Word 2016, use fallback logic.
             if (!Office.context.requirements.isSetSupported('WordApi', '1.1')) {
-                $("#template-description").text("This sample displays the selected text.");
-                $('#button-text').text("Display!");
-                $('#button-desc').text("Display the selected text");
-                
-                $('#highlight-button').on('click',displaySelectedText);
+                DOMUtils.text("#template-description", "This sample displays the selected text.");
+                DOMUtils.text('#button-text', "Display!");
+                DOMUtils.text('#button-desc', "Display the selected text");
+
+                DOMUtils.on('#highlight-button', 'click', displaySelectedText);
                 return;
             }
 

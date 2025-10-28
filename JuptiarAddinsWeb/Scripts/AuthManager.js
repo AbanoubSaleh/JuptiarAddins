@@ -18,8 +18,8 @@ class AuthManager {
             serverUrl: configBaseUrl || 'https://localhost:7001',
             apiEndpoint: window.JupiterConfig?.get('server.apiEndpoint') || '/api',
             timeout: window.JupiterConfig?.get('server.timeout') || 30000,
-            rememberCredentials: window.JupiterConfig?.get('auth.rememberCredentials') || false,
-            autoLogin: window.JupiterConfig?.get('auth.autoLogin') || false
+            rememberCredentials: false, // Disabled for security - only remember tokens
+            autoLogin: false // Disabled - require explicit login
         };
 
         console.log('AuthManager: Initial settings:', this.settings);
@@ -104,90 +104,51 @@ class AuthManager {
 
     /**
      * Load stored credentials if remember is enabled (using Office Runtime storage)
+     * NOTE: Password storage has been disabled for security reasons.
+     * Only authentication tokens are stored.
      */
     async loadStoredCredentials() {
-        try {
-            if (this.settings.rememberCredentials) {
-                let storedCreds = null;
-
-                // Try Office Runtime storage first (more secure)
-                try {
-                    const credsJson = await OfficeRuntime.storage.getItem('juptiarCredentials');
-                    if (credsJson) {
-                        storedCreds = JSON.parse(credsJson);
-                        console.log('AuthManager: Loaded credentials from OfficeRuntime storage');
-                    }
-                } catch (runtimeError) {
-                    console.warn('Could not load credentials from OfficeRuntime storage, trying Office settings:', runtimeError);
-                    // Fallback to Office.context.document.settings
-                    storedCreds = Office.context.document.settings.get('juptiarCredentials');
-                    console.log('AuthManager: Loaded credentials from Office settings (fallback)');
-                }
-
-                if (storedCreds) {
-                    this.storedUsername = storedCreds.username;
-                    this.storedPassword = this.decryptPassword(storedCreds.password);
-                }
-            }
-        } catch (error) {
-            console.warn('Could not load stored credentials:', error);
-        }
+        // Password storage disabled for security
+        // Only tokens are stored and managed separately
+        console.log('AuthManager: Password storage disabled for security. Only tokens are stored.');
     }
 
     /**
      * Store credentials securely using Office Runtime storage
+     * NOTE: Password storage has been disabled for security reasons.
      */
     async storeCredentials(username, password) {
-        try {
-            if (this.settings.rememberCredentials) {
-                const credentials = {
-                    username: username,
-                    password: this.encryptPassword(password)
-                };
-
-                // Store in Office Runtime storage (primary method - more secure)
-                try {
-                    await OfficeRuntime.storage.setItem('juptiarCredentials', JSON.stringify(credentials));
-                    console.log('AuthManager: Credentials stored in OfficeRuntime storage');
-                } catch (runtimeError) {
-                    console.warn('Could not store credentials in OfficeRuntime storage, using Office settings fallback:', runtimeError);
-                    // Fallback to Office.context.document.settings
-                    Office.context.document.settings.set('juptiarCredentials', credentials);
-                    await Office.context.document.settings.saveAsync();
-                    console.log('AuthManager: Credentials stored in Office settings (fallback)');
-                }
-            }
-        } catch (error) {
-            console.error('Could not store credentials:', error);
-        }
+        // Password storage disabled for security
+        console.log('AuthManager: Password storage disabled for security. Only tokens are stored.');
     }
 
     /**
      * Clear stored credentials from both storage methods
+     * NOTE: Only clears legacy stored credentials if they exist.
      */
     async clearStoredCredentials() {
         try {
-            // Clear from Office Runtime storage
+            // Clear legacy stored credentials if they exist
             try {
                 await OfficeRuntime.storage.removeItem('juptiarCredentials');
-                console.log('AuthManager: Credentials cleared from OfficeRuntime storage');
+                console.log('AuthManager: Legacy credentials cleared from OfficeRuntime storage');
             } catch (runtimeError) {
-                console.warn('Could not clear from OfficeRuntime storage:', runtimeError);
+                // Ignore - likely doesn't exist
             }
 
             // Also clear from Office settings (fallback/legacy)
             try {
                 Office.context.document.settings.remove('juptiarCredentials');
                 await Office.context.document.settings.saveAsync();
-                console.log('AuthManager: Credentials cleared from Office settings');
+                console.log('AuthManager: Legacy credentials cleared from Office settings');
             } catch (settingsError) {
-                console.warn('Could not clear from Office settings:', settingsError);
+                // Ignore - likely doesn't exist
             }
 
             this.storedUsername = null;
             this.storedPassword = null;
         } catch (error) {
-            console.error('Could not clear credentials:', error);
+            console.error('Could not clear legacy credentials:', error);
         }
     }
 
@@ -231,33 +192,12 @@ class AuthManager {
         }
     }
 
-    /**
-     * Simple encryption for stored passwords (base64 encoding)
-     * Note: This is not secure encryption, just obfuscation for convenience
-     * For production, consider using Web Crypto API or avoid storing passwords entirely
-     */
-    encryptPassword(password) {
-        // Add a simple salt to make it slightly less obvious
-        const salt = 'JupiterDMS2024';
-        return btoa(salt + password + salt);
-    }
-
-    /**
-     * Simple decryption for stored passwords
-     */
-    decryptPassword(encryptedPassword) {
-        try {
-            const salt = 'JupiterDMS2024';
-            const decoded = atob(encryptedPassword);
-            // Remove salt from both ends
-            return decoded.substring(salt.length, decoded.length - salt.length);
-        } catch (error) {
-            return '';
-        }
-    }
+    // Password encryption/decryption methods removed for security
+    // Only authentication tokens are stored now
 
     /**
      * Attempt login with credentials
+     * NOTE: rememberCredentials parameter is ignored - only tokens are stored
      */
     async login(username, password, rememberCredentials = false) {
         try {
@@ -311,14 +251,11 @@ class AuthManager {
                     console.log('AuthManager: Token set in JupiterService');
                 }
 
-                // Store credentials if requested (for auto-login)
-                // Note: In production, consider storing only tokens for better security
-                if (rememberCredentials) {
-                    await this.storeCredentials(username, password);
-                }
+                // Password storage disabled for security - only tokens are stored
+                // Tokens are automatically stored in storeAuthToken() above
 
-                // Update settings
-                await this.saveSettings({ rememberCredentials: rememberCredentials });
+                // Update settings (rememberCredentials always false for security)
+                await this.saveSettings({ rememberCredentials: false });
 
                 this.notifyAuthStateChange();
                 return { success: true, user: this.currentUser };
@@ -329,11 +266,21 @@ class AuthManager {
             this._isAuthenticated = false;
             this.authToken = null;
             this.currentUser = null;
-            
+
             if (window.jupiterService) {
                 window.jupiterService.clearAuthToken();
             }
-            
+
+            // Use centralized error handling
+            if (window.ErrorHandler) {
+                window.ErrorHandler.handle(error, {
+                    context: 'AuthManager.login',
+                    userMessage: 'Login failed. Please check your credentials and try again.',
+                    showToUser: true,
+                    severity: 'error'
+                });
+            }
+
             throw error;
         }
     }
@@ -400,18 +347,11 @@ class AuthManager {
     }
 
     /**
-     * Auto-login if enabled and credentials are stored
+     * Auto-login disabled for security (no password storage)
      */
     async autoLogin() {
-        try {
-            if (this.settings.autoLogin && this.storedUsername && this.storedPassword) {
-                return await this.login(this.storedUsername, this.storedPassword, true);
-            }
-            return false;
-        } catch (error) {
-            console.warn('Auto-login failed:', error);
-            return false;
-        }
+        console.log('AuthManager: Auto-login disabled for security (no password storage)');
+        return false;
     }
 
     /**
@@ -483,11 +423,12 @@ class AuthManager {
 
     /**
      * Get stored credentials (for auto-fill)
+     * NOTE: Password storage disabled for security
      */
     getStoredCredentials() {
         return {
-            username: this.storedUsername || '',
-            hasStoredPassword: !!this.storedPassword
+            username: '',
+            hasStoredPassword: false
         };
     }
 
@@ -542,15 +483,8 @@ class AuthManager {
             }
         }
 
-        // Try auto-login if enabled and no valid session was restored
-        if (this.settings.autoLogin && !this._isAuthenticated) {
-            try {
-                console.log('AuthManager: Attempting auto-login');
-                await this.autoLogin();
-            } catch (error) {
-                console.warn('Auto-login failed:', error);
-            }
-        }
+        // Auto-login disabled for security (no password storage)
+        console.log('AuthManager: Auto-login disabled for security');
 
         console.log('AuthManager: Initialization complete. Authenticated:', this._isAuthenticated);
         this.isInitialized = true;

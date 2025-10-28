@@ -91,7 +91,17 @@ class DocumentUploader {
 
             return result;
         } catch (error) {
-            console.error('Error saving new document:', error);
+            // Use centralized error handling
+            if (window.ErrorHandler) {
+                window.ErrorHandler.handle(error, {
+                    context: 'DocumentUploader.saveNewDocument',
+                    userMessage: 'Failed to save document. Please try again.',
+                    showToUser: true,
+                    severity: 'error'
+                });
+            } else {
+                console.error('Error saving new document:', error);
+            }
             throw error;
         }
     }

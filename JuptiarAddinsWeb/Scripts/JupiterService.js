@@ -90,7 +90,16 @@ class JupiterService {
             }
         } catch (error) {
             if (error.name === 'AbortError') {
-                throw new Error('Request timeout');
+                error = new Error('Request timeout');
+            }
+
+            // Use centralized error handling if available
+            if (window.ErrorHandler) {
+                window.ErrorHandler.handle(error, {
+                    context: `JupiterService.${method}`,
+                    showToUser: false, // Let calling code decide whether to show to user
+                    logError: true
+                });
             }
             throw error;
         }
@@ -237,8 +246,8 @@ class JupiterService {
         return await response.json();
     }
 
-    async updateDocument(data) {
-        return await this.makeRequest('PUT', `/documents`, data);
+    async updateDocument(documentId, data) {
+        return await this.makeRequest('PUT', `/documents/${documentId}`, data);
     }
 
     async deleteDocument(documentId) {
