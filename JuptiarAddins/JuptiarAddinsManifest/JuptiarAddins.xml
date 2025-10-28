@@ -12,7 +12,7 @@
   <!-- IMPORTANT! Id must be unique for your add-in, if you reuse this manifest ensure that you change this id to a new GUID. -->
   <Id>20270141-3bb0-4463-94a9-2ee7bcc96d5a</Id>
 
-  <Version>1.0.0.0</Version>
+  <Version>1.4.0.0</Version>
   <ProviderName>Jupiter</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <!-- The display name of your add-in. Used on the store and various places of the Office UI such as the add-ins dialog. -->
@@ -59,12 +59,13 @@
           <ExtensionPoint xsi:type="PrimaryCommandSurface">
             <!-- Custom Jupiter Tab -->
             <CustomTab id="Jupiter.Tab">
+              <!-- Open Documents Group -->
               <Group id="Jupiter.DocumentGroup">
                 <Label resid="Jupiter.DocumentGroup.Label" />
                 <Icon>
-                  <bt:Image size="16" resid="Jupiter.icon_16x16" />
-                  <bt:Image size="32" resid="Jupiter.icon_32x32" />
-                  <bt:Image size="80" resid="Jupiter.icon_80x80" />
+                  <bt:Image size="16" resid="Jupiter.open_16x16" />
+                  <bt:Image size="32" resid="Jupiter.open_32x32" />
+                  <bt:Image size="80" resid="Jupiter.open_80x80" />
                 </Icon>
 
                 <!-- Open/Browse Button -->
@@ -84,6 +85,16 @@
                     <SourceLocation resid="Jupiter.DocumentBrowser.Url" />
                   </Action>
                 </Control>
+              </Group>
+
+              <!-- Save Documents Group -->
+              <Group id="Jupiter.SaveGroup">
+                <Label resid="Jupiter.SaveGroup.Label" />
+                <Icon>
+                  <bt:Image size="16" resid="Jupiter.save_16x16" />
+                  <bt:Image size="32" resid="Jupiter.save_32x32" />
+                  <bt:Image size="80" resid="Jupiter.save_80x80" />
+                </Icon>
 
                 <!-- Save Button -->
                 <Control xsi:type="Button" id="Jupiter.SaveButton">
@@ -102,24 +113,16 @@
                     <SourceLocation resid="Jupiter.SaveDialog.Url" />
                   </Action>
                 </Control>
+              </Group>
 
-                <!-- Settings Button -->
-                <Control xsi:type="Button" id="Jupiter.SettingsButton">
-                  <Label resid="Jupiter.Settings.Label" />
-                  <Supertip>
-                    <Title resid="Jupiter.Settings.Label" />
-                    <Description resid="Jupiter.Settings.Tooltip" />
-                  </Supertip>
-                  <Icon>
-                    <bt:Image size="16" resid="Jupiter.settings_16x16" />
-                    <bt:Image size="32" resid="Jupiter.settings_32x32" />
-                    <bt:Image size="80" resid="Jupiter.settings_80x80" />
-                  </Icon>
-                  <Action xsi:type="ShowTaskpane">
-                    <TaskpaneId>JupiterSettings</TaskpaneId>
-                    <SourceLocation resid="Jupiter.Settings.Url" />
-                  </Action>
-                </Control>
+              <!-- Document Properties Group -->
+              <Group id="Jupiter.PropertiesGroup">
+                <Label resid="Jupiter.PropertiesGroup.Label" />
+                <Icon>
+                  <bt:Image size="16" resid="Jupiter.properties_16x16" />
+                  <bt:Image size="32" resid="Jupiter.properties_32x32" />
+                  <bt:Image size="80" resid="Jupiter.properties_80x80" />
+                </Icon>
 
                 <!-- Edit Properties Button -->
                 <Control xsi:type="Button" id="Jupiter.PropertiesButton">
@@ -139,6 +142,35 @@
                   </Action>
                 </Control>
               </Group>
+
+              <!-- System Configuration Group -->
+              <Group id="Jupiter.ConfigGroup">
+                <Label resid="Jupiter.ConfigGroup.Label" />
+                <Icon>
+                  <bt:Image size="16" resid="Jupiter.settings_16x16" />
+                  <bt:Image size="32" resid="Jupiter.settings_32x32" />
+                  <bt:Image size="80" resid="Jupiter.settings_80x80" />
+                </Icon>
+
+                <!-- Settings Button -->
+                <Control xsi:type="Button" id="Jupiter.SettingsButton">
+                  <Label resid="Jupiter.Settings.Label" />
+                  <Supertip>
+                    <Title resid="Jupiter.Settings.Label" />
+                    <Description resid="Jupiter.Settings.Tooltip" />
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Jupiter.settings_16x16" />
+                    <bt:Image size="32" resid="Jupiter.settings_32x32" />
+                    <bt:Image size="80" resid="Jupiter.settings_80x80" />
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>JupiterSettings</TaskpaneId>
+                    <SourceLocation resid="Jupiter.Settings.Url" />
+                  </Action>
+                </Control>
+              </Group>
+
               <Label resid="Jupiter.Tab.Label" />
             </CustomTab>
           </ExtensionPoint>
@@ -153,25 +185,25 @@
         <bt:Image id="Jupiter.icon_32x32" DefaultValue="~remoteAppUrl/Images/JupiterIcon32x32.png" />
         <bt:Image id="Jupiter.icon_80x80" DefaultValue="~remoteAppUrl/Images/JupiterIcon80x80.png" />
 
-        <!-- Open/Browse Icons -->
-        <bt:Image id="Jupiter.open_16x16" DefaultValue="~remoteAppUrl/Images/Open16x16.png" />
-        <bt:Image id="Jupiter.open_32x32" DefaultValue="~remoteAppUrl/Images/Open32x32.png" />
-        <bt:Image id="Jupiter.open_80x80" DefaultValue="~remoteAppUrl/Images/Open80x80.png" />
+        <!-- Professional Folder Icons for Open/Browse -->
+        <bt:Image id="Jupiter.open_16x16" DefaultValue="~remoteAppUrl/Images/FolderIcon16x16.png" />
+        <bt:Image id="Jupiter.open_32x32" DefaultValue="~remoteAppUrl/Images/FolderIcon32x32.png" />
+        <bt:Image id="Jupiter.open_80x80" DefaultValue="~remoteAppUrl/Images/FolderIcon80x80.png" />
 
-        <!-- Save Icons -->
-        <bt:Image id="Jupiter.save_16x16" DefaultValue="~remoteAppUrl/Images/Save16x16.png" />
-        <bt:Image id="Jupiter.save_32x32" DefaultValue="~remoteAppUrl/Images/Save32x32.png" />
-        <bt:Image id="Jupiter.save_80x80" DefaultValue="~remoteAppUrl/Images/Save80x80.png" />
+        <!-- Professional Save Icons -->
+        <bt:Image id="Jupiter.save_16x16" DefaultValue="~remoteAppUrl/Images/SaveIcon16x16.png" />
+        <bt:Image id="Jupiter.save_32x32" DefaultValue="~remoteAppUrl/Images/SaveIcon32x32.png" />
+        <bt:Image id="Jupiter.save_80x80" DefaultValue="~remoteAppUrl/Images/SaveIcon80x80.png" />
 
-        <!-- Settings Icons -->
-        <bt:Image id="Jupiter.settings_16x16" DefaultValue="~remoteAppUrl/Images/Settings16x16.png" />
-        <bt:Image id="Jupiter.settings_32x32" DefaultValue="~remoteAppUrl/Images/Settings32x32.png" />
-        <bt:Image id="Jupiter.settings_80x80" DefaultValue="~remoteAppUrl/Images/Settings80x80.png" />
+        <!-- Professional Settings/Gear Icons -->
+        <bt:Image id="Jupiter.settings_16x16" DefaultValue="~remoteAppUrl/Images/SettingsIcon16x16.png" />
+        <bt:Image id="Jupiter.settings_32x32" DefaultValue="~remoteAppUrl/Images/SettingsIcon32x32.png" />
+        <bt:Image id="Jupiter.settings_80x80" DefaultValue="~remoteAppUrl/Images/SettingsIcon80x80.png" />
 
-        <!-- Properties Icons -->
-        <bt:Image id="Jupiter.properties_16x16" DefaultValue="~remoteAppUrl/Images/Properties16x16.png" />
-        <bt:Image id="Jupiter.properties_32x32" DefaultValue="~remoteAppUrl/Images/Properties32x32.png" />
-        <bt:Image id="Jupiter.properties_80x80" DefaultValue="~remoteAppUrl/Images/Properties80x80.png" />
+        <!-- Professional Properties/Document Icons -->
+        <bt:Image id="Jupiter.properties_16x16" DefaultValue="~remoteAppUrl/Images/PropertiesIcon16x16.png" />
+        <bt:Image id="Jupiter.properties_32x32" DefaultValue="~remoteAppUrl/Images/PropertiesIcon32x32.png" />
+        <bt:Image id="Jupiter.properties_80x80" DefaultValue="~remoteAppUrl/Images/PropertiesIcon80x80.png" />
       </bt:Images>
       <bt:Urls>
         <bt:Url id="Contoso.DesktopFunctionFile.Url" DefaultValue="~remoteAppUrl/Functions/FunctionFile.html" />
@@ -184,13 +216,16 @@
       <bt:ShortStrings>
         <!-- Jupiter Tab and Group Labels -->
         <bt:String id="Jupiter.Tab.Label" DefaultValue="Jupiter" />
-        <bt:String id="Jupiter.DocumentGroup.Label" DefaultValue="Document Management" />
+        <bt:String id="Jupiter.DocumentGroup.Label" DefaultValue="Open" />
+        <bt:String id="Jupiter.SaveGroup.Label" DefaultValue="Save" />
+        <bt:String id="Jupiter.PropertiesGroup.Label" DefaultValue="Properties" />
+        <bt:String id="Jupiter.ConfigGroup.Label" DefaultValue="Settings" />
 
         <!-- Button Labels -->
-        <bt:String id="Jupiter.OpenBrowse.Label" DefaultValue="Open/Browse" />
+        <bt:String id="Jupiter.OpenBrowse.Label" DefaultValue="Open" />
         <bt:String id="Jupiter.Save.Label" DefaultValue="Save" />
         <bt:String id="Jupiter.Settings.Label" DefaultValue="Settings" />
-        <bt:String id="Jupiter.Properties.Label" DefaultValue="Edit Properties" />
+        <bt:String id="Jupiter.Properties.Label" DefaultValue="Properties" />
 
         <bt:String id="Contoso.GetStarted.Title" DefaultValue="Get started with Jupiter!" />
       </bt:ShortStrings>
