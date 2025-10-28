@@ -2,7 +2,6 @@
  * Jupiter Service - Core API communication layer
  * Handles all HTTP requests to the Jupiter document management system
  */
-
 class JupiterService {
     constructor() {
         this.baseUrl = '';
@@ -10,78 +9,51 @@ class JupiterService {
         this.authToken = null;
         this.timeout = 30000; // 30 seconds
     }
-
     /**
      * Initialize the service with configuration
      */
     initialize(config) {
-        console.log('JupiterService.initialize called with config:', config);
         this.baseUrl = config.serverUrl || '';
         this.apiEndpoint = config.apiEndpoint || '/api';
         this.timeout = config.timeout || 30000;
         this.authToken = config.authToken || null;
-        console.log('JupiterService.initialize completed. New baseUrl:', this.baseUrl);
     }
-
     /**
      * Get the full API URL
      */
     getApiUrl(endpoint) {
         const fullUrl = `${this.baseUrl}${this.apiEndpoint}${endpoint}`;
-        console.log('JupiterService: Constructing URL:', {
-            baseUrl: this.baseUrl,
-            apiEndpoint: this.apiEndpoint,
-            endpoint: endpoint,
-            fullUrl: fullUrl
-        });
         return fullUrl;
     }
-
     /**
      * Make HTTP request with authentication
      */
     async makeRequest(method, endpoint, data = null, options = {}) {
         const url = this.getApiUrl(endpoint);
-        console.log('JupiterService: Making request to:', url);
-        console.log('JupiterService: Method:', method);
-        console.log('JupiterService: Data:', data);
-
         const headers = {
             'Content-Type': 'application/json',
             ...options.headers
         };
-
         if (this.authToken) {
             headers['Authorization'] = `Bearer ${this.authToken}`;
         }
-
         const requestOptions = {
             method: method,
             headers: headers,
             ...options
         };
-
         if (data && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
             requestOptions.body = JSON.stringify(data);
         }
-
-        console.log('JupiterService: Request options:', requestOptions);
-
         try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), this.timeout);
-
             requestOptions.signal = controller.signal;
-
-            console.log('JupiterService: Sending fetch request...');
             const response = await fetch(url, requestOptions);
-            console.log('JupiterService: Response received:', response.status, response.statusText);
             clearTimeout(timeoutId);
-
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-
             const contentType = response.headers.get('content-type');
             if (contentType && contentType.includes('application/json')) {
                 return await response.json();
@@ -92,7 +64,6 @@ class JupiterService {
             if (error.name === 'AbortError') {
                 error = new Error('Request timeout');
             }
-
             // Use centralized error handling if available
             if (window.ErrorHandler) {
                 window.ErrorHandler.handle(error, {
@@ -104,24 +75,13 @@ class JupiterService {
             throw error;
         }
     }
-
     // Authentication Methods
     async login(username, password) {
         try {
-            console.log('JupiterService: Login attempt for user:', username);
-            console.log('JupiterService: Current configuration:', {
-                baseUrl: this.baseUrl,
-                apiEndpoint: this.apiEndpoint
-            });
-            console.log('JupiterService: API URL will be:', this.getApiUrl('/Auth/login'));
-
             const response = await this.makeRequest('POST', '/Auth/login', {
                 username: username,
                 password: password
             });
-
-            console.log('JupiterService: Login response received:', response);
-
             if (response.token) {
                 this.authToken = response.token;
                 // Transform backend response to match addin expectations
@@ -144,7 +104,6 @@ class JupiterService {
             };
         }
     }
-
     async logout() {
         try {
             await this.makeRequest('POST', '/Auth/logout');
@@ -152,7 +111,6 @@ class JupiterService {
             this.authToken = null;
         }
     }
-
     async validateSession() {
         try {
             const response = await this.makeRequest('GET', '/Auth/validate');
@@ -161,144 +119,113 @@ class JupiterService {
             return { valid: false, message: error.message };
         }
     }
-
     // Library and Folder Methods
     async getLibraryTree() {
         return await this.makeRequest('GET', '/libraries/tree');
     }
-
     async getDocuments(libraryId, folderId = null, page = 1, limit = 50) {
         let endpoint = `/documents/list/${libraryId}`;
         const params = new URLSearchParams({
             page: page.toString(),
             limit: limit.toString()
         });
-        
         if (folderId) {
             params.append('folderId', folderId);
         }
-        
         endpoint += `?${params.toString()}`;
         return await this.makeRequest('GET', endpoint);
     }
-
     /**
      * Get documents by folder ID using the folder endpoint
      */
     async getDocumentsByFolder(folderId) {
         return await this.makeRequest('GET', `/documents/folder/${folderId}`);
     }
-
     // Document Methods
     async getDocument(documentId) {
         return await this.makeRequest('GET', `/documents/${documentId}`);
     }
-
     async downloadDocument(documentId) {
         const url = this.getApiUrl(`/documents/${documentId}/download`);
         const headers = {};
-        
         if (this.authToken) {
             headers['Authorization'] = `Bearer ${this.authToken}`;
         }
-
         const response = await fetch(url, { headers });
-        
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        
         return response.blob();
     }
-
     async uploadDocument(libraryId, folderId, file, metadata = {}) {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('libraryId', libraryId);
-        
         if (folderId) {
             formData.append('folderId', folderId);
         }
-        
         // Add metadata
         Object.keys(metadata).forEach(key => {
             if (metadata[key] !== null && metadata[key] !== undefined) {
                 formData.append(key, metadata[key]);
             }
         });
-
         const headers = {};
         if (this.authToken) {
             headers['Authorization'] = `Bearer ${this.authToken}`;
         }
-
         const url = this.getApiUrl('/documents/upload');
         const response = await fetch(url, {
             method: 'POST',
             headers: headers,
             body: formData
         });
-
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-
         return await response.json();
     }
-
     async updateDocument(documentId, data) {
         return await this.makeRequest('PUT', `/documents/${documentId}`, data);
     }
-
     async deleteDocument(documentId) {
         return await this.makeRequest('DELETE', `/documents/${documentId}`);
     }
-
     // Metadata Methods
     async getDocumentMetadata(documentId) {
         return await this.makeRequest('GET', `/documents/${documentId}/metadata`);
     }
-
     async updateDocumentMetadata(documentId, metadata) {
         return await this.makeRequest('PUT', `/documents/${documentId}/metadata`, metadata);
     }
-
     // Search Methods
     async searchDocuments(query, type = 'filename') {
         const params = new URLSearchParams({
             query: query,
             type: type
         });
-        
         return await this.makeRequest('GET', `/search/documents?${params.toString()}`);
     }
-
     async fullTextSearch(query) {
         return await this.searchDocuments(query, 'fulltext');
     }
-
     // Permission Methods
     async getUserPermissions(documentId) {
         return await this.makeRequest('GET', `/users/permissions/${documentId}`);
     }
-
     async getUserRoles() {
         return await this.makeRequest('GET', '/users/roles');
     }
-
     // Utility Methods
     isAuthenticated() {
         return this.authToken !== null;
     }
-
     setAuthToken(token) {
         this.authToken = token;
     }
-
     clearAuthToken() {
         this.authToken = null;
     }
-
     /**
      * Check if document name exists in folder
      * @param {string} name - Document name
@@ -311,7 +238,6 @@ class JupiterService {
                 name: name,
                 folderId: folderId
             });
-
             const response = await this.makeRequest('GET', `/documents/check-duplicate?${params.toString()}`);
             return response;
         } catch (error) {
@@ -319,7 +245,6 @@ class JupiterService {
             this.handleError(error);
         }
     }
-
     /**
      * Get all libraries
      * @returns {Promise<Array>} List of libraries
@@ -333,7 +258,6 @@ class JupiterService {
             this.handleError(error);
         }
     }
-
     /**
      * Get library tree with folders (hierarchical structure)
      * @returns {Promise<Array>} Library tree structure
@@ -347,7 +271,6 @@ class JupiterService {
             this.handleError(error);
         }
     }
-
     /**
      * Get folders in a library
      * @param {string} libraryId - Library ID (required)
@@ -359,7 +282,6 @@ class JupiterService {
                 // If no library ID provided, get the library tree instead
                 return await this.getLibraryTree();
             }
-
             const response = await this.makeRequest('GET', `/folders/library/${libraryId}`);
             return response;
         } catch (error) {
@@ -367,7 +289,6 @@ class JupiterService {
             this.handleError(error);
         }
     }
-
     /**
      * Get folder by ID
      * @param {string} folderId - Folder ID
@@ -382,7 +303,6 @@ class JupiterService {
             this.handleError(error);
         }
     }
-
     /**
      * Get documents in a folder
      * @param {string} folderId - Folder ID
@@ -397,7 +317,6 @@ class JupiterService {
             this.handleError(error);
         }
     }
-
     /**
      * Get authentication token
      * @returns {string|null} Current auth token
@@ -405,7 +324,6 @@ class JupiterService {
     getToken() {
         return this.authToken;
     }
-
     /**
      * Set authentication token
      * @param {string} token - Auth token
@@ -413,7 +331,6 @@ class JupiterService {
     setToken(token) {
         this.authToken = token;
     }
-
     /**
      * Check out a document for editing
      * @param {string} documentId - Document ID
@@ -428,7 +345,6 @@ class JupiterService {
             return { success: false, error: error.message };
         }
     }
-
     /**
      * Check in a document with new version
      * @param {string} documentId - Document ID
@@ -444,12 +360,10 @@ class JupiterService {
                 },
                 body: formData
             });
-
             if (!response.ok) {
                 const errorText = await response.text();
                 throw new Error(`Check-in failed: ${response.status} - ${errorText}`);
             }
-
             const document = await response.json();
             return { success: true, document };
         } catch (error) {
@@ -457,11 +371,9 @@ class JupiterService {
             return { success: false, error: error.message };
         }
     }
-
     // Error handling helper
     handleError(error) {
         console.error('Jupiter Service Error:', error);
-
         if (error.message.includes('401')) {
             this.clearAuthToken();
             throw new Error('Authentication required. Please login again.');
@@ -476,6 +388,5 @@ class JupiterService {
         }
     }
 }
-
 // Create global instance
 window.jupiterService = new JupiterService();

@@ -3,11 +3,14 @@
 
 $jsFiles = @(
     "JuptiarAddinsWeb/Scripts/AuthManager.js",
-    "JuptiarAddinsWeb/Scripts/SaveDialog.js", 
+    "JuptiarAddinsWeb/Scripts/SaveDialog.js",
     "JuptiarAddinsWeb/Scripts/DocumentUploader.js",
     "JuptiarAddinsWeb/Scripts/JupiterService.js",
     "JuptiarAddinsWeb/Scripts/RibbonManager.js",
-    "JuptiarAddinsWeb/Scripts/DocumentStateManager.js"
+    "JuptiarAddinsWeb/Scripts/DocumentStateManager.js",
+    "JuptiarAddinsWeb/Scripts/PropertiesEditor.js",
+    "JuptiarAddinsWeb/Scripts/CheckInDialog.js",
+    "JuptiarAddinsWeb/Scripts/DocumentBrowser.js"
 )
 
 foreach ($file in $jsFiles) {

@@ -8,7 +8,6 @@ class DocumentStateManager {
         this.STATE_KEY = 'documentState';
         this.METADATA_KEY = 'documentMetadata';
     }
-
     /**
      * Initialize the document state manager
      */
@@ -16,13 +15,11 @@ class DocumentStateManager {
         try {
             await Office.onReady();
             this.isInitialized = true;
-            console.log('DocumentStateManager initialized');
         } catch (error) {
             console.error('Failed to initialize DocumentStateManager:', error);
             throw error;
         }
     }
-
     /**
      * Check if document is new (never saved to Jupiter DMS)
      * @returns {Promise<boolean>} True if document is new
@@ -36,7 +33,6 @@ class DocumentStateManager {
             return true; // Default to new if we can't determine state
         }
     }
-
     /**
      * Check if document exists in Jupiter DMS
      * @returns {Promise<boolean>} True if document exists in DMS
@@ -44,7 +40,6 @@ class DocumentStateManager {
     async isExistingDocument() {
         return !(await this.isNewDocument());
     }
-
     /**
      * Get the current document state
      * @returns {Promise<Object|null>} Document state object or null
@@ -59,7 +54,6 @@ class DocumentStateManager {
             return null;
         }
     }
-
     /**
      * Set the document state
      * @param {Object} state - Document state object
@@ -77,12 +71,10 @@ class DocumentStateManager {
                 ...state,
                 lastUpdated: new Date().toISOString()
             };
-
             return new Promise((resolve, reject) => {
                 Office.context.document.settings.set(this.STATE_KEY, stateWithTimestamp);
                 Office.context.document.settings.saveAsync((result) => {
                     if (result.status === Office.AsyncResultStatus.Succeeded) {
-                        console.log('Document state saved:', stateWithTimestamp);
                         resolve(true);
                     } else {
                         console.error('Failed to save document state:', result.error);
@@ -95,7 +87,6 @@ class DocumentStateManager {
             throw error;
         }
     }
-
     /**
      * Mark document as new (clear existing state)
      */
@@ -106,7 +97,6 @@ class DocumentStateManager {
                 Office.context.document.settings.remove(this.METADATA_KEY);
                 Office.context.document.settings.saveAsync((result) => {
                     if (result.status === Office.AsyncResultStatus.Succeeded) {
-                        console.log('Document marked as new');
                         resolve(true);
                     } else {
                         console.error('Failed to mark document as new:', result.error);
@@ -119,7 +109,6 @@ class DocumentStateManager {
             throw error;
         }
     }
-
     /**
      * Mark document as existing in Jupiter DMS
      * @param {Object} documentInfo - Document information from Jupiter DMS
@@ -134,10 +123,8 @@ class DocumentStateManager {
             checkoutStatus: documentInfo.checkoutStatus,
             lastSaved: new Date().toISOString()
         };
-
         await this.setDocumentState(state);
     }
-
     /**
      * Get document metadata
      * @returns {Promise<Object|null>} Document metadata or null
@@ -158,7 +145,6 @@ class DocumentStateManager {
             return null;
         }
     }
-
     /**
      * Set document metadata
      * @param {Object} metadata - Document metadata
@@ -173,7 +159,6 @@ class DocumentStateManager {
                 Office.context.document.settings.set(this.METADATA_KEY, metadata);
                 Office.context.document.settings.saveAsync((result) => {
                     if (result.status === Office.AsyncResultStatus.Succeeded) {
-                        console.log('Document metadata saved:', metadata);
                         resolve(true);
                     } else {
                         console.error('Failed to save document metadata:', result.error);
@@ -186,7 +171,6 @@ class DocumentStateManager {
             throw error;
         }
     }
-
     /**
      * Get the document name from Word
      * @returns {Promise<string>} Document name
@@ -211,7 +195,6 @@ class DocumentStateManager {
             return 'Untitled Document.docx';
         }
     }
-
     /**
      * Check if document has unsaved changes
      * @returns {Promise<boolean>} True if document has unsaved changes
@@ -234,7 +217,6 @@ class DocumentStateManager {
             return false;
         }
     }
-
     /**
      * Get document checkout information
      * @returns {Promise<Object|null>} Checkout information or null
@@ -251,7 +233,6 @@ class DocumentStateManager {
         }
         return null;
     }
-
     /**
      * Update checkout status
      * @param {string} status - Checkout status
@@ -268,7 +249,6 @@ class DocumentStateManager {
             await this.setDocumentState(updatedState);
         }
     }
-
     /**
      * Clear all document state and metadata
      */
@@ -279,7 +259,6 @@ class DocumentStateManager {
                 Office.context.document.settings.remove(this.METADATA_KEY);
                 Office.context.document.settings.saveAsync((result) => {
                     if (result.status === Office.AsyncResultStatus.Succeeded) {
-                        console.log('Document state cleared');
                         resolve(true);
                     } else {
                         console.error('Failed to clear document state:', result.error);
@@ -293,6 +272,5 @@ class DocumentStateManager {
         }
     }
 }
-
 // Export for use in other modules
 window.DocumentStateManager = DocumentStateManager;

@@ -8,7 +8,6 @@ class DocumentUploader {
         this.documentStateManager = null;
         this.isInitialized = false;
     }
-
     /**
      * Initialize the document uploader
      * @param {JupiterService} jupiterService - Jupiter service instance
@@ -19,13 +18,11 @@ class DocumentUploader {
             this.jupiterService = jupiterService;
             this.documentStateManager = documentStateManager;
             this.isInitialized = true;
-            console.log('DocumentUploader initialized');
         } catch (error) {
             console.error('Failed to initialize DocumentUploader:', error);
             throw error;
         }
     }
-
     /**
      * Save new document to Jupiter DMS
      * @param {Object} saveOptions - Save options
@@ -42,56 +39,37 @@ class DocumentUploader {
             if (!this.isInitialized) {
                 throw new Error('DocumentUploader not initialized');
             }
-
             // Get document content from Word
             const documentBlob = await this.getWordDocumentBlob();
-            
             // Check for duplicates first
             const duplicateCheck = await this.checkDuplicateName(saveOptions.name, saveOptions.folderId);
-            
             if (duplicateCheck.exists && !saveOptions.duplicateAction) {
                 // Show duplicate dialog and get user choice
                 const userChoice = await this.showDuplicateDialog(duplicateCheck);
                 saveOptions.duplicateAction = userChoice.action;
-                
                 if (userChoice.action === 'cancel') {
                     return { success: false, cancelled: true };
                 }
-                
                 if (userChoice.action === 'rename') {
                     saveOptions.name = userChoice.newName || duplicateCheck.suggestedName;
                 }
             }
-
             // Prepare form data for upload
             const formData = new FormData();
             formData.append('file', documentBlob, saveOptions.name);
-
             // Send data with exact property names for model binding
             formData.append('Name', saveOptions.name);
             formData.append('FolderId', saveOptions.folderId);
             formData.append('duplicateAction', saveOptions.duplicateAction || 'rename');
-
             if (saveOptions.title) formData.append('Title', saveOptions.title);
             if (saveOptions.description) formData.append('Description', saveOptions.description);
             if (saveOptions.tags) formData.append('Tags', saveOptions.tags);
-
             // Debug: Log what we're sending
-            console.log('📤 FormData being sent:');
-            console.log('  - File:', documentBlob.name, `(${documentBlob.size} bytes, type: ${documentBlob.type})`);
-            console.log('  - Name:', saveOptions.name);
-            console.log('  - FolderId:', saveOptions.folderId, `(type: ${typeof saveOptions.folderId})`);
-            console.log('  - duplicateAction:', saveOptions.duplicateAction || 'rename');
-            console.log('  - Title:', saveOptions.title || '(empty)');
-            console.log('  - Description:', saveOptions.description || '(empty)');
-            console.log('  - Tags:', saveOptions.tags || '(empty)');
-
             // Check if file has correct extension
             const fileName = saveOptions.name.toLowerCase();
             if (!fileName.endsWith('.docx') && !fileName.endsWith('.doc')) {
                 console.warn('⚠️ File does not have Word document extension:', fileName);
             }
-
             // Validate required fields
             if (!saveOptions.name || saveOptions.name.trim() === '') {
                 throw new Error('Document name is required');
@@ -102,14 +80,11 @@ class DocumentUploader {
             if (!documentBlob || documentBlob.size === 0) {
                 throw new Error('Document file is required');
             }
-
             // Upload document
             const result = await this.uploadWithOptions(formData);
-            
             if (result.success) {
                 // Update document state to mark as existing
                 await this.documentStateManager.markAsExistingDocument(result.document);
-                
                 // Update metadata
                 await this.documentStateManager.setDocumentMetadata({
                     title: saveOptions.title,
@@ -117,7 +92,6 @@ class DocumentUploader {
                     tags: saveOptions.tags
                 });
             }
-
             return result;
         } catch (error) {
             // Use centralized error handling
@@ -134,7 +108,6 @@ class DocumentUploader {
             throw error;
         }
     }
-
     /**
      * Check if document name exists in folder
      * @param {string} name - Document name
@@ -150,7 +123,6 @@ class DocumentUploader {
             return { exists: false, duplicateDocument: null, suggestedName: name };
         }
     }
-
     /**
      * Show duplicate name resolution dialog
      * @param {Object} duplicateInfo - Duplicate information
@@ -161,14 +133,12 @@ class DocumentUploader {
             // Create and show duplicate dialog
             const dialog = this.createDuplicateDialog(duplicateInfo, resolve);
             document.body.appendChild(dialog);
-            
             // Show dialog with animation
             setTimeout(() => {
                 dialog.classList.add('show');
             }, 10);
         });
     }
-
     /**
      * Create duplicate name resolution dialog
      * @param {Object} duplicateInfo - Duplicate information
@@ -178,7 +148,6 @@ class DocumentUploader {
     createDuplicateDialog(duplicateInfo, resolve) {
         const dialog = document.createElement('div');
         dialog.className = 'duplicate-dialog-overlay';
-        
         dialog.innerHTML = `
             <div class="duplicate-dialog">
                 <div class="duplicate-dialog-header">
@@ -189,7 +158,6 @@ class DocumentUploader {
                     <div class="warning-icon">⚠️</div>
                     <p>A document named <strong>"${duplicateInfo.duplicateDocument?.name}"</strong> already exists in this folder.</p>
                     <p>What would you like to do?</p>
-                    
                     <div class="duplicate-options">
                         <div class="option-card" data-action="replace">
                             <div class="option-icon">🔄</div>
@@ -198,7 +166,6 @@ class DocumentUploader {
                                 <p>Replace the existing document with this one</p>
                             </div>
                         </div>
-                        
                         <div class="option-card" data-action="rename">
                             <div class="option-icon">📝</div>
                             <div class="option-content">
@@ -206,7 +173,6 @@ class DocumentUploader {
                                 <p>Save with a new name: <strong>"${duplicateInfo.suggestedName}"</strong></p>
                             </div>
                         </div>
-                        
                         <div class="option-card" data-action="cancel">
                             <div class="option-icon">❌</div>
                             <div class="option-content">
@@ -221,26 +187,21 @@ class DocumentUploader {
                 </div>
             </div>
         `;
-
         // Add event listeners for option cards
         const optionCards = dialog.querySelectorAll('.option-card');
         optionCards.forEach(card => {
             card.addEventListener('click', () => {
                 const action = card.getAttribute('data-action');
                 const result = { action };
-                
                 if (action === 'rename') {
                     result.newName = duplicateInfo.suggestedName;
                 }
-                
                 dialog.remove();
                 resolve(result);
             });
         });
-
         return dialog;
     }
-
     /**
      * Upload document with options
      * @param {FormData} formData - Form data with file and metadata
@@ -255,12 +216,10 @@ class DocumentUploader {
                 },
                 body: formData
             });
-
             if (!response.ok) {
                 const errorText = await response.text();
                 throw new Error(`Upload failed: ${response.status} - ${errorText}`);
             }
-
             const document = await response.json();
             return { success: true, document };
         } catch (error) {
@@ -268,7 +227,6 @@ class DocumentUploader {
             return { success: false, error: error.message };
         }
     }
-
     /**
      * Get Word document as blob
      * @returns {Promise<Blob>} Document blob
@@ -281,13 +239,11 @@ class DocumentUploader {
                     const sliceCount = file.sliceCount;
                     const slices = [];
                     let slicesReceived = 0;
-
                     const getSlice = (sliceIndex) => {
                         file.getSliceAsync(sliceIndex, (sliceResult) => {
                             if (sliceResult.status === Office.AsyncResultStatus.Succeeded) {
                                 slices[sliceIndex] = sliceResult.value.data;
                                 slicesReceived++;
-
                                 if (slicesReceived === sliceCount) {
                                     // Combine all slices into a single blob
                                     const blob = new Blob(slices, { 
@@ -302,7 +258,6 @@ class DocumentUploader {
                             }
                         });
                     };
-
                     // Get all slices
                     for (let i = 0; i < sliceCount; i++) {
                         getSlice(i);
@@ -313,7 +268,6 @@ class DocumentUploader {
             });
         });
     }
-
     /**
      * Create new version of existing document
      * @param {string} documentId - Document ID
@@ -323,13 +277,11 @@ class DocumentUploader {
     async createNewVersion(documentId, versionComment) {
         try {
             const documentBlob = await this.getWordDocumentBlob();
-            
             const formData = new FormData();
             formData.append('file', documentBlob);
             if (versionComment) {
                 formData.append('versionComment', versionComment);
             }
-
             const response = await fetch(`${this.jupiterService.baseUrl}/api/documents/${documentId}/versions`, {
                 method: 'POST',
                 headers: {
@@ -337,24 +289,19 @@ class DocumentUploader {
                 },
                 body: formData
             });
-
             if (!response.ok) {
                 const errorText = await response.text();
                 throw new Error(`Version creation failed: ${response.status} - ${errorText}`);
             }
-
             const document = await response.json();
-            
             // Update document state
             await this.documentStateManager.markAsExistingDocument(document);
-            
             return { success: true, document };
         } catch (error) {
             console.error('Error creating new version:', error);
             return { success: false, error: error.message };
         }
     }
-
     /**
      * Check in document with changes
      * @param {string} documentId - Document ID
@@ -364,13 +311,11 @@ class DocumentUploader {
     async checkInDocument(documentId, versionComment) {
         try {
             const documentBlob = await this.getWordDocumentBlob();
-            
             const formData = new FormData();
             formData.append('file', documentBlob);
             if (versionComment) {
                 formData.append('versionComment', versionComment);
             }
-
             const response = await fetch(`${this.jupiterService.baseUrl}/api/documents/${documentId}/checkin`, {
                 method: 'POST',
                 headers: {
@@ -378,24 +323,19 @@ class DocumentUploader {
                 },
                 body: formData
             });
-
             if (!response.ok) {
                 const errorText = await response.text();
                 throw new Error(`Check-in failed: ${response.status} - ${errorText}`);
             }
-
             const document = await response.json();
-            
             // Update document state
             await this.documentStateManager.updateCheckoutStatus('Available');
-            
             return { success: true, document };
         } catch (error) {
             console.error('Error checking in document:', error);
             return { success: false, error: error.message };
         }
     }
-
     /**
      * Get suggested document name from Word
      * @returns {Promise<string>} Suggested document name
@@ -404,13 +344,11 @@ class DocumentUploader {
         try {
             // Try to get the document name from Word
             const name = await this.documentStateManager.getWordDocumentName();
-            
             // If it's a generic name, suggest a better one
             if (name === 'Untitled Document.docx' || name.startsWith('Document')) {
                 const now = new Date();
                 return `Document_${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}.docx`;
             }
-            
             return name;
         } catch (error) {
             console.error('Error getting suggested document name:', error);
@@ -418,6 +356,5 @@ class DocumentUploader {
         }
     }
 }
-
 // Export for use in other modules
 window.DocumentUploader = DocumentUploader;

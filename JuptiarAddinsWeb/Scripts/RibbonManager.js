@@ -7,7 +7,6 @@ class RibbonManager {
         this.documentStateManager = null;
         this.isInitialized = false;
     }
-
     /**
      * Initialize the ribbon manager
      * @param {DocumentStateManager} documentStateManager - Document state manager instance
@@ -16,21 +15,16 @@ class RibbonManager {
         try {
             this.documentStateManager = documentStateManager;
             await Office.onReady();
-            
             // Set up event listeners for document state changes
             await this.setupEventListeners();
-            
             // Update ribbon based on current document state
             await this.updateRibbonState();
-            
             this.isInitialized = true;
-            console.log('RibbonManager initialized');
         } catch (error) {
             console.error('Failed to initialize RibbonManager:', error);
             throw error;
         }
     }
-
     /**
      * Set up event listeners for document changes
      */
@@ -41,7 +35,6 @@ class RibbonManager {
                 Office.EventType.DocumentSelectionChanged,
                 this.onDocumentSelectionChanged.bind(this)
             );
-
             // Listen for document saved events (if available)
             if (Office.context.document.addHandlerAsync) {
                 try {
@@ -51,14 +44,12 @@ class RibbonManager {
                     );
                 } catch (e) {
                     // DocumentSaved event might not be available in all Office versions
-                    console.log('DocumentSaved event not available');
                 }
             }
         } catch (error) {
             console.error('Error setting up event listeners:', error);
         }
     }
-
     /**
      * Update ribbon state based on document state
      */
@@ -68,10 +59,7 @@ class RibbonManager {
                 console.error('DocumentStateManager not initialized');
                 return;
             }
-
             const isNew = await this.documentStateManager.isNewDocument();
-            console.log(`🎗️ RibbonManager: Updating ribbon state - Document is ${isNew ? 'NEW' : 'EXISTING'}`);
-
             if (isNew) {
                 await this.showNewDocumentRibbon();
             } else {
@@ -81,18 +69,12 @@ class RibbonManager {
             console.error('Error updating ribbon state:', error);
         }
     }
-
     /**
      * Show ribbon for new documents
      * Uses Office.ribbon.requestUpdate to disable buttons not applicable to new documents
      */
     async showNewDocumentRibbon() {
         try {
-            console.log('🆕 NEW DOCUMENT MODE:');
-            console.log('  ✅ Save to Jupiter DMS - Available');
-            console.log('  ❌ Properties - Hidden (new document)');
-            console.log('  ❌ Check Out/In - Hidden (new document)');
-
             // Try to use Office.ribbon.requestUpdate to control button states
             try {
                 if (Office.ribbon && Office.ribbon.requestUpdate) {
@@ -123,9 +105,7 @@ class RibbonManager {
                             ]
                         }]
                     });
-                    console.log('✅ Ribbon buttons updated via Office.ribbon.requestUpdate (buttons hidden for new document)');
                 } else {
-                    console.log('⚠️ Office.ribbon.requestUpdate not available - using setButtonVisibility instead');
                     // Fallback: Use setButtonVisibility method
                     await this.setButtonVisibility('Jupiter.PropertiesButton', false);
                     await this.setButtonVisibility('Jupiter.CheckOutButton', false);
@@ -133,14 +113,12 @@ class RibbonManager {
                     await this.setButtonVisibility('Jupiter.SaveToJupiterButton', true);
                 }
             } catch (error) {
-                console.log('⚠️ Office.ribbon.requestUpdate failed - using setButtonVisibility instead:', error.message);
                 // Fallback: Use setButtonVisibility method
                 await this.setButtonVisibility('Jupiter.PropertiesButton', false);
                 await this.setButtonVisibility('Jupiter.CheckOutButton', false);
                 await this.setButtonVisibility('Jupiter.CheckInButton', false);
                 await this.setButtonVisibility('Jupiter.SaveToJupiterButton', true);
             }
-
             // Store document state for button behavior
             if (this.documentStateManager) {
                 await this.documentStateManager.setDocumentState({
@@ -149,24 +127,16 @@ class RibbonManager {
                     lastUpdated: new Date().toISOString()
                 });
             }
-
-            console.log('Ribbon configured for new document');
         } catch (error) {
             console.error('Error showing new document ribbon:', error);
         }
     }
-
     /**
      * Show ribbon for existing documents
      * Uses Office.ribbon.requestUpdate to enable buttons applicable to existing documents
      */
     async showExistingDocumentRibbon() {
         try {
-            console.log('📄 EXISTING DOCUMENT MODE:');
-            console.log('  ✅ Properties - Available');
-            console.log('  ✅ Check Out/In - Available');
-            console.log('  ❌ Save to Jupiter DMS - Disabled (already saved)');
-
             // Try to use Office.ribbon.requestUpdate to control button states
             try {
                 if (Office.ribbon && Office.ribbon.requestUpdate) {
@@ -197,9 +167,7 @@ class RibbonManager {
                             ]
                         }]
                     });
-                    console.log('✅ Ribbon buttons updated via Office.ribbon.requestUpdate (all buttons visible for existing document)');
                 } else {
-                    console.log('⚠️ Office.ribbon.requestUpdate not available - using setButtonVisibility instead');
                     // Fallback: Use setButtonVisibility method
                     await this.setButtonVisibility('Jupiter.PropertiesButton', true);
                     await this.setButtonVisibility('Jupiter.CheckOutButton', true);
@@ -207,14 +175,12 @@ class RibbonManager {
                     await this.setButtonVisibility('Jupiter.SaveToJupiterButton', true);
                 }
             } catch (error) {
-                console.log('⚠️ Office.ribbon.requestUpdate failed - using setButtonVisibility instead:', error.message);
                 // Fallback: Use setButtonVisibility method
                 await this.setButtonVisibility('Jupiter.PropertiesButton', true);
                 await this.setButtonVisibility('Jupiter.CheckOutButton', true);
                 await this.setButtonVisibility('Jupiter.CheckInButton', true);
                 await this.setButtonVisibility('Jupiter.SaveToJupiterButton', true);
             }
-
             // Store document state for button behavior
             if (this.documentStateManager) {
                 const currentState = await this.documentStateManager.getDocumentState();
@@ -225,16 +191,12 @@ class RibbonManager {
                     lastUpdated: new Date().toISOString()
                 });
             }
-
             // Update checkout status
             await this.updateCheckoutButtons();
-
-            console.log('Ribbon configured for existing document');
         } catch (error) {
             console.error('Error showing existing document ribbon:', error);
         }
     }
-
     /**
      * Update checkout buttons based on document checkout status
      * Note: This method should only be called for existing documents
@@ -246,13 +208,10 @@ class RibbonManager {
             if (isNew) {
                 await this.setButtonVisibility('CheckOutButton', false);
                 await this.setButtonVisibility('CheckInButton', false);
-                console.log('Checkout buttons hidden for new document');
                 return;
             }
-
             // For existing documents, show appropriate checkout buttons based on status
             const checkoutInfo = await this.documentStateManager.getCheckoutInfo();
-
             if (checkoutInfo && checkoutInfo.status === 'CheckedOut') {
                 // Document is checked out
                 await this.setButtonVisibility('CheckOutButton', false);
@@ -268,7 +227,6 @@ class RibbonManager {
             console.error('Error updating checkout buttons:', error);
         }
     }
-
     /**
      * Set tab visibility
      * @param {string} tabId - Tab ID
@@ -279,18 +237,14 @@ class RibbonManager {
             // Office.js doesn't have direct tab visibility control
             // This would need to be implemented through ribbon XML customization
             // For now, we'll use a workaround by enabling/disabling tab controls
-            
             const tab = document.getElementById(tabId);
             if (tab) {
                 tab.style.display = visible ? 'block' : 'none';
             }
-            
-            console.log(`Tab ${tabId} visibility set to ${visible}`);
         } catch (error) {
             console.error(`Error setting tab visibility for ${tabId}:`, error);
         }
     }
-
     /**
      * Set button visibility
      * @param {string} buttonId - Button ID
@@ -300,19 +254,15 @@ class RibbonManager {
         try {
             // In a real Office add-in, this would use Office.ribbon.requestUpdate
             // For now, we'll simulate with DOM manipulation
-            
             const button = document.getElementById(buttonId);
             if (button) {
                 button.style.display = visible ? 'inline-block' : 'none';
                 button.disabled = !visible;
             }
-            
-            console.log(`Button ${buttonId} visibility set to ${visible}`);
         } catch (error) {
             console.error(`Error setting button visibility for ${buttonId}:`, error);
         }
     }
-
     /**
      * Update button label
      * @param {string} buttonId - Button ID
@@ -325,13 +275,10 @@ class RibbonManager {
                 button.textContent = label;
                 button.title = label;
             }
-            
-            console.log(`Button ${buttonId} label updated to "${label}"`);
         } catch (error) {
             console.error(`Error updating button label for ${buttonId}:`, error);
         }
     }
-
     /**
      * Enable or disable a button
      * @param {string} buttonId - Button ID
@@ -344,13 +291,10 @@ class RibbonManager {
                 button.disabled = !enabled;
                 button.classList.toggle('disabled', !enabled);
             }
-            
-            console.log(`Button ${buttonId} enabled state set to ${enabled}`);
         } catch (error) {
             console.error(`Error setting button enabled state for ${buttonId}:`, error);
         }
     }
-
     /**
      * Show loading state on a button
      * @param {string} buttonId - Button ID
@@ -375,7 +319,6 @@ class RibbonManager {
             console.error(`Error setting button loading state for ${buttonId}:`, error);
         }
     }
-
     /**
      * Handle document selection changed event
      */
@@ -388,7 +331,6 @@ class RibbonManager {
             console.error('Error handling document selection changed:', error);
         }
     }
-
     /**
      * Handle document saved event
      */
@@ -400,31 +342,24 @@ class RibbonManager {
             console.error('Error handling document saved:', error);
         }
     }
-
     /**
      * Refresh ribbon state
      */
     async refresh() {
-        console.log('🔄 RibbonManager: Manual refresh requested');
         await this.updateRibbonState();
     }
-
     /**
      * Force ribbon to new document mode (for testing)
      */
     async forceNewDocumentMode() {
-        console.log('🧪 RibbonManager: Forcing NEW document mode');
         await this.showNewDocumentRibbon();
     }
-
     /**
      * Force ribbon to existing document mode (for testing)
      */
     async forceExistingDocumentMode() {
-        console.log('🧪 RibbonManager: Forcing EXISTING document mode');
         await this.showExistingDocumentRibbon();
     }
-
     /**
      * Handle document opened from Jupiter DMS
      * @param {Object} documentInfo - Document information
@@ -433,16 +368,12 @@ class RibbonManager {
         try {
             // Mark document as existing
             await this.documentStateManager.markAsExistingDocument(documentInfo);
-            
             // Update ribbon to show existing document state
             await this.showExistingDocumentRibbon();
-            
-            console.log('Document opened from DMS, ribbon updated');
         } catch (error) {
             console.error('Error handling document opened from DMS:', error);
         }
     }
-
     /**
      * Handle document saved to Jupiter DMS
      * @param {Object} documentInfo - Document information
@@ -451,16 +382,12 @@ class RibbonManager {
         try {
             // Mark document as existing
             await this.documentStateManager.markAsExistingDocument(documentInfo);
-            
             // Update ribbon to show existing document state
             await this.showExistingDocumentRibbon();
-            
-            console.log('Document saved to DMS, ribbon updated');
         } catch (error) {
             console.error('Error handling document saved to DMS:', error);
         }
     }
-
     /**
      * Handle new document created
      */
@@ -468,16 +395,12 @@ class RibbonManager {
         try {
             // Mark document as new
             await this.documentStateManager.markAsNewDocument();
-            
             // Update ribbon to show new document state
             await this.showNewDocumentRibbon();
-            
-            console.log('New document created, ribbon updated');
         } catch (error) {
             console.error('Error handling new document created:', error);
         }
     }
 }
-
 // Export for use in other modules
 window.RibbonManager = RibbonManager;
