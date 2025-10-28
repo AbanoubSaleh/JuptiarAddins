@@ -66,13 +66,42 @@ class DocumentUploader {
             // Prepare form data for upload
             const formData = new FormData();
             formData.append('file', documentBlob, saveOptions.name);
+
+            // Send data with exact property names for model binding
             formData.append('Name', saveOptions.name);
             formData.append('FolderId', saveOptions.folderId);
             formData.append('duplicateAction', saveOptions.duplicateAction || 'rename');
-            
+
             if (saveOptions.title) formData.append('Title', saveOptions.title);
             if (saveOptions.description) formData.append('Description', saveOptions.description);
             if (saveOptions.tags) formData.append('Tags', saveOptions.tags);
+
+            // Debug: Log what we're sending
+            console.log('📤 FormData being sent:');
+            console.log('  - File:', documentBlob.name, `(${documentBlob.size} bytes, type: ${documentBlob.type})`);
+            console.log('  - Name:', saveOptions.name);
+            console.log('  - FolderId:', saveOptions.folderId, `(type: ${typeof saveOptions.folderId})`);
+            console.log('  - duplicateAction:', saveOptions.duplicateAction || 'rename');
+            console.log('  - Title:', saveOptions.title || '(empty)');
+            console.log('  - Description:', saveOptions.description || '(empty)');
+            console.log('  - Tags:', saveOptions.tags || '(empty)');
+
+            // Check if file has correct extension
+            const fileName = saveOptions.name.toLowerCase();
+            if (!fileName.endsWith('.docx') && !fileName.endsWith('.doc')) {
+                console.warn('⚠️ File does not have Word document extension:', fileName);
+            }
+
+            // Validate required fields
+            if (!saveOptions.name || saveOptions.name.trim() === '') {
+                throw new Error('Document name is required');
+            }
+            if (!saveOptions.folderId) {
+                throw new Error('Folder ID is required');
+            }
+            if (!documentBlob || documentBlob.size === 0) {
+                throw new Error('Document file is required');
+            }
 
             // Upload document
             const result = await this.uploadWithOptions(formData);

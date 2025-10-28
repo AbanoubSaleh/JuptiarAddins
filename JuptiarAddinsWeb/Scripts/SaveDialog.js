@@ -7,6 +7,8 @@ class SaveDialogController {
         this.documentStateManager = null;
         this.documentUploader = null;
         this.ribbonManager = null;
+        this.selectedLibraryId = null;
+        this.selectedLibraryName = null;
         this.selectedFolderId = null;
         this.selectedFolderName = null;
         this.selectedFolderPath = null;
@@ -56,7 +58,7 @@ class SaveDialogController {
 
         // Initialize AuthManager
         if (!window.authManager) {
-            console.log('Creating new AuthManager instance');
+    
             window.authManager = new AuthManager();
             await window.authManager.initialize();
             console.log('AuthManager initialized, methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(window.authManager)));
@@ -87,22 +89,14 @@ class SaveDialogController {
             window.open('Settings.html', '_blank');
         });
 
+        // Library selection
+        DOMUtils.on('#librarySelect', 'change', (e) => {
+            this.onLibraryChange(e.target.value);
+        });
+
         // Folder selection
-        DOMUtils.on('#browseFolderBtn', 'click', () => {
-            this.showFolderTreeModal();
-        });
-
-        // Folder tree modal
-        DOMUtils.on('#closeFolderTreeBtn', 'click', () => {
-            this.hideFolderTreeModal();
-        });
-
-        DOMUtils.on('#cancelFolderSelectionBtn', 'click', () => {
-            this.hideFolderTreeModal();
-        });
-
-        DOMUtils.on('#confirmFolderSelectionBtn', 'click', () => {
-            this.confirmFolderSelection();
+        DOMUtils.on('#folderSelect', 'change', (e) => {
+            this.onFolderChange(e.target.value);
         });
 
         // Save button
@@ -165,6 +159,9 @@ class SaveDialogController {
             this.handleAuthStateChange(isAuthenticated);
 
             if (isAuthenticated) {
+                // Load libraries for destination selection
+                await this.loadLibraries();
+
                 // Get suggested document name
                 const suggestedName = await this.documentUploader.getSuggestedDocumentName();
                 DOMUtils.select('#fileName').value = suggestedName.replace(/\.[^/.]+$/, ""); // Remove extension
@@ -229,127 +226,151 @@ class SaveDialogController {
     }
 
     /**
-     * Show folder tree modal
+     * Load libraries into the dropdown
      */
-    async showFolderTreeModal() {
+    async loadLibraries() {
         try {
-            const modal = DOMUtils.select('#folderTreeModal');
-            const folderTree = DOMUtils.select('#folderTree');
+            const librarySelect = DOMUtils.select('#librarySelect');
+            const librarySpinner = DOMUtils.select('#libraryLoadingSpinner');
 
-            // Show modal
-            modal.style.display = 'flex';
-            setTimeout(() => {
-                DOMUtils.addClass(modal, 'show');
-            }, 10);
+            // Show loading spinner
+            librarySpinner.style.display = 'block';
+            librarySelect.disabled = true;
 
-            // Load folder tree
-            folderTree.innerHTML = '<div class="loading-spinner">Loading folders...</div>';
+            // Get libraries from API
+            const libraries = await window.jupiterService.getLibraries();
 
-            const libraryTree = await window.jupiterService.getLibraryTree();
-            this.renderFolderTree(libraryTree, folderTree);
+            // Clear existing options (except the first placeholder)
+            librarySelect.innerHTML = '<option value="">Select a library...</option>';
 
-        } catch (error) {
-            console.error('Error showing folder tree modal:', error);
-            this.showError('Failed to load folders: ' + error.message);
-        }
-    }
-
-    /**
-     * Hide folder tree modal
-     */
-    hideFolderTreeModal() {
-        const modal = DOMUtils.select('#folderTreeModal');
-        DOMUtils.removeClass(modal, 'show');
-
-        setTimeout(() => {
-            modal.style.display = 'none';
-        }, 300);
-    }
-
-    /**
-     * Render folder tree
-     */
-    renderFolderTree(folders, container) {
-        if (!folders || folders.length === 0) {
-            container.innerHTML = '<div class="no-folders">No folders available</div>';
-            return;
-        }
-
-        const treeHtml = this.buildFolderTreeHtml(folders);
-        container.innerHTML = treeHtml;
-
-        // Add click handlers for folder selection
-        const folderItems = container.querySelectorAll('.folder-item');
-        folderItems.forEach(item => {
-            item.addEventListener('click', (e) => {
-                e.stopPropagation();
-
-                // Remove previous selection
-                DOMUtils.removeClass('.folder-item.selected', 'selected');
-
-                // Add selection to clicked item
-                DOMUtils.addClass(item, 'selected');
-
-                // Store selection data
-                this.selectedFolderId = item.getAttribute('data-folder-id');
-                this.selectedFolderName = item.getAttribute('data-folder-name');
-                this.selectedFolderPath = item.getAttribute('data-folder-path');
-
-                // Enable confirm button
-                DOMUtils.select('#confirmFolderSelectionBtn').disabled = false;
+            // Add library options
+            libraries.forEach(library => {
+                const option = document.createElement('option');
+                option.value = library.id;
+                option.textContent = library.name;
+                librarySelect.appendChild(option);
             });
-        });
+
+            // Hide loading spinner and enable dropdown
+            librarySpinner.style.display = 'none';
+            librarySelect.disabled = false;
+
+            console.log(`Loaded ${libraries.length} libraries`);
+        } catch (error) {
+            console.error('Error loading libraries:', error);
+            this.showError('Failed to load libraries: ' + error.message);
+
+            // Hide spinner and keep dropdown disabled
+            const librarySpinner = DOMUtils.select('#libraryLoadingSpinner');
+            librarySpinner.style.display = 'none';
+        }
     }
 
     /**
-     * Build folder tree HTML
+     * Handle library selection change
      */
-    buildFolderTreeHtml(folders, level = 0) {
-        let html = '';
+    async onLibraryChange(libraryId) {
+        const folderSelect = DOMUtils.select('#folderSelect');
+        const selectedPathDisplay = DOMUtils.select('#selectedPathDisplay');
 
-        folders.forEach(folder => {
-            const indent = level * 20;
-            html += `
-                <div class="folder-item"
-                     data-folder-id="${folder.id}"
-                     data-folder-name="${folder.name}"
-                     data-folder-path="${folder.path || folder.name}"
-                     style="padding-left: ${indent}px;">
-                    <div class="folder-content">
-                        <span class="folder-icon">📁</span>
-                        <span class="folder-name">${folder.name}</span>
-                    </div>
-                </div>
-            `;
+        // Reset folder selection
+        this.selectedFolderId = null;
+        this.selectedFolderName = null;
+        this.selectedFolderPath = null;
+        selectedPathDisplay.style.display = 'none';
 
-            if (folder.children && folder.children.length > 0) {
-                html += this.buildFolderTreeHtml(folder.children, level + 1);
-            }
-        });
-
-        return html;
-    }
-
-    /**
-     * Confirm folder selection
-     */
-    confirmFolderSelection() {
-        if (!this.selectedFolderId) {
+        if (!libraryId) {
+            // No library selected
+            this.selectedLibraryId = null;
+            this.selectedLibraryName = null;
+            folderSelect.innerHTML = '<option value="">Select a library first...</option>';
+            folderSelect.disabled = true;
             return;
         }
 
-        // Update the folder display
-        const folderDisplay = DOMUtils.select('#selectedFolderDisplay');
-        const folderName = DOMUtils.select('#selectedFolderName');
-        const folderPath = DOMUtils.select('#selectedFolderPath');
+        // Store selected library
+        this.selectedLibraryId = libraryId;
+        const librarySelect = DOMUtils.select('#librarySelect');
+        this.selectedLibraryName = librarySelect.options[librarySelect.selectedIndex].text;
 
-        folderName.textContent = this.selectedFolderName;
-        folderPath.textContent = this.selectedFolderPath;
+        // Load folders for the selected library
+        await this.loadFolders(libraryId);
+    }
 
-        DOMUtils.addClass(folderDisplay, 'has-selection');
+    /**
+     * Load folders for a specific library
+     */
+    async loadFolders(libraryId) {
+        try {
+            const folderSelect = DOMUtils.select('#folderSelect');
+            const folderSpinner = DOMUtils.select('#folderLoadingSpinner');
 
-        // Hide modal
-        this.hideFolderTreeModal();
+            // Show loading spinner
+            folderSpinner.style.display = 'block';
+            folderSelect.disabled = true;
+            folderSelect.innerHTML = '<option value="">Loading folders...</option>';
+
+            // Get folders from API
+            const folders = await window.jupiterService.getFolders(libraryId);
+
+            // Clear existing options
+            folderSelect.innerHTML = '<option value="">Select a folder...</option>';
+
+            // Add folder options
+            folders.forEach(folder => {
+                const option = document.createElement('option');
+                option.value = folder.id;
+                option.textContent = folder.name;
+                option.setAttribute('data-path', folder.path || folder.name);
+                folderSelect.appendChild(option);
+            });
+
+            // Hide loading spinner and enable dropdown
+            folderSpinner.style.display = 'none';
+            folderSelect.disabled = false;
+
+            console.log(`Loaded ${folders.length} folders for library ${libraryId}`);
+        } catch (error) {
+            console.error('Error loading folders:', error);
+            this.showError('Failed to load folders: ' + error.message);
+
+            // Hide spinner and show error state
+            const folderSpinner = DOMUtils.select('#folderLoadingSpinner');
+            const folderSelect = DOMUtils.select('#folderSelect');
+            folderSpinner.style.display = 'none';
+            folderSelect.innerHTML = '<option value="">Error loading folders</option>';
+            folderSelect.disabled = true;
+        }
+    }
+
+    /**
+     * Handle folder selection change
+     */
+    onFolderChange(folderId) {
+        const folderSelect = DOMUtils.select('#folderSelect');
+        const selectedPathDisplay = DOMUtils.select('#selectedPathDisplay');
+        const selectedPathText = DOMUtils.select('#selectedPathText');
+
+        if (!folderId) {
+            // No folder selected
+            this.selectedFolderId = null;
+            this.selectedFolderName = null;
+            this.selectedFolderPath = null;
+            selectedPathDisplay.style.display = 'none';
+            return;
+        }
+
+        // Store selected folder
+        this.selectedFolderId = folderId;
+        const selectedOption = folderSelect.options[folderSelect.selectedIndex];
+        this.selectedFolderName = selectedOption.text;
+        this.selectedFolderPath = selectedOption.getAttribute('data-path') || selectedOption.text;
+
+        // Update path display
+        selectedPathText.textContent = `${this.selectedLibraryName} / ${this.selectedFolderName}`;
+        selectedPathDisplay.style.display = 'block';
+
+        console.log(`Selected folder: ${this.selectedFolderName} (ID: ${this.selectedFolderId})`);
     }
 
     /**

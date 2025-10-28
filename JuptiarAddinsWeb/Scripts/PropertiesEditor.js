@@ -17,28 +17,28 @@ class PropertiesEditor {
      */
     initializeEventListeners() {
         // Authentication
-        $.on('#loginBtn', 'click', () => this.showLoginDialog());
+        DOMUtils.on('#loginBtn', 'click', () => this.showLoginDialog());
 
         // Document selection
-        $.on('#loadFromJuptiarBtn', 'click', () => this.showDocumentSelectionModal());
-        $.on('#useCurrentDocBtn', 'click', () => this.useCurrentDocument());
+        DOMUtils.on('#loadFromJuptiarBtn', 'click', () => this.showDocumentSelectionModal());
+        DOMUtils.on('#useCurrentDocBtn', 'click', () => this.useCurrentDocument());
 
         // Tab switching
-        $.on('.tab-header', 'click', (e) => this.switchTab(e.currentTarget));
+        DOMUtils.on('.tab-header', 'click', (e) => this.switchTab(e.currentTarget));
 
         // Document selection modal
-        $.on('#closeDocumentModal', 'click', () => this.hideDocumentSelectionModal());
-        $.on('#selectDocumentBtn', 'click', () => this.selectDocumentFromModal());
-        $.on('#cancelDocumentBtn', 'click', () => this.hideDocumentSelectionModal());
-        $.on('#documentSearch', 'input', () => this.filterDocuments());
+        DOMUtils.on('#closeDocumentModal', 'click', () => this.hideDocumentSelectionModal());
+        DOMUtils.on('#selectDocumentBtn', 'click', () => this.selectDocumentFromModal());
+        DOMUtils.on('#cancelDocumentBtn', 'click', () => this.hideDocumentSelectionModal());
+        DOMUtils.on('#documentSearch', 'input', () => this.filterDocuments());
 
         // Document list selection
-        $.on(document, 'click', '.document-item', (e) => this.selectDocumentItem(e.currentTarget));
+        DOMUtils.delegate(document, 'click', '.document-item', (e) => this.selectDocumentItem(e.currentTarget));
 
         // Action buttons
-        $.on('#savePropertiesBtn', 'click', () => this.saveProperties());
-        $.on('#resetPropertiesBtn', 'click', () => this.resetProperties());
-        $.on('#cancelPropertiesBtn', 'click', () => this.cancelEditing());
+        DOMUtils.on('#savePropertiesBtn', 'click', () => this.saveProperties());
+        DOMUtils.on('#resetPropertiesBtn', 'click', () => this.resetProperties());
+        DOMUtils.on('#cancelPropertiesBtn', 'click', () => this.cancelEditing());
 
         // Listen for authentication state changes
         window.addEventListener('juptiarAuthStateChanged', (e) => {
@@ -96,24 +96,26 @@ class PropertiesEditor {
      * Show authenticated state
      */
     showAuthenticatedState(user) {
-        $('#authStatusText').text(`Logged in as: ${user.username || 'User'}`);
-        $('#loginBtn').hide();
-        $('.status-indicator').removeClass('offline').addClass('online');
-        $('#documentSection').show();
-        $('#authSection').hide();
+        DOMUtils.text('#authStatusText', `Logged in as: ${user.username || 'User'}`);
+        DOMUtils.hide('#loginBtn');
+        DOMUtils.removeClass('.status-indicator', 'offline');
+        DOMUtils.addClass('.status-indicator', 'online');
+        DOMUtils.show('#documentSection');
+        DOMUtils.hide('#authSection');
     }
 
     /**
      * Show unauthenticated state
      */
     showUnauthenticatedState() {
-        $('#authStatusText').text('Please login to edit document properties');
-        $('#loginBtn').show();
-        $('.status-indicator').removeClass('online').addClass('offline');
-        $('#documentSection').hide();
-        $('#tabsSection').hide();
-        $('#actionSection').hide();
-        $('#authSection').show();
+        DOMUtils.text('#authStatusText', 'Please login to edit document properties');
+        DOMUtils.show('#loginBtn');
+        DOMUtils.removeClass('.status-indicator', 'online');
+        DOMUtils.addClass('.status-indicator', 'offline');
+        DOMUtils.hide('#documentSection');
+        DOMUtils.hide('#tabsSection');
+        DOMUtils.hide('#actionSection');
+        DOMUtils.show('#authSection');
     }
 
     /**
@@ -254,7 +256,7 @@ class PropertiesEditor {
             this.availableDocuments = response.documents || [];
             
             this.populateDocumentList(this.availableDocuments);
-            $('#documentSelectionModal').show();
+            DOMUtils.show('#documentSelectionModal');
             
             this.hideLoading();
             
@@ -268,33 +270,33 @@ class PropertiesEditor {
      * Hide document selection modal
      */
     hideDocumentSelectionModal() {
-        $('#documentSelectionModal').hide();
-        $('#documentSearch').val('');
-        $('.document-item').removeClass('selected');
-        $('#selectDocumentBtn').prop('disabled', true);
+        DOMUtils.hide('#documentSelectionModal');
+        DOMUtils.val('#documentSearch', '');
+        DOMUtils.removeClass('.document-item', 'selected');
+        DOMUtils.prop('#selectDocumentBtn', 'disabled', true);
     }
 
     /**
      * Populate document list in modal
      */
     populateDocumentList(documents) {
-        const $list = $('#modalDocumentList');
-        $list.empty();
-        
+        const list = DOMUtils.select('#modalDocumentList');
+        DOMUtils.empty(list);
+
         if (!documents || documents.length === 0) {
-            $list.append('<div class="no-documents">No documents found</div>');
+            DOMUtils.append(list, '<div class="no-documents">No documents found</div>');
             return;
         }
-        
+
         documents.forEach(doc => {
-            const $item = $(`
+            const itemHtml = `
                 <div class="document-item" data-document-id="${doc.id}">
                     <div class="document-name">${doc.fileName || doc.title || 'Untitled'}</div>
                     <div class="document-path">${doc.libraryName || ''} / ${doc.folderPath || ''}</div>
                 </div>
-            `);
-            
-            $list.append($item);
+            `;
+
+            DOMUtils.append(list, itemHtml);
         });
     }
 
@@ -302,17 +304,17 @@ class PropertiesEditor {
      * Filter documents in modal
      */
     filterDocuments() {
-        const query = $.val('#documentSearch').toLowerCase();
+        const query = DOMUtils.val('#documentSearch').toLowerCase();
 
-        const items = $.selectAll('.document-item');
+        const items = DOMUtils.selectAll('.document-item');
         items.forEach(item => {
-            const name = $.text($.select('.document-name', item)).toLowerCase();
-            const path = $.text($.select('.document-path', item)).toLowerCase();
+            const name = DOMUtils.text(DOMUtils.select('.document-name', item)).toLowerCase();
+            const path = DOMUtils.text(DOMUtils.select('.document-path', item)).toLowerCase();
 
             if (name.includes(query) || path.includes(query)) {
-                $.show(item);
+                DOMUtils.show(item);
             } else {
-                $.hide(item);
+                DOMUtils.hide(item);
             }
         });
     }
@@ -321,16 +323,17 @@ class PropertiesEditor {
      * Select document item in modal
      */
     selectDocumentItem(item) {
-        $.removeClass('.document-item', 'selected');
-        $.addClass(item, 'selected');
-        $.prop('#selectDocumentBtn', 'disabled', false);
+        DOMUtils.removeClass('.document-item', 'selected');
+        DOMUtils.addClass(item, 'selected');
+        DOMUtils.prop('#selectDocumentBtn', 'disabled', false);
     }
 
     /**
      * Select document from modal
      */
     async selectDocumentFromModal() {
-        const selectedId = $('.document-item.selected').data('document-id');
+        const selectedElement = DOMUtils.select('.document-item.selected');
+        const selectedId = selectedElement ? selectedElement.dataset.documentId : null;
         if (!selectedId) return;
         
         this.hideDocumentSelectionModal();
@@ -340,16 +343,16 @@ class PropertiesEditor {
     /**
      * Switch between tabs
      */
-    switchTab($tabHeader) {
-        const tabId = $tabHeader.data('tab');
-        
+    switchTab(tabHeader) {
+        const tabId = tabHeader.dataset.tab;
+
         // Update tab headers
-        $('.tab-header').removeClass('active');
-        $tabHeader.addClass('active');
-        
+        DOMUtils.removeClass('.tab-header', 'active');
+        DOMUtils.addClass(tabHeader, 'active');
+
         // Update tab content
-        $('.tab-content').removeClass('active');
-        $(`#${tabId}Tab`).addClass('active');
+        DOMUtils.removeClass('.tab-content', 'active');
+        DOMUtils.addClass(`#${tabId}Tab`, 'active');
         
         // Load tab-specific content
         if (tabId === 'permissions') {
@@ -364,26 +367,26 @@ class PropertiesEditor {
         if (!this.documentMetadata) return;
 
         // General tab
-        $('#docTitle').val(this.documentMetadata.title || '');
-        $('#docDescription').val(this.documentMetadata.description || '');
-        $('#docTags').val(this.documentMetadata.tags || '');
-        $('#docAuthor').val(this.documentMetadata.author || '');
-        $('#docLanguage').val(this.documentMetadata.language || 'en');
+        DOMUtils.val('#docTitle', this.documentMetadata.title || '');
+        DOMUtils.val('#docDescription', this.documentMetadata.description || '');
+        DOMUtils.val('#docTags', this.documentMetadata.tags || '');
+        DOMUtils.val('#docAuthor', this.documentMetadata.author || '');
+        DOMUtils.val('#docLanguage', this.documentMetadata.language || 'en');
 
         // Extended tab
-        $('#customId').val(this.documentMetadata.customId || '');
-        $('#docSource').val(this.documentMetadata.source || '');
-        $('#originalId').val(this.documentMetadata.originalId || '');
-        $('#docRecipient').val(this.documentMetadata.recipient || '');
-        $('#docObject').val(this.documentMetadata.object || '');
-        $('#docCoverage').val(this.documentMetadata.coverage || '');
-        $('#docType').val(this.documentMetadata.type || '');
+        DOMUtils.val('#customId', this.documentMetadata.customId || '');
+        DOMUtils.val('#docSource', this.documentMetadata.source || '');
+        DOMUtils.val('#originalId', this.documentMetadata.originalId || '');
+        DOMUtils.val('#docRecipient', this.documentMetadata.recipient || '');
+        DOMUtils.val('#docObject', this.documentMetadata.object || '');
+        DOMUtils.val('#docCoverage', this.documentMetadata.coverage || '');
+        DOMUtils.val('#docType', this.documentMetadata.type || '');
 
         // Permissions tab
-        $('#securityLevel').val(this.documentMetadata.securityLevel || 'internal');
-        $('#allowDownload').prop('checked', this.documentMetadata.allowDownload !== false);
-        $('#allowPrint').prop('checked', this.documentMetadata.allowPrint !== false);
-        $('#allowEdit').prop('checked', this.documentMetadata.allowEdit === true);
+        DOMUtils.val('#securityLevel', this.documentMetadata.securityLevel || 'internal');
+        DOMUtils.prop('#allowDownload', 'checked', this.documentMetadata.allowDownload !== false);
+        DOMUtils.prop('#allowPrint', 'checked', this.documentMetadata.allowPrint !== false);
+        DOMUtils.prop('#allowEdit', 'checked', this.documentMetadata.allowEdit === true);
     }
 
     /**
@@ -394,21 +397,21 @@ class PropertiesEditor {
         const docName = this.currentDocument?.fileName || this.currentDocument?.title || 'Current Document';
         const status = this.currentDocument?.id ? 'Saved in Juptiar' : 'Not saved to Juptiar';
 
-        $('#currentDocName').text(docName);
-        $('#documentStatus').text(status);
+        DOMUtils.text('#currentDocName', docName);
+        DOMUtils.text('#documentStatus', status);
 
         // Show editor sections
-        $('#tabsSection').show();
-        $('#actionSection').show();
-        $('#loadingSection').hide();
+        DOMUtils.show('#tabsSection');
+        DOMUtils.show('#actionSection');
+        DOMUtils.hide('#loadingSection');
     }
 
     /**
      * Load permissions tab content
      */
     loadPermissionsTab() {
-        const $permissionsContainer = $('#userPermissions');
-        $permissionsContainer.empty();
+        const permissionsContainer = DOMUtils.select('#userPermissions');
+        DOMUtils.empty(permissionsContainer);
 
         if (this.userPermissions) {
             const permissions = [
@@ -422,16 +425,16 @@ class PropertiesEditor {
 
             permissions.forEach(perm => {
                 const iconClass = perm.granted ? 'granted' : 'denied';
-                const $item = $(`
+                const itemHtml = `
                     <div class="permission-item">
                         <div class="permission-icon ${iconClass}"></div>
                         <span>${perm.name}: ${perm.granted ? 'Granted' : 'Denied'}</span>
                     </div>
-                `);
-                $permissionsContainer.append($item);
+                `;
+                DOMUtils.append(permissionsContainer, itemHtml);
             });
         } else {
-            $permissionsContainer.append('<p>No permission information available</p>');
+            DOMUtils.append(permissionsContainer, '<p>No permission information available</p>');
         }
     }
 
@@ -470,22 +473,22 @@ class PropertiesEditor {
      */
     collectFormData() {
         return {
-            title: $('#docTitle').val().trim(),
-            description: $('#docDescription').val().trim(),
-            tags: $('#docTags').val().trim(),
-            author: $('#docAuthor').val().trim(),
-            language: $('#docLanguage').val(),
-            customId: $('#customId').val().trim(),
-            source: $('#docSource').val().trim(),
-            originalId: $('#originalId').val().trim(),
-            recipient: $('#docRecipient').val().trim(),
-            object: $('#docObject').val().trim(),
-            coverage: $('#docCoverage').val().trim(),
-            type: $('#docType').val(),
-            securityLevel: $('#securityLevel').val(),
-            allowDownload: $('#allowDownload').is(':checked'),
-            allowPrint: $('#allowPrint').is(':checked'),
-            allowEdit: $('#allowEdit').is(':checked')
+            title: DOMUtils.val('#docTitle').trim(),
+            description: DOMUtils.val('#docDescription').trim(),
+            tags: DOMUtils.val('#docTags').trim(),
+            author: DOMUtils.val('#docAuthor').trim(),
+            language: DOMUtils.val('#docLanguage'),
+            customId: DOMUtils.val('#customId').trim(),
+            source: DOMUtils.val('#docSource').trim(),
+            originalId: DOMUtils.val('#originalId').trim(),
+            recipient: DOMUtils.val('#docRecipient').trim(),
+            object: DOMUtils.val('#docObject').trim(),
+            coverage: DOMUtils.val('#docCoverage').trim(),
+            type: DOMUtils.val('#docType'),
+            securityLevel: DOMUtils.val('#securityLevel'),
+            allowDownload: DOMUtils.prop('#allowDownload', 'checked'),
+            allowPrint: DOMUtils.prop('#allowPrint', 'checked'),
+            allowEdit: DOMUtils.prop('#allowEdit', 'checked')
         };
     }
 
@@ -537,42 +540,46 @@ class PropertiesEditor {
      * Show loading indicator
      */
     showLoading(message = 'Loading...') {
-        $('#loadingSection p').text(message);
-        $('#loadingSection').show();
-        $('#messageSection').hide();
+        DOMUtils.text('#loadingSection p', message);
+        DOMUtils.show('#loadingSection');
+        DOMUtils.hide('#messageSection');
     }
 
     /**
      * Hide loading indicator
      */
     hideLoading() {
-        $('#loadingSection').hide();
+        DOMUtils.hide('#loadingSection');
     }
 
     /**
      * Show error message
      */
     showError(message) {
-        $('#messageBar').removeClass().addClass('ms-MessageBar ms-MessageBar--error');
-        $('#messageIcon i').removeClass().addClass('ms-Icon ms-Icon--ErrorBadge');
-        $('#messageText').text(message);
-        $('#messageSection').show();
-        $('#loadingSection').hide();
+        const messageBar = DOMUtils.select('#messageBar');
+        messageBar.className = 'ms-MessageBar ms-MessageBar--error';
+        const messageIcon = DOMUtils.select('#messageIcon i');
+        messageIcon.className = 'ms-Icon ms-Icon--ErrorBadge';
+        DOMUtils.text('#messageText', message);
+        DOMUtils.show('#messageSection');
+        DOMUtils.hide('#loadingSection');
     }
 
     /**
      * Show success message
      */
     showSuccess(message) {
-        $('#messageBar').removeClass().addClass('ms-MessageBar ms-MessageBar--success');
-        $('#messageIcon i').removeClass().addClass('ms-Icon ms-Icon--CheckMark');
-        $('#messageText').text(message);
-        $('#messageSection').show();
-        $('#loadingSection').hide();
+        const messageBar = DOMUtils.select('#messageBar');
+        messageBar.className = 'ms-MessageBar ms-MessageBar--success';
+        const messageIcon = DOMUtils.select('#messageIcon i');
+        messageIcon.className = 'ms-Icon ms-Icon--CheckMark';
+        DOMUtils.text('#messageText', message);
+        DOMUtils.show('#messageSection');
+        DOMUtils.hide('#loadingSection');
 
         // Auto-hide success message after 3 seconds
         setTimeout(() => {
-            $('#messageSection').fadeOut();
+            DOMUtils.hide('#messageSection');
         }, 3000);
     }
 
@@ -580,11 +587,13 @@ class PropertiesEditor {
      * Show info message
      */
     showInfo(message) {
-        $('#messageBar').removeClass().addClass('ms-MessageBar ms-MessageBar--info');
-        $('#messageIcon i').removeClass().addClass('ms-Icon ms-Icon--Info');
-        $('#messageText').text(message);
-        $('#messageSection').show();
-        $('#loadingSection').hide();
+        const messageBar = DOMUtils.select('#messageBar');
+        messageBar.className = 'ms-MessageBar ms-MessageBar--info';
+        const messageIcon = DOMUtils.select('#messageIcon i');
+        messageIcon.className = 'ms-Icon ms-Icon--Info';
+        DOMUtils.text('#messageText', message);
+        DOMUtils.show('#messageSection');
+        DOMUtils.hide('#loadingSection');
     }
 }
 

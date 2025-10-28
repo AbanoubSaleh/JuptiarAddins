@@ -42,39 +42,38 @@
 
         <!-- Save Form -->
         <div class="ms-Grid-row save-form-section" id="saveFormSection" style="display: none;">
-            <!-- Folder Selection with Tree View -->
+            <!-- Destination Selection with Dropdowns -->
             <div class="ms-Grid-col ms-sm12 form-section">
                 <h3 class="ms-font-l">Destination</h3>
 
-                <div class="folder-selection-container">
-                    <div class="selected-folder-display" id="selectedFolderDisplay">
-                        <div class="folder-icon">📁</div>
-                        <div class="folder-info">
-                            <div class="folder-name" id="selectedFolderName">No folder selected</div>
-                            <div class="folder-path" id="selectedFolderPath">Please select a destination folder</div>
+                <div class="destination-selection-container">
+                    <!-- Library Selection -->
+                    <div class="ms-Grid-row">
+                        <div class="ms-Grid-col ms-sm12">
+                            <label class="ms-Label" for="librarySelect">Library *</label>
+                            <select class="ms-Dropdown" id="librarySelect" required>
+                                <option value="">Select a library...</option>
+                            </select>
+                            <div class="loading-spinner" id="libraryLoadingSpinner" style="display: none;">Loading libraries...</div>
                         </div>
-                        <button type="button" class="browse-folder-btn" id="browseFolderBtn">
-                            <span class="browse-icon">🔍</span>
-                            Browse
-                        </button>
                     </div>
 
-                    <!-- Hidden folder tree (will be shown in modal) -->
-                    <div class="folder-tree-modal" id="folderTreeModal" style="display: none;">
-                        <div class="folder-tree-content">
-                            <div class="folder-tree-header">
-                                <h4>Select Destination Folder</h4>
-                                <button type="button" class="close-btn" id="closeFolderTreeBtn">&times;</button>
-                            </div>
-                            <div class="folder-tree-body">
-                                <div class="folder-tree" id="folderTree">
-                                    <div class="loading-spinner">Loading folders...</div>
-                                </div>
-                            </div>
-                            <div class="folder-tree-footer">
-                                <button type="button" class="ms-Button" id="cancelFolderSelectionBtn">Cancel</button>
-                                <button type="button" class="ms-Button ms-Button--primary" id="confirmFolderSelectionBtn" disabled>Select Folder</button>
-                            </div>
+                    <!-- Folder Selection -->
+                    <div class="ms-Grid-row" style="margin-top: 15px;">
+                        <div class="ms-Grid-col ms-sm12">
+                            <label class="ms-Label" for="folderSelect">Folder *</label>
+                            <select class="ms-Dropdown" id="folderSelect" required disabled>
+                                <option value="">Select a library first...</option>
+                            </select>
+                            <div class="loading-spinner" id="folderLoadingSpinner" style="display: none;">Loading folders...</div>
+                        </div>
+                    </div>
+
+                    <!-- Selected Path Display -->
+                    <div class="selected-path-display" id="selectedPathDisplay" style="display: none;">
+                        <div class="path-info">
+                            <span class="path-icon">📁</span>
+                            <span class="path-text" id="selectedPathText"></span>
                         </div>
                     </div>
                 </div>

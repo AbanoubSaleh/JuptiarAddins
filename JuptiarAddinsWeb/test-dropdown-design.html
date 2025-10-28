@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Test Dropdown Design</title>
+    
+    <!-- Office.js -->
+    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
+    
+    <!-- Fabric UI CSS -->
+    <link rel="stylesheet" href="https://static2.sharepointonline.com/files/fabric/office-ui-fabric-core/11.0.0/css/fabric.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="SaveDialog.css">
+</head>
+<body class="ms-font-m ms-welcome ms-Fabric">
+    <div class="ms-Grid" dir="ltr">
+        <div class="ms-Grid-row">
+            <div class="ms-Grid-col ms-sm12">
+                <h1 class="ms-font-xl">Test Dropdown Design</h1>
+                
+                <!-- Destination Selection with Dropdowns -->
+                <div class="ms-Grid-col ms-sm12 form-section">
+                    <h3 class="ms-font-l">Destination</h3>
+
+                    <div class="destination-selection-container">
+                        <!-- Library Selection -->
+                        <div class="ms-Grid-row">
+                            <div class="ms-Grid-col ms-sm12">
+                                <label class="ms-Label" for="librarySelect">Library *</label>
+                                <select class="ms-Dropdown" id="librarySelect" required>
+                                    <option value="">Select a library...</option>
+                                    <option value="lib1">Documents Library</option>
+                                    <option value="lib2">Contracts Library</option>
+                                    <option value="lib3">HR Documents</option>
+                                </select>
+                                <div class="loading-spinner" id="libraryLoadingSpinner" style="display: none;">Loading libraries...</div>
+                            </div>
+                        </div>
+
+                        <!-- Folder Selection -->
+                        <div class="ms-Grid-row" style="margin-top: 15px;">
+                            <div class="ms-Grid-col ms-sm12">
+                                <label class="ms-Label" for="folderSelect">Folder *</label>
+                                <select class="ms-Dropdown" id="folderSelect" required disabled>
+                                    <option value="">Select a library first...</option>
+                                </select>
+                                <div class="loading-spinner" id="folderLoadingSpinner" style="display: none;">Loading folders...</div>
+                            </div>
+                        </div>
+
+                        <!-- Selected Path Display -->
+                        <div class="selected-path-display" id="selectedPathDisplay" style="display: none;">
+                            <div class="path-info">
+                                <span class="path-icon">📁</span>
+                                <span class="path-text" id="selectedPathText">Documents Library / General</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Test Controls -->
+                <div class="ms-Grid-row" style="margin-top: 30px;">
+                    <div class="ms-Grid-col ms-sm12">
+                        <h3 class="ms-font-l">Test Controls</h3>
+                        <button type="button" class="ms-Button ms-Button--primary" onclick="testLibraryChange()">
+                            Test Library Change
+                        </button>
+                        <button type="button" class="ms-Button" onclick="testFolderChange()">
+                            Test Folder Change
+                        </button>
+                        <button type="button" class="ms-Button" onclick="showPath()">
+                            Show Path
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Test functions
+        function testLibraryChange() {
+            const librarySelect = document.getElementById('librarySelect');
+            const folderSelect = document.getElementById('folderSelect');
+            
+            // Simulate library selection
+            librarySelect.value = 'lib1';
+            
+            // Enable folder dropdown and add options
+            folderSelect.disabled = false;
+            folderSelect.innerHTML = `
+                <option value="">Select a folder...</option>
+                <option value="folder1" data-path="/General">General</option>
+                <option value="folder2" data-path="/Projects">Projects</option>
+                <option value="folder3" data-path="/Archive">Archive</option>
+            `;
+        }
+
+        function testFolderChange() {
+            const folderSelect = document.getElementById('folderSelect');
+            const selectedPathDisplay = document.getElementById('selectedPathDisplay');
+            const selectedPathText = document.getElementById('selectedPathText');
+            
+            // Simulate folder selection
+            folderSelect.value = 'folder1';
+            
+            // Show path
+            selectedPathText.textContent = 'Documents Library / General';
+            selectedPathDisplay.style.display = 'block';
+        }
+
+        function showPath() {
+            const librarySelect = document.getElementById('librarySelect');
+            const folderSelect = document.getElementById('folderSelect');
+            
+            if (librarySelect.value && folderSelect.value) {
+                const libraryName = librarySelect.options[librarySelect.selectedIndex].text;
+                const folderName = folderSelect.options[folderSelect.selectedIndex].text;
+                alert(`Selected: ${libraryName} / ${folderName}`);
+            } else {
+                alert('Please select both library and folder');
+            }
+        }
+
+        // Initialize Office.js
+        Office.onReady((info) => {
+            console.log('Office.js is ready');
+        });
+    </script>
+</body>
+</html>

@@ -4,15 +4,14 @@
 
 class AuthManager {
     constructor() {
-        console.log('AuthManager: Constructor called');
+
         this._isAuthenticated = false;
         this.currentUser = null;
         this.authToken = null;
         this.isInitialized = false;
         // Initialize settings from configuration
         const configBaseUrl = window.JupiterConfig?.get('server.baseUrl');
-        console.log('AuthManager: Reading config baseUrl:', configBaseUrl);
-        console.log('AuthManager: JupiterConfig object:', window.JupiterConfig);
+
 
         this.settings = {
             serverUrl: configBaseUrl || 'https://localhost:7001',
@@ -22,7 +21,7 @@ class AuthManager {
             autoLogin: false // Disabled - require explicit login
         };
 
-        console.log('AuthManager: Initial settings:', this.settings);
+
 
         // Note: loadSettings and loadStoredCredentials are now async and called in initialize()
     }
@@ -38,14 +37,14 @@ class AuthManager {
                 const settingsJson = await OfficeRuntime.storage.getItem('juptiarSettings');
                 if (settingsJson) {
                     savedSettings = JSON.parse(settingsJson);
-                    console.log('AuthManager: Loaded saved settings from OfficeRuntime storage:', savedSettings);
+
                 }
             } catch (runtimeError) {
                 console.warn('Could not load from OfficeRuntime storage, trying Office settings:', runtimeError);
                 // Fallback to Office.context.document.settings for backward compatibility
                 await Office.context.document.settings.refreshAsync();
                 savedSettings = Office.context.document.settings.get('juptiarSettings');
-                console.log('AuthManager: Loaded saved settings from Office settings (fallback):', savedSettings);
+
             }
 
             if (savedSettings) {
@@ -53,8 +52,7 @@ class AuthManager {
 
                 // Initialize service with settings only if it doesn't have a baseUrl
                 if (window.jupiterService) {
-                    console.log('AuthManager: Current JupiterService baseUrl:', window.jupiterService.baseUrl);
-                    console.log('AuthManager: Saved settings:', this.settings);
+
 
                     // Only re-initialize if the service doesn't have a baseUrl or if our settings are different
                     if (!window.jupiterService.baseUrl || window.jupiterService.baseUrl === '') {

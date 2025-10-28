@@ -665,7 +665,7 @@ window.JupiterConfig.init = function() {
     //     this.set('logging.level', 'warn');
     // }
     
-    console.log('Jupiter Config initialized:', this);
+    // Jupiter Config initialized
 };
 
 // Auto-initialize when script loads

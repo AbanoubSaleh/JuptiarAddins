@@ -70,7 +70,8 @@ class RibbonManager {
             }
 
             const isNew = await this.documentStateManager.isNewDocument();
-            
+            console.log(`🎗️ RibbonManager: Updating ribbon state - Document is ${isNew ? 'NEW' : 'EXISTING'}`);
+
             if (isNew) {
                 await this.showNewDocumentRibbon();
             } else {
@@ -89,8 +90,8 @@ class RibbonManager {
         try {
             console.log('🆕 NEW DOCUMENT MODE:');
             console.log('  ✅ Save to Jupiter DMS - Available');
-            console.log('  ❌ Properties - Not applicable (new document)');
-            console.log('  ❌ Check Out/In - Not applicable (new document)');
+            console.log('  ❌ Properties - Hidden (new document)');
+            console.log('  ❌ Check Out/In - Hidden (new document)');
 
             // Try to use Office.ribbon.requestUpdate to control button states
             try {
@@ -101,29 +102,43 @@ class RibbonManager {
                             controls: [
                                 {
                                     id: "Jupiter.SaveToJupiterButton",
-                                    enabled: true
+                                    enabled: true,
+                                    visible: true
                                 },
                                 {
                                     id: "Jupiter.PropertiesButton",
-                                    enabled: false
+                                    enabled: false,
+                                    visible: false  // Hide Properties button for new documents
                                 },
                                 {
                                     id: "Jupiter.CheckOutButton",
-                                    enabled: false
+                                    enabled: false,
+                                    visible: false  // Hide Check Out button for new documents
                                 },
                                 {
                                     id: "Jupiter.CheckInButton",
-                                    enabled: false
+                                    enabled: false,
+                                    visible: false  // Hide Check In button for new documents
                                 }
                             ]
                         }]
                     });
-                    console.log('✅ Ribbon buttons updated via Office.ribbon.requestUpdate');
+                    console.log('✅ Ribbon buttons updated via Office.ribbon.requestUpdate (buttons hidden for new document)');
                 } else {
-                    console.log('⚠️ Office.ribbon.requestUpdate not available - using button click validation instead');
+                    console.log('⚠️ Office.ribbon.requestUpdate not available - using setButtonVisibility instead');
+                    // Fallback: Use setButtonVisibility method
+                    await this.setButtonVisibility('Jupiter.PropertiesButton', false);
+                    await this.setButtonVisibility('Jupiter.CheckOutButton', false);
+                    await this.setButtonVisibility('Jupiter.CheckInButton', false);
+                    await this.setButtonVisibility('Jupiter.SaveToJupiterButton', true);
                 }
             } catch (error) {
-                console.log('⚠️ Office.ribbon.requestUpdate failed - using button click validation instead:', error.message);
+                console.log('⚠️ Office.ribbon.requestUpdate failed - using setButtonVisibility instead:', error.message);
+                // Fallback: Use setButtonVisibility method
+                await this.setButtonVisibility('Jupiter.PropertiesButton', false);
+                await this.setButtonVisibility('Jupiter.CheckOutButton', false);
+                await this.setButtonVisibility('Jupiter.CheckInButton', false);
+                await this.setButtonVisibility('Jupiter.SaveToJupiterButton', true);
             }
 
             // Store document state for button behavior
@@ -150,7 +165,7 @@ class RibbonManager {
             console.log('📄 EXISTING DOCUMENT MODE:');
             console.log('  ✅ Properties - Available');
             console.log('  ✅ Check Out/In - Available');
-            console.log('  ❌ Save to Jupiter DMS - Not applicable (already saved)');
+            console.log('  ❌ Save to Jupiter DMS - Disabled (already saved)');
 
             // Try to use Office.ribbon.requestUpdate to control button states
             try {
@@ -161,29 +176,43 @@ class RibbonManager {
                             controls: [
                                 {
                                     id: "Jupiter.SaveToJupiterButton",
-                                    enabled: false
+                                    enabled: false,
+                                    visible: true  // Keep visible but disabled for existing documents
                                 },
                                 {
                                     id: "Jupiter.PropertiesButton",
-                                    enabled: true
+                                    enabled: true,
+                                    visible: true  // Show Properties button for existing documents
                                 },
                                 {
                                     id: "Jupiter.CheckOutButton",
-                                    enabled: true
+                                    enabled: true,
+                                    visible: true  // Show Check Out button for existing documents
                                 },
                                 {
                                     id: "Jupiter.CheckInButton",
-                                    enabled: true
+                                    enabled: true,
+                                    visible: true  // Show Check In button for existing documents
                                 }
                             ]
                         }]
                     });
-                    console.log('✅ Ribbon buttons updated via Office.ribbon.requestUpdate');
+                    console.log('✅ Ribbon buttons updated via Office.ribbon.requestUpdate (all buttons visible for existing document)');
                 } else {
-                    console.log('⚠️ Office.ribbon.requestUpdate not available - using button click validation instead');
+                    console.log('⚠️ Office.ribbon.requestUpdate not available - using setButtonVisibility instead');
+                    // Fallback: Use setButtonVisibility method
+                    await this.setButtonVisibility('Jupiter.PropertiesButton', true);
+                    await this.setButtonVisibility('Jupiter.CheckOutButton', true);
+                    await this.setButtonVisibility('Jupiter.CheckInButton', true);
+                    await this.setButtonVisibility('Jupiter.SaveToJupiterButton', true);
                 }
             } catch (error) {
-                console.log('⚠️ Office.ribbon.requestUpdate failed - using button click validation instead:', error.message);
+                console.log('⚠️ Office.ribbon.requestUpdate failed - using setButtonVisibility instead:', error.message);
+                // Fallback: Use setButtonVisibility method
+                await this.setButtonVisibility('Jupiter.PropertiesButton', true);
+                await this.setButtonVisibility('Jupiter.CheckOutButton', true);
+                await this.setButtonVisibility('Jupiter.CheckInButton', true);
+                await this.setButtonVisibility('Jupiter.SaveToJupiterButton', true);
             }
 
             // Store document state for button behavior
@@ -208,11 +237,22 @@ class RibbonManager {
 
     /**
      * Update checkout buttons based on document checkout status
+     * Note: This method should only be called for existing documents
      */
     async updateCheckoutButtons() {
         try {
+            // First check if this is a new document - if so, hide all checkout buttons
+            const isNew = await this.documentStateManager.isNewDocument();
+            if (isNew) {
+                await this.setButtonVisibility('CheckOutButton', false);
+                await this.setButtonVisibility('CheckInButton', false);
+                console.log('Checkout buttons hidden for new document');
+                return;
+            }
+
+            // For existing documents, show appropriate checkout buttons based on status
             const checkoutInfo = await this.documentStateManager.getCheckoutInfo();
-            
+
             if (checkoutInfo && checkoutInfo.status === 'CheckedOut') {
                 // Document is checked out
                 await this.setButtonVisibility('CheckOutButton', false);
@@ -365,7 +405,24 @@ class RibbonManager {
      * Refresh ribbon state
      */
     async refresh() {
+        console.log('🔄 RibbonManager: Manual refresh requested');
         await this.updateRibbonState();
+    }
+
+    /**
+     * Force ribbon to new document mode (for testing)
+     */
+    async forceNewDocumentMode() {
+        console.log('🧪 RibbonManager: Forcing NEW document mode');
+        await this.showNewDocumentRibbon();
+    }
+
+    /**
+     * Force ribbon to existing document mode (for testing)
+     */
+    async forceExistingDocumentMode() {
+        console.log('🧪 RibbonManager: Forcing EXISTING document mode');
+        await this.showExistingDocumentRibbon();
     }
 
     /**

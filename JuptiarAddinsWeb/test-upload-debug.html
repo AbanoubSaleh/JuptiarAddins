@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Test Upload Debug</title>
+</head>
+<body>
+    <h1>Test Upload Debug</h1>
+    
+    <div>
+        <h3>Test Upload with Known Good Values</h3>
+        <button onclick="testUpload()">Test Upload</button>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        async function testUpload() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing upload...';
+            
+            try {
+                // Create a simple test file
+                const testContent = 'This is a test Word document content.';
+                const blob = new Blob([testContent], { 
+                    type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+                });
+                
+                // Use known good values from the logs
+                const formData = new FormData();
+                formData.append('file', blob, 'TestDocument.docx');
+                formData.append('Name', 'TestDocument.docx');
+                formData.append('FolderId', 'b3eecd40-8c00-4264-a10b-3d182a3a7deb'); // From logs
+                formData.append('duplicateAction', 'rename');
+                formData.append('Title', 'Test Document');
+                formData.append('Description', 'Test upload from debug page');
+                
+                console.log('Sending test upload...');
+                
+                const response = await fetch('https://localhost:7001/api/documents/upload-with-options', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer YOUR_TOKEN_HERE' // Replace with actual token
+                    },
+                    body: formData
+                });
+                
+                console.log('Response status:', response.status);
+                const responseText = await response.text();
+                console.log('Response text:', responseText);
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `<div style="color: green;">✅ Upload successful!</div><pre>${responseText}</pre>`;
+                } else {
+                    resultDiv.innerHTML = `<div style="color: red;">❌ Upload failed: ${response.status}</div><pre>${responseText}</pre>`;
+                }
+                
+            } catch (error) {
+                console.error('Upload error:', error);
+                resultDiv.innerHTML = `<div style="color: red;">❌ Error: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>
