@@ -285,6 +285,10 @@ class DocumentBrowser {
             this.folderTree = treeData;
 
             this.renderFolderTree(treeData);
+
+            // Auto-select default library if configured
+            await this.selectDefaultLibrary();
+
             this.hideLoading();
 
         } catch (error) {
@@ -600,6 +604,65 @@ class DocumentBrowser {
         const sizes = ['B', 'KB', 'MB', 'GB'];
         const i = Math.floor(Math.log(bytes) / Math.log(1024));
         return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+    }
+
+    /**
+     * Auto-select default library if configured
+     */
+    async selectDefaultLibrary() {
+        try {
+            if (!window.authManager) return;
+
+            const settings = await window.authManager.getSettings();
+            const defaultLibrary = settings.defaultLibrary;
+
+            if (defaultLibrary && this.folderTree) {
+                console.log('DocumentBrowser: Auto-selecting default library:', defaultLibrary);
+
+                // Find the default library in the tree
+                const libraryNode = this.findLibraryInTree(this.folderTree, defaultLibrary);
+                if (libraryNode) {
+                    // Simulate clicking on the library
+                    this.selectFolder(libraryNode);
+
+                    // Expand the library node
+                    const $libraryElement = $(`[data-folder-id="${libraryNode.id}"]`);
+                    if ($libraryElement.length) {
+                        $libraryElement.addClass('selected');
+                        // Expand if it has children
+                        if (libraryNode.children && libraryNode.children.length > 0) {
+                            $libraryElement.find('.folder-toggle').first().click();
+                        }
+                    }
+
+                    console.log('DocumentBrowser: Default library selected successfully');
+                }
+            }
+        } catch (error) {
+            console.warn('DocumentBrowser: Could not select default library:', error);
+        }
+    }
+
+    /**
+     * Find library in tree by name or ID
+     */
+    findLibraryInTree(tree, libraryIdentifier) {
+        if (!Array.isArray(tree)) return null;
+
+        for (const node of tree) {
+            // Check if this node matches (by name or ID)
+            if (node.name === libraryIdentifier || node.id === libraryIdentifier) {
+                return node;
+            }
+
+            // Search in children recursively
+            if (node.children) {
+                const found = this.findLibraryInTree(node.children, libraryIdentifier);
+                if (found) return found;
+            }
+        }
+
+        return null;
     }
 
     /**

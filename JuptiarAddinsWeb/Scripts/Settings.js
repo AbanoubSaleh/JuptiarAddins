@@ -79,13 +79,14 @@ class SettingsPage {
         
         // Authentication
         $('#username').val(credentials.username || '');
-        $('#rememberCredentials').prop('checked', settings.rememberCredentials || false);
-        $('#autoLogin').prop('checked', settings.autoLogin || false);
+        // Map old settings to new "Stay Logged In" option
+        const stayLoggedIn = settings.rememberCredentials || settings.autoLogin || false;
+        $('#stayLoggedIn').prop('checked', stayLoggedIn);
         
         // Advanced settings
         $('#defaultLibrary').val(settings.defaultLibrary || '');
         $('#documentsPerPage').val(settings.documentsPerPage || 50);
-        $('#enableLogging').prop('checked', settings.enableLogging || false);
+
         $('#enableNotifications').prop('checked', settings.enableNotifications !== false);
         
         // Handle auto-login dependency
@@ -309,14 +310,14 @@ class SettingsPage {
 
             const username = $('#username').val().trim();
             const password = $('#password').val();
-            const rememberCredentials = $('#rememberCredentials').is(':checked');
+            const stayLoggedIn = $('#stayLoggedIn').is(':checked');
 
             // Update UI
             $('#loginBtn').prop('disabled', true);
             this.showLoading('Logging in...');
 
             // Perform login
-            const result = await window.authManager.login(username, password, rememberCredentials);
+            const result = await window.authManager.login(username, password, stayLoggedIn);
 
             if (result.success) {
                 this.showSuccess('Login successful! You are now authenticated.');
@@ -328,8 +329,8 @@ class SettingsPage {
                 // Load library options if authenticated
                 await this.loadDefaultLibraryOptions();
 
-                // Clear password field for security (unless remember is checked)
-                if (!rememberCredentials) {
+                // Clear password field for security (unless stay logged in is checked)
+                if (!stayLoggedIn) {
                     $('#password').val('');
                 }
             } else {
@@ -389,15 +390,17 @@ class SettingsPage {
             this.showLoading('Validating credentials and saving settings...');
 
             // Collect form data
+            const stayLoggedIn = $('#stayLoggedIn').is(':checked');
             const newSettings = {
                 serverUrl: $('#serverUrl').val().trim(),
                 apiEndpoint: $('#apiEndpoint').val().trim(),
                 timeout: parseInt($('#connectionTimeout').val()) * 1000,
-                rememberCredentials: $('#rememberCredentials').is(':checked'),
-                autoLogin: $('#autoLogin').is(':checked'),
+                // Map new "Stay Logged In" to both old options for backward compatibility
+                rememberCredentials: stayLoggedIn,
+                autoLogin: stayLoggedIn,
                 defaultLibrary: $('#defaultLibrary').val(),
                 documentsPerPage: parseInt($('#documentsPerPage').val()),
-                enableLogging: $('#enableLogging').is(':checked'),
+
                 enableNotifications: $('#enableNotifications').is(':checked')
             };
 
@@ -412,7 +415,7 @@ class SettingsPage {
                 await window.authManager.saveSettings(newSettings);
 
                 // Attempt login to validate credentials
-                const loginResult = await window.authManager.login(username, password, newSettings.rememberCredentials);
+                const loginResult = await window.authManager.login(username, password, stayLoggedIn);
 
                 if (loginResult.success) {
                     // ✅ Credentials are valid
@@ -443,8 +446,8 @@ class SettingsPage {
                 // No credentials provided, just save settings
                 await window.authManager.saveSettings(newSettings);
 
-                // Clear any stored credentials if remember is unchecked
-                if (!newSettings.rememberCredentials) {
+                // Clear any stored credentials if stay logged in is unchecked
+                if (!stayLoggedIn) {
                     await window.authManager.clearStoredCredentials();
                 }
 
@@ -465,28 +468,78 @@ class SettingsPage {
      * Reset settings to defaults
      */
     resetToDefaults() {
-        const confirmed = confirm('Are you sure you want to reset all settings to defaults?');
-        if (!confirmed) return;
-        
-        // Reset form to default values
-        $('#serverUrl').val('');
-        $('#apiEndpoint').val('/api/v1');
+        // Use a custom confirmation dialog since Office Add-ins don't support window.confirm()
+        this.showConfirmation(
+            'Reset Settings',
+            'Are you sure you want to reset all settings to defaults? This action cannot be undone.',
+            () => this.performReset()
+        );
+    }
+
+    /**
+     * Perform the actual reset after confirmation
+     */
+    performReset() {
+        // Reset form to default values (but preserve server URL as it's pre-configured)
+        // Get default values from config
+        const defaultServerUrl = window.JupiterConfig?.get('server.baseUrl') || 'https://localhost:7001';
+        const defaultApiEndpoint = window.JupiterConfig?.get('server.apiEndpoint') || '/api';
+
+        // Only reset server URL if it's empty, otherwise keep the current value
+        if (!$('#serverUrl').val().trim()) {
+            $('#serverUrl').val(defaultServerUrl);
+        }
+
+        $('#apiEndpoint').val(defaultApiEndpoint);
         $('#connectionTimeout').val('30');
         $('#username').val('');
         $('#password').val('');
-        $('#rememberCredentials').prop('checked', false);
-        $('#autoLogin').prop('checked', false);
+        $('#stayLoggedIn').prop('checked', false);
         $('#defaultLibrary').val('');
         $('#documentsPerPage').val('50');
-        $('#enableLogging').prop('checked', false);
+
         $('#enableNotifications').prop('checked', true);
-        
+
         // Clear validation errors
         $('.ms-TextField-field').removeClass('error');
         $('.error-message').remove();
-        
+
         this.handleRememberCredentialsChange();
-        this.showSuccess('Settings reset to defaults');
+        this.showSuccess('Settings reset to defaults (server URL preserved)');
+    }
+
+    /**
+     * Show a custom confirmation dialog (Office Add-ins don't support window.confirm)
+     */
+    showConfirmation(title, message, onConfirm) {
+        // Create a simple confirmation using the existing message system
+        const confirmHtml = `
+            <div class="confirmation-dialog" style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; margin: 10px 0; border-radius: 4px;">
+                <h4 style="margin: 0 0 10px 0; color: #856404;">${title}</h4>
+                <p style="margin: 0 0 15px 0; color: #856404;">${message}</p>
+                <div style="text-align: right;">
+                    <button id="confirmYes" class="ms-Button ms-Button--primary" style="margin-right: 10px;">
+                        <span class="ms-Button-label">Yes, Reset</span>
+                    </button>
+                    <button id="confirmNo" class="ms-Button">
+                        <span class="ms-Button-label">Cancel</span>
+                    </button>
+                </div>
+            </div>
+        `;
+
+        // Show the confirmation
+        $('#messageSection').html(confirmHtml).show();
+
+        // Handle confirmation buttons
+        $('#confirmYes').on('click', () => {
+            $('#messageSection').hide();
+            onConfirm();
+        });
+
+        $('#confirmNo').on('click', () => {
+            $('#messageSection').hide();
+        });
     }
 
     /**
