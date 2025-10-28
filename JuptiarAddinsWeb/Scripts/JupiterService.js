@@ -290,6 +290,165 @@ class JupiterService {
         this.authToken = null;
     }
 
+    /**
+     * Check if document name exists in folder
+     * @param {string} name - Document name
+     * @param {string} folderId - Folder ID
+     * @returns {Promise<Object>} Duplicate check result
+     */
+    async checkDuplicateName(name, folderId) {
+        try {
+            const params = new URLSearchParams({
+                name: name,
+                folderId: folderId
+            });
+
+            const response = await this.makeRequest('GET', `/documents/check-duplicate?${params.toString()}`);
+            return response;
+        } catch (error) {
+            console.error('Error checking duplicate name:', error);
+            this.handleError(error);
+        }
+    }
+
+    /**
+     * Get all libraries
+     * @returns {Promise<Array>} List of libraries
+     */
+    async getLibraries() {
+        try {
+            const response = await this.makeRequest('GET', '/libraries');
+            return response;
+        } catch (error) {
+            console.error('Error getting libraries:', error);
+            this.handleError(error);
+        }
+    }
+
+    /**
+     * Get library tree with folders (hierarchical structure)
+     * @returns {Promise<Array>} Library tree structure
+     */
+    async getLibraryTree() {
+        try {
+            const response = await this.makeRequest('GET', '/libraries/tree');
+            return response;
+        } catch (error) {
+            console.error('Error getting library tree:', error);
+            this.handleError(error);
+        }
+    }
+
+    /**
+     * Get folders in a library
+     * @param {string} libraryId - Library ID (required)
+     * @returns {Promise<Array>} List of folders
+     */
+    async getFolders(libraryId) {
+        try {
+            if (!libraryId) {
+                // If no library ID provided, get the library tree instead
+                return await this.getLibraryTree();
+            }
+
+            const response = await this.makeRequest('GET', `/folders/library/${libraryId}`);
+            return response;
+        } catch (error) {
+            console.error('Error getting folders:', error);
+            this.handleError(error);
+        }
+    }
+
+    /**
+     * Get folder by ID
+     * @param {string} folderId - Folder ID
+     * @returns {Promise<Object>} Folder details
+     */
+    async getFolder(folderId) {
+        try {
+            const response = await this.makeRequest('GET', `/folders/${folderId}`);
+            return response;
+        } catch (error) {
+            console.error('Error getting folder:', error);
+            this.handleError(error);
+        }
+    }
+
+    /**
+     * Get documents in a folder
+     * @param {string} folderId - Folder ID
+     * @returns {Promise<Array>} List of documents
+     */
+    async getDocuments(folderId) {
+        try {
+            const response = await this.makeRequest('GET', `/documents?folderId=${folderId}`);
+            return response;
+        } catch (error) {
+            console.error('Error getting documents:', error);
+            this.handleError(error);
+        }
+    }
+
+    /**
+     * Get authentication token
+     * @returns {string|null} Current auth token
+     */
+    getToken() {
+        return this.authToken;
+    }
+
+    /**
+     * Set authentication token
+     * @param {string} token - Auth token
+     */
+    setToken(token) {
+        this.authToken = token;
+    }
+
+    /**
+     * Check out a document for editing
+     * @param {string} documentId - Document ID
+     * @returns {Promise<Object>} Check-out result
+     */
+    async checkOutDocument(documentId) {
+        try {
+            const response = await this.makeRequest('POST', `/documents/${documentId}/checkout`);
+            return { success: true, ...response };
+        } catch (error) {
+            console.error('Error checking out document:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * Check in a document with new version
+     * @param {string} documentId - Document ID
+     * @param {FormData} formData - Form data with file and version comment
+     * @returns {Promise<Object>} Check-in result
+     */
+    async checkInDocument(documentId, formData) {
+        try {
+            const response = await fetch(`${this.baseUrl}${this.apiEndpoint}/documents/${documentId}/checkin`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.authToken}`
+                },
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Check-in failed: ${response.status} - ${errorText}`);
+            }
+
+            const document = await response.json();
+            return { success: true, document };
+        } catch (error) {
+            console.error('Error checking in document:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
     // Error handling helper
     handleError(error) {
         console.error('Jupiter Service Error:', error);

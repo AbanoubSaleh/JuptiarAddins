@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Check In Document</title>
+
+    <!-- Office JavaScript API -->
+    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
+
+    <!-- Office UI Fabric -->
+    <link rel="stylesheet" href="Content/fabric.min.css" />
+    <link rel="stylesheet" href="Content/OfficeThemes.css" />
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="CheckInDialog.css" />
+</head>
+
+<body class="ms-font-m ms-welcome ms-Fabric">
+    <div class="ms-Grid checkin-container">
+        <!-- Header -->
+        <div class="ms-Grid-row header-section">
+            <div class="ms-Grid-col ms-sm12">
+                <h2 class="ms-font-xl ms-fontColor-themePrimary">Check In Document</h2>
+                <p class="ms-font-s">Check in your changes and create a new version of the document.</p>
+            </div>
+        </div>
+
+        <!-- Document Info -->
+        <div class="ms-Grid-row document-info-section">
+            <div class="ms-Grid-col ms-sm12">
+                <div class="document-card">
+                    <div class="document-icon">📄</div>
+                    <div class="document-details">
+                        <div class="document-name" id="documentName">Loading...</div>
+                        <div class="document-path" id="documentPath">Loading...</div>
+                        <div class="document-status" id="documentStatus">
+                            <span class="status-indicator checked-out"></span>
+                            <span class="status-text">Checked out to you</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Check In Form -->
+        <div class="ms-Grid-row checkin-form-section">
+            <div class="ms-Grid-col ms-sm12 form-section">
+                <h3 class="ms-font-l">Version Information</h3>
+                
+                <div class="ms-TextField">
+                    <label class="ms-Label">Version Comment *</label>
+                    <textarea id="versionComment" class="ms-TextField-field textarea" 
+                              placeholder="Describe the changes made in this version..." 
+                              rows="4" required></textarea>
+                    <span class="ms-TextField-description">
+                        Provide a clear description of the changes made to help others understand this version.
+                    </span>
+                </div>
+
+                <div class="version-options">
+                    <div class="ms-CheckBox">
+                        <input type="radio" id="minorVersion" name="versionType" value="minor" class="ms-CheckBox-input" checked />
+                        <label class="ms-CheckBox-label" for="minorVersion">
+                            <strong>Minor Version</strong> - Small changes, corrections, or updates
+                        </label>
+                    </div>
+
+                    <div class="ms-CheckBox">
+                        <input type="radio" id="majorVersion" name="versionType" value="major" class="ms-CheckBox-input" />
+                        <label class="ms-CheckBox-label" for="majorVersion">
+                            <strong>Major Version</strong> - Significant changes or new content
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Options -->
+            <div class="ms-Grid-col ms-sm12 form-section">
+                <h3 class="ms-font-l">Check-In Options</h3>
+                
+                <div class="ms-CheckBox">
+                    <input type="checkbox" id="notifyUsers" class="ms-CheckBox-input" checked />
+                    <label class="ms-CheckBox-label" for="notifyUsers">
+                        Notify other users about this new version
+                    </label>
+                </div>
+
+                <div class="ms-CheckBox">
+                    <input type="checkbox" id="keepCheckedOut" class="ms-CheckBox-input" />
+                    <label class="ms-CheckBox-label" for="keepCheckedOut">
+                        Keep document checked out after creating version
+                    </label>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="ms-Grid-col ms-sm12 action-section">
+                <div class="action-buttons">
+                    <button id="checkinBtn" class="ms-Button ms-Button--primary">
+                        <span class="ms-Button-label">Check In</span>
+                    </button>
+                    <button id="discardBtn" class="ms-Button ms-Button--secondary">
+                        <span class="ms-Button-label">Discard Changes</span>
+                    </button>
+                    <button id="cancelBtn" class="ms-Button">
+                        <span class="ms-Button-label">Cancel</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Section -->
+        <div class="ms-Grid-row progress-section" id="progressSection" style="display: none;">
+            <div class="ms-Grid-col ms-sm12">
+                <h3 class="ms-font-l">Checking In Document...</h3>
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="progress-text" id="progressText">Preparing document...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Messages -->
+        <div class="ms-Grid-row message-section" id="messageSection" style="display: none;">
+            <div class="ms-Grid-col ms-sm12">
+                <div class="ms-MessageBar" id="messageBar">
+                    <div class="ms-MessageBar-content">
+                        <div class="ms-MessageBar-icon" id="messageIcon">
+                            <i class="ms-Icon"></i>
+                        </div>
+                        <div class="ms-MessageBar-text" id="messageText">
+                            Document checked in successfully.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Dialog -->
+    <div id="discardConfirmDialog" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Discard Changes</h3>
+                <span class="close" id="closeDiscardDialog">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="warning-content">
+                    <div class="warning-icon">⚠️</div>
+                    <div class="warning-text">
+                        <p><strong>Are you sure you want to discard your changes?</strong></p>
+                        <p>This action cannot be undone. All changes made to the document will be lost, and the document will be returned to its previous state.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="confirmDiscardBtn" class="ms-Button ms-Button--primary">
+                    <span class="ms-Button-label">Discard Changes</span>
+                </button>
+                <button id="cancelDiscardBtn" class="ms-Button">
+                    <span class="ms-Button-label">Cancel</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom JavaScript -->
+    <script type="text/javascript" src="Scripts/config.js"></script>
+    <script type="text/javascript" src="Scripts/JupiterService.js"></script>
+    <script type="text/javascript" src="Scripts/AuthManager.js"></script>
+    <script type="text/javascript" src="Scripts/DocumentStateManager.js"></script>
+    <script type="text/javascript" src="Scripts/DocumentUploader.js"></script>
+    <script type="text/javascript" src="Scripts/RibbonManager.js"></script>
+    <script type="text/javascript" src="Scripts/CheckInDialog.js"></script>
+</body>
+</html>

@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Test Save Dialog</title>
+
+    <!-- Office JavaScript API -->
+    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
+
+    <!-- Custom CSS -->
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #0078d4;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background-color: #0078d4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #106ebe;
+        }
+        #log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="test-container">
+        <h1>Jupiter Add-in Save Dialog Test</h1>
+        
+        <div class="test-section">
+            <h3>1. Office.js Status</h3>
+            <div id="officeStatus" class="status info">Checking Office.js...</div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. Script Loading Test</h3>
+            <div id="scriptStatus" class="status info">Checking scripts...</div>
+            <button onclick="testScriptLoading()">Test Script Loading</button>
+        </div>
+
+        <div class="test-section">
+            <h3>3. Document State Test</h3>
+            <div id="documentStatus" class="status info">Ready to test</div>
+            <button onclick="testDocumentState()">Test Document State</button>
+        </div>
+
+        <div class="test-section">
+            <h3>4. Service Test</h3>
+            <div id="serviceStatus" class="status info">Ready to test</div>
+            <button onclick="testJupiterService()">Test Jupiter Service</button>
+        </div>
+
+        <div class="test-section">
+            <h3>AuthManager Test</h3>
+            <div id="authStatus" class="status info">Ready to test</div>
+            <button onclick="testAuthManager()">Test AuthManager</button>
+        </div>
+
+        <div class="test-section">
+            <h3>5. Save Dialog Test</h3>
+            <div id="saveDialogStatus" class="status info">Ready to test</div>
+            <button onclick="testSaveDialog()">Test Save Dialog</button>
+        </div>
+
+        <div class="test-section">
+            <h3>Debug Log</h3>
+            <div id="log"></div>
+            <button onclick="clearLog()">Clear Log</button>
+        </div>
+    </div>
+
+    <!-- Load Scripts -->
+    <script type="text/javascript" src="Scripts/config.js?v=2"></script>
+    <script type="text/javascript" src="Scripts/JupiterService.js?v=2"></script>
+    <script type="text/javascript" src="Scripts/AuthManager.js?v=2"></script>
+    <script type="text/javascript" src="Scripts/DocumentStateManager.js?v=2"></script>
+    <script type="text/javascript" src="Scripts/DocumentUploader.js?v=2"></script>
+    <script type="text/javascript" src="Scripts/SaveDialog.js?v=2"></script>
+
+    <script type="text/javascript">
+        // Test functions
+        let testLog = [];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}`;
+            testLog.push(logEntry);
+            
+            const logDiv = document.getElementById('log');
+            logDiv.innerHTML = testLog.join('\n');
+            logDiv.scrollTop = logDiv.scrollHeight;
+            
+            console.log(logEntry);
+        }
+
+        function clearLog() {
+            testLog = [];
+            document.getElementById('log').innerHTML = '';
+        }
+
+        function updateStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `status ${type}`;
+        }
+
+        // Initialize when Office.js is ready
+        Office.onReady((info) => {
+            log(`Office.js ready - Host: ${info.host}, Platform: ${info.platform}`);
+            updateStatus('officeStatus', `Office.js ready - Host: ${info.host}`, 'success');
+        });
+
+        async function testScriptLoading() {
+            log('Testing script loading...');
+            
+            const tests = [
+                { name: 'JupiterConfig', obj: window.JupiterConfig },
+                { name: 'DOMUtils', obj: window.$ },
+                { name: 'JupiterService', obj: window.JupiterService },
+                { name: 'AuthManager', obj: window.AuthManager },
+                { name: 'DocumentStateManager', obj: window.DocumentStateManager },
+                { name: 'DocumentUploader', obj: window.DocumentUploader },
+                { name: 'SaveDialogController', obj: window.SaveDialogController }
+            ];
+            
+            let allLoaded = true;
+            for (const test of tests) {
+                if (test.obj) {
+                    log(`✅ ${test.name} loaded`);
+                } else {
+                    log(`❌ ${test.name} NOT loaded`);
+                    allLoaded = false;
+                }
+            }
+            
+            updateStatus('scriptStatus', 
+                allLoaded ? 'All scripts loaded successfully' : 'Some scripts failed to load', 
+                allLoaded ? 'success' : 'error'
+            );
+        }
+
+        async function testAuthManager() {
+            log('Testing AuthManager...');
+            try {
+                if (!window.authManager) {
+                    window.authManager = new AuthManager();
+                    await window.authManager.initialize();
+                }
+                log('✅ AuthManager initialized successfully');
+                log('AuthManager methods: ' + Object.getOwnPropertyNames(Object.getPrototypeOf(window.authManager)).join(', '));
+
+                // Test the isAuthenticated method specifically
+                log('Testing isAuthenticated method...');
+                log('isAuthenticated method type: ' + typeof window.authManager.isAuthenticated);
+
+                if (typeof window.authManager.isAuthenticated === 'function') {
+                    const isAuth = await window.authManager.isAuthenticated();
+                    log('✅ isAuthenticated() method works! Result: ' + isAuth);
+                    updateStatus('authStatus', `AuthManager working - Authenticated: ${isAuth}`, 'success');
+                } else {
+                    log('❌ isAuthenticated is not a function');
+                    log('Available methods: ' + Object.getOwnPropertyNames(Object.getPrototypeOf(window.authManager)));
+                    updateStatus('authStatus', 'isAuthenticated method not found', 'error');
+                }
+
+            } catch (error) {
+                log('❌ AuthManager test failed: ' + error.message);
+                console.error('AuthManager test error:', error);
+                updateStatus('authStatus', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testDocumentState() {
+            log('Testing document state...');
+
+            try {
+                const documentStateManager = new DocumentStateManager();
+                await documentStateManager.initialize();
+
+                const isNew = await documentStateManager.isNewDocument();
+                log(`Document is new: ${isNew}`);
+
+                const state = await documentStateManager.getDocumentState();
+                log(`Document state: ${JSON.stringify(state, null, 2)}`);
+
+                updateStatus('documentStatus', `Document state checked - New: ${isNew}`, 'success');
+            } catch (error) {
+                log(`❌ Document state test failed: ${error.message}`);
+                updateStatus('documentStatus', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testJupiterService() {
+            log('Testing Jupiter Service...');
+            
+            try {
+                const service = new JupiterService();
+                service.initialize({
+                    serverUrl: 'https://localhost:7001',
+                    apiEndpoint: '/api',
+                    timeout: 30000
+                });
+                
+                log('Jupiter Service initialized');
+                
+                // Test if getFolders method exists
+                if (typeof service.getFolders === 'function') {
+                    log('✅ getFolders method exists');
+                } else {
+                    log('❌ getFolders method missing');
+                }
+                
+                updateStatus('serviceStatus', 'Jupiter Service initialized successfully', 'success');
+            } catch (error) {
+                log(`❌ Jupiter Service test failed: ${error.message}`);
+                updateStatus('serviceStatus', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testSaveDialog() {
+            log('Testing Save Dialog...');
+            
+            try {
+                const saveDialog = new SaveDialogController();
+                await saveDialog.initialize();
+                
+                log('Save Dialog Controller initialized');
+                updateStatus('saveDialogStatus', 'Save Dialog initialized successfully', 'success');
+            } catch (error) {
+                log(`❌ Save Dialog test failed: ${error.message}`);
+                updateStatus('saveDialogStatus', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-run basic tests when page loads
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                testScriptLoading();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

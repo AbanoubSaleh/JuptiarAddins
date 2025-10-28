@@ -5,7 +5,7 @@
 class AuthManager {
     constructor() {
         console.log('AuthManager: Constructor called');
-        this.isAuthenticated = false;
+        this._isAuthenticated = false;
         this.currentUser = null;
         this.authToken = null;
         this.isInitialized = false;
@@ -298,7 +298,7 @@ class AuthManager {
             console.log('AuthManager: Login response:', response);
             
             if (response.success && response.token) {
-                this.isAuthenticated = true;
+                this._isAuthenticated = true;
                 this.authToken = response.token;
                 this.currentUser = response.user || { username: username };
 
@@ -326,7 +326,7 @@ class AuthManager {
                 throw new Error(response.message || 'Login failed');
             }
         } catch (error) {
-            this.isAuthenticated = false;
+            this._isAuthenticated = false;
             this.authToken = null;
             this.currentUser = null;
             
@@ -343,13 +343,13 @@ class AuthManager {
      */
     async logout() {
         try {
-            if (window.jupiterService && this.isAuthenticated) {
+            if (window.jupiterService && this._isAuthenticated) {
                 await window.jupiterService.logout();
             }
         } catch (error) {
             console.warn('Logout request failed:', error);
         } finally {
-            this.isAuthenticated = false;
+            this._isAuthenticated = false;
             this.authToken = null;
             this.currentUser = null;
 
@@ -449,11 +449,19 @@ class AuthManager {
     }
 
     /**
+     * Check if user is currently authenticated
+     * @returns {boolean} True if authenticated
+     */
+    isAuthenticated() {
+        return this._isAuthenticated;
+    }
+
+    /**
      * Get current authentication status
      */
     getAuthStatus() {
         return {
-            isAuthenticated: this.isAuthenticated,
+            isAuthenticated: this._isAuthenticated,
             user: this.currentUser,
             serverUrl: this.settings.serverUrl
         };
@@ -520,7 +528,7 @@ class AuthManager {
             try {
                 const isValid = await this.validateSession();
                 if (isValid) {
-                    this.isAuthenticated = true;
+                    this._isAuthenticated = true;
                     console.log('AuthManager: Session restored successfully from stored token');
                     this.notifyAuthStateChange();
                     return; // Session restored, no need for auto-login
@@ -535,7 +543,7 @@ class AuthManager {
         }
 
         // Try auto-login if enabled and no valid session was restored
-        if (this.settings.autoLogin && !this.isAuthenticated) {
+        if (this.settings.autoLogin && !this._isAuthenticated) {
             try {
                 console.log('AuthManager: Attempting auto-login');
                 await this.autoLogin();
@@ -544,7 +552,7 @@ class AuthManager {
             }
         }
 
-        console.log('AuthManager: Initialization complete. Authenticated:', this.isAuthenticated);
+        console.log('AuthManager: Initialization complete. Authenticated:', this._isAuthenticated);
         this.isInitialized = true;
     }
 }

@@ -42,24 +42,41 @@
 
         <!-- Save Form -->
         <div class="ms-Grid-row save-form-section" id="saveFormSection" style="display: none;">
-            <!-- Library Selection -->
+            <!-- Folder Selection with Tree View -->
             <div class="ms-Grid-col ms-sm12 form-section">
                 <h3 class="ms-font-l">Destination</h3>
-                
-                <div class="ms-TextField">
-                    <label class="ms-Label">Library *</label>
-                    <select id="librarySelect" class="ms-Dropdown-select">
-                        <option value="">Select a library...</option>
-                        <!-- Options will be populated dynamically -->
-                    </select>
-                </div>
 
-                <div class="ms-TextField">
-                    <label class="ms-Label">Folder</label>
-                    <select id="folderSelect" class="ms-Dropdown-select" disabled>
-                        <option value="">Select a folder...</option>
-                        <!-- Options will be populated dynamically -->
-                    </select>
+                <div class="folder-selection-container">
+                    <div class="selected-folder-display" id="selectedFolderDisplay">
+                        <div class="folder-icon">📁</div>
+                        <div class="folder-info">
+                            <div class="folder-name" id="selectedFolderName">No folder selected</div>
+                            <div class="folder-path" id="selectedFolderPath">Please select a destination folder</div>
+                        </div>
+                        <button type="button" class="browse-folder-btn" id="browseFolderBtn">
+                            <span class="browse-icon">🔍</span>
+                            Browse
+                        </button>
+                    </div>
+
+                    <!-- Hidden folder tree (will be shown in modal) -->
+                    <div class="folder-tree-modal" id="folderTreeModal" style="display: none;">
+                        <div class="folder-tree-content">
+                            <div class="folder-tree-header">
+                                <h4>Select Destination Folder</h4>
+                                <button type="button" class="close-btn" id="closeFolderTreeBtn">&times;</button>
+                            </div>
+                            <div class="folder-tree-body">
+                                <div class="folder-tree" id="folderTree">
+                                    <div class="loading-spinner">Loading folders...</div>
+                                </div>
+                            </div>
+                            <div class="folder-tree-footer">
+                                <button type="button" class="ms-Button" id="cancelFolderSelectionBtn">Cancel</button>
+                                <button type="button" class="ms-Button ms-Button--primary" id="confirmFolderSelectionBtn" disabled>Select Folder</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -138,18 +155,20 @@
             <!-- Save Options -->
             <div class="ms-Grid-col ms-sm12 form-section">
                 <h3 class="ms-font-l">Save Options</h3>
-                
-                <div class="ms-CheckBox">
-                    <input type="checkbox" id="overwriteExisting" class="ms-CheckBox-input" />
-                    <label class="ms-CheckBox-label" for="overwriteExisting">
-                        Overwrite if file already exists
-                    </label>
+
+                <div class="duplicate-handling-info" id="duplicateHandlingInfo" style="display: none;">
+                    <div class="info-banner">
+                        <div class="info-icon">ℹ️</div>
+                        <div class="info-text">
+                            <strong>Duplicate Detection:</strong> The system will automatically check for existing files with the same name and prompt you for action if needed.
+                        </div>
+                    </div>
                 </div>
 
                 <div class="ms-CheckBox">
-                    <input type="checkbox" id="createVersion" class="ms-CheckBox-input" checked />
-                    <label class="ms-CheckBox-label" for="createVersion">
-                        Create new version if file exists
+                    <input type="checkbox" id="autoCheckDuplicates" class="ms-CheckBox-input" checked />
+                    <label class="ms-CheckBox-label" for="autoCheckDuplicates">
+                        Check for duplicate file names before saving
                     </label>
                 </div>
 
@@ -247,10 +266,24 @@
     </div>
 
     <!-- Custom JavaScript -->
-    <script type="text/javascript" src="Scripts/config.js"></script>
-    <script type="text/javascript" src="Scripts/JupiterService.js"></script>
-    <script type="text/javascript" src="Scripts/AuthManager.js"></script>
-    <script type="text/javascript" src="Scripts/DocumentSaver.js"></script>
-    <script type="text/javascript" src="Scripts/SaveDialog.js"></script>
+    <script type="text/javascript" src="Scripts/config.js?v=3"></script>
+    <script type="text/javascript" src="Scripts/JupiterService.js?v=3"></script>
+    <script type="text/javascript" src="Scripts/AuthManager.js?v=3"></script>
+    <script type="text/javascript" src="Scripts/DocumentStateManager.js?v=3"></script>
+    <script type="text/javascript" src="Scripts/DocumentUploader.js?v=3"></script>
+    <script type="text/javascript" src="Scripts/RibbonManager.js?v=3"></script>
+    <script type="text/javascript" src="Scripts/SaveDialog.js?v=3"></script>
+
+    <script type="text/javascript">
+        // Initialize the save dialog when Office.js is ready
+        Office.onReady(async () => {
+            try {
+                const saveDialog = new SaveDialogController();
+                await saveDialog.initialize();
+            } catch (error) {
+                console.error('Failed to initialize save dialog:', error);
+            }
+        });
+    </script>
 </body>
 </html>

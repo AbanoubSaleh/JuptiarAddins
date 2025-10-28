@@ -1,0 +1,378 @@
+/* Check In Dialog Styles */
+.checkin-container {
+    padding: 20px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.header-section {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e1e1e1;
+}
+
+.document-info-section {
+    margin-bottom: 20px;
+}
+
+.document-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background-color: #f8f9fa;
+    border: 1px solid #e1e1e1;
+    border-radius: 8px;
+}
+
+.document-icon {
+    font-size: 32px;
+    color: #0078d4;
+}
+
+.document-details {
+    flex: 1;
+}
+
+.document-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: #323130;
+    margin-bottom: 4px;
+}
+
+.document-path {
+    font-size: 14px;
+    color: #605e5c;
+    margin-bottom: 8px;
+}
+
+.document-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.status-indicator.checked-out {
+    background-color: #ff8c00;
+}
+
+.status-indicator.available {
+    background-color: #107c10;
+}
+
+.status-text {
+    font-size: 14px;
+    color: #605e5c;
+    font-weight: 500;
+}
+
+.checkin-form-section {
+    margin-bottom: 20px;
+}
+
+.form-section {
+    margin-bottom: 30px;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e1e1e1;
+}
+
+.form-section h3 {
+    margin: 0 0 20px 0;
+    color: #323130;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.ms-TextField {
+    margin-bottom: 20px;
+}
+
+.ms-Label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #323130;
+}
+
+.ms-TextField-field {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e1e1e1;
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color 0.2s ease;
+}
+
+.ms-TextField-field:focus {
+    outline: none;
+    border-color: #0078d4;
+}
+
+.ms-TextField-field.textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.ms-TextField-description {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+    color: #605e5c;
+    line-height: 1.4;
+}
+
+.version-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.ms-CheckBox {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.ms-CheckBox-input {
+    margin: 0;
+    margin-top: 2px;
+}
+
+.ms-CheckBox-label {
+    flex: 1;
+    font-size: 14px;
+    color: #323130;
+    line-height: 1.4;
+    cursor: pointer;
+}
+
+.action-section {
+    margin-top: 30px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.ms-Button {
+    padding: 12px 24px;
+    border: 1px solid #e1e1e1;
+    border-radius: 4px;
+    background-color: #ffffff;
+    color: #323130;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.ms-Button:hover {
+    background-color: #f3f2f1;
+    border-color: #c8c6c4;
+}
+
+.ms-Button--primary {
+    background-color: #0078d4;
+    border-color: #0078d4;
+    color: #ffffff;
+}
+
+.ms-Button--primary:hover {
+    background-color: #106ebe;
+    border-color: #106ebe;
+}
+
+.ms-Button--secondary {
+    background-color: #d13438;
+    border-color: #d13438;
+    color: #ffffff;
+}
+
+.ms-Button--secondary:hover {
+    background-color: #b02e32;
+    border-color: #b02e32;
+}
+
+.progress-section {
+    margin-bottom: 20px;
+    padding: 20px;
+    background-color: #f3f9ff;
+    border: 1px solid #0078d4;
+    border-radius: 8px;
+}
+
+.progress-container {
+    margin-top: 16px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background-color: #e1e1e1;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 12px;
+}
+
+.progress-fill {
+    height: 100%;
+    background-color: #0078d4;
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+.progress-text {
+    font-size: 14px;
+    color: #323130;
+    text-align: center;
+}
+
+.message-section {
+    margin-bottom: 20px;
+}
+
+.ms-MessageBar {
+    padding: 12px 16px;
+    border-radius: 4px;
+    border-left: 4px solid;
+}
+
+.ms-MessageBar--error {
+    background-color: #fdf3f4;
+    border-left-color: #d13438;
+    color: #d13438;
+}
+
+.ms-MessageBar--success {
+    background-color: #f3fffa;
+    border-left-color: #107c10;
+    color: #107c10;
+}
+
+.ms-MessageBar--info {
+    background-color: #f3f9ff;
+    border-left-color: #0078d4;
+    color: #0078d4;
+}
+
+.ms-MessageBar-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.ms-MessageBar-icon {
+    font-size: 16px;
+}
+
+.ms-MessageBar-text {
+    flex: 1;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+/* Modal Styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    width: 90%;
+    max-width: 500px;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid #e1e1e1;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #d13438;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #605e5c;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.close:hover {
+    background-color: #f3f2f1;
+}
+
+.modal-body {
+    padding: 24px;
+}
+
+.warning-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.warning-icon {
+    font-size: 32px;
+    color: #ff8c00;
+    margin-top: 4px;
+}
+
+.warning-text {
+    flex: 1;
+}
+
+.warning-text p {
+    margin: 0 0 12px;
+    color: #323130;
+    line-height: 1.5;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 24px 24px;
+    border-top: 1px solid #e1e1e1;
+}

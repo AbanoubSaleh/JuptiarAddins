@@ -298,7 +298,47 @@
     <script type="text/javascript" src="Scripts/config.js"></script>
     <script type="text/javascript" src="Scripts/JupiterService.js"></script>
     <script type="text/javascript" src="Scripts/AuthManager.js"></script>
+    <script type="text/javascript" src="Scripts/DocumentStateManager.js"></script>
     <script type="text/javascript" src="Scripts/PropertiesEditor.js"></script>
     <script type="text/javascript" src="Scripts/Properties.js"></script>
+
+    <script type="text/javascript">
+        // Initialize the properties dialog when Office.js is ready
+        Office.onReady(async () => {
+            try {
+                // Check if this is an existing document
+                const documentStateManager = new DocumentStateManager();
+                await documentStateManager.initialize();
+
+                const isNewDocument = await documentStateManager.isNewDocument();
+
+                if (isNewDocument) {
+                    // Show message that this is for existing documents only
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'ms-MessageBar ms-MessageBar--warning';
+                    errorDiv.innerHTML = `
+                        <div class="ms-MessageBar-content">
+                            <div class="ms-MessageBar-icon">
+                                <i class="ms-Icon ms-Icon--Info"></i>
+                            </div>
+                            <div class="ms-MessageBar-text">
+                                This dialog is for existing documents only. Use "Save to Jupiter" to save new documents first.
+                            </div>
+                        </div>
+                    `;
+                    document.querySelector('.properties-container').insertBefore(errorDiv, document.querySelector('.header-section'));
+                    return;
+                }
+
+                // Initialize Properties controller if available
+                if (typeof PropertiesController !== 'undefined') {
+                    const properties = new PropertiesController();
+                    await properties.initialize();
+                }
+            } catch (error) {
+                console.error('Failed to initialize properties dialog:', error);
+            }
+        });
+    </script>
 </body>
 </html>

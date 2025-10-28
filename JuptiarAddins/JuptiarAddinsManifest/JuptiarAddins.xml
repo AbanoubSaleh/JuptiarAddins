@@ -96,12 +96,12 @@
                   <bt:Image size="80" resid="Jupiter.save_80x80" />
                 </Icon>
 
-                <!-- Save Button -->
-                <Control xsi:type="Button" id="Jupiter.SaveButton">
-                  <Label resid="Jupiter.Save.Label" />
+                <!-- Save to Jupiter DMS Button (for new documents) -->
+                <Control xsi:type="Button" id="Jupiter.SaveToJupiterButton">
+                  <Label resid="Jupiter.SaveToJupiter.Label" />
                   <Supertip>
-                    <Title resid="Jupiter.Save.Label" />
-                    <Description resid="Jupiter.Save.Tooltip" />
+                    <Title resid="Jupiter.SaveToJupiter.Label" />
+                    <Description resid="Jupiter.SaveToJupiter.Tooltip" />
                   </Supertip>
                   <Icon>
                     <bt:Image size="16" resid="Jupiter.save_16x16" />
@@ -111,6 +111,41 @@
                   <Action xsi:type="ShowTaskpane">
                     <TaskpaneId>JupiterSave</TaskpaneId>
                     <SourceLocation resid="Jupiter.SaveDialog.Url" />
+                  </Action>
+                </Control>
+
+                <!-- Check Out Button (for existing documents) -->
+                <Control xsi:type="Button" id="Jupiter.CheckOutButton">
+                  <Label resid="Jupiter.CheckOut.Label" />
+                  <Supertip>
+                    <Title resid="Jupiter.CheckOut.Label" />
+                    <Description resid="Jupiter.CheckOut.Tooltip" />
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Jupiter.checkout_16x16" />
+                    <bt:Image size="32" resid="Jupiter.checkout_32x32" />
+                    <bt:Image size="80" resid="Jupiter.checkout_80x80" />
+                  </Icon>
+                  <Action xsi:type="ExecuteFunction">
+                    <FunctionName>checkOutDocument</FunctionName>
+                  </Action>
+                </Control>
+
+                <!-- Check In Button (for checked out documents) -->
+                <Control xsi:type="Button" id="Jupiter.CheckInButton">
+                  <Label resid="Jupiter.CheckIn.Label" />
+                  <Supertip>
+                    <Title resid="Jupiter.CheckIn.Label" />
+                    <Description resid="Jupiter.CheckIn.Tooltip" />
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Jupiter.checkin_16x16" />
+                    <bt:Image size="32" resid="Jupiter.checkin_32x32" />
+                    <bt:Image size="80" resid="Jupiter.checkin_80x80" />
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>JupiterCheckIn</TaskpaneId>
+                    <SourceLocation resid="Jupiter.CheckInDialog.Url" />
                   </Action>
                 </Control>
               </Group>
@@ -204,6 +239,15 @@
         <bt:Image id="Jupiter.properties_16x16" DefaultValue="~remoteAppUrl/Images/PropertiesIcon16x16.png" />
         <bt:Image id="Jupiter.properties_32x32" DefaultValue="~remoteAppUrl/Images/PropertiesIcon32x32.png" />
         <bt:Image id="Jupiter.properties_80x80" DefaultValue="~remoteAppUrl/Images/PropertiesIcon80x80.png" />
+
+        <!-- Check-in/Check-out Icons -->
+        <bt:Image id="Jupiter.checkout_16x16" DefaultValue="~remoteAppUrl/Images/CheckOutIcon16x16.png" />
+        <bt:Image id="Jupiter.checkout_32x32" DefaultValue="~remoteAppUrl/Images/CheckOutIcon32x32.png" />
+        <bt:Image id="Jupiter.checkout_80x80" DefaultValue="~remoteAppUrl/Images/CheckOutIcon80x80.png" />
+
+        <bt:Image id="Jupiter.checkin_16x16" DefaultValue="~remoteAppUrl/Images/CheckInIcon16x16.png" />
+        <bt:Image id="Jupiter.checkin_32x32" DefaultValue="~remoteAppUrl/Images/CheckInIcon32x32.png" />
+        <bt:Image id="Jupiter.checkin_80x80" DefaultValue="~remoteAppUrl/Images/CheckInIcon80x80.png" />
       </bt:Images>
       <bt:Urls>
         <bt:Url id="Contoso.DesktopFunctionFile.Url" DefaultValue="~remoteAppUrl/Functions/FunctionFile.html" />
@@ -211,6 +255,7 @@
         <bt:Url id="Jupiter.SaveDialog.Url" DefaultValue="~remoteAppUrl/SaveDialog.html" />
         <bt:Url id="Jupiter.Settings.Url" DefaultValue="~remoteAppUrl/Settings.html" />
         <bt:Url id="Jupiter.Properties.Url" DefaultValue="~remoteAppUrl/Properties.html" />
+        <bt:Url id="Jupiter.CheckInDialog.Url" DefaultValue="~remoteAppUrl/CheckInDialog.html" />
         <bt:Url id="Contoso.GetStarted.LearnMoreUrl" DefaultValue="https://www.jupiter.com/help" />
       </bt:Urls>
       <bt:ShortStrings>
@@ -224,6 +269,9 @@
         <!-- Button Labels -->
         <bt:String id="Jupiter.OpenBrowse.Label" DefaultValue="Open" />
         <bt:String id="Jupiter.Save.Label" DefaultValue="Save" />
+        <bt:String id="Jupiter.SaveToJupiter.Label" DefaultValue="Save to Jupiter" />
+        <bt:String id="Jupiter.CheckOut.Label" DefaultValue="Check Out" />
+        <bt:String id="Jupiter.CheckIn.Label" DefaultValue="Check In" />
         <bt:String id="Jupiter.Settings.Label" DefaultValue="Settings" />
         <bt:String id="Jupiter.Properties.Label" DefaultValue="Properties" />
 
@@ -233,6 +281,9 @@
         <!-- Button Tooltips -->
         <bt:String id="Jupiter.OpenBrowse.Tooltip" DefaultValue="Browse and open documents from Jupiter document management system" />
         <bt:String id="Jupiter.Save.Tooltip" DefaultValue="Save current document to Jupiter document management system" />
+        <bt:String id="Jupiter.SaveToJupiter.Tooltip" DefaultValue="Save new document to Jupiter document management system with metadata" />
+        <bt:String id="Jupiter.CheckOut.Tooltip" DefaultValue="Check out document for editing (prevents others from editing)" />
+        <bt:String id="Jupiter.CheckIn.Tooltip" DefaultValue="Check in document with changes and create new version" />
         <bt:String id="Jupiter.Settings.Tooltip" DefaultValue="Configure Jupiter connection settings and credentials" />
         <bt:String id="Jupiter.Properties.Tooltip" DefaultValue="Edit document metadata and properties" />
 

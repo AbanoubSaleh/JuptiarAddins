@@ -3,11 +3,21 @@
 <head>
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
-    <title></title>
-    <script src="https://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.9.1.min.js" type="text/javascript"></script>
+    <title>Jupiter Add-in Function File</title>
+
+    <!-- Office.js -->
     <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js" type="text/javascript"></script>
-    
-    <script src="FunctionFile.js" type="text/javascript"></script>
+
+    <!-- Jupiter Add-in Scripts -->
+    <script src="../Scripts/config.js?v=3" type="text/javascript"></script>
+    <script src="../Scripts/JupiterService.js?v=3" type="text/javascript"></script>
+    <script src="../Scripts/AuthManager.js?v=3" type="text/javascript"></script>
+    <script src="../Scripts/DocumentStateManager.js?v=3" type="text/javascript"></script>
+    <script src="../Scripts/RibbonManager.js?v=3" type="text/javascript"></script>
+    <script src="../Scripts/DocumentUploader.js?v=3" type="text/javascript"></script>
+
+    <!-- Function File -->
+    <script src="FunctionFile.js?v=3" type="text/javascript"></script>
 </head>
 <body>
     <!-- NOTE: The body is empty on purpose. Since this is invoked via a button, there is no UI to render. -->
