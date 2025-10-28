@@ -9,9 +9,6 @@
     <!-- Office JavaScript API -->
     <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
 
-    <!-- jQuery -->
-    <script type="text/javascript" src="Scripts/jquery-3.6.0.min.js"></script>
-
     <!-- Office UI Fabric -->
     <link rel="stylesheet" href="Content/fabric.min.css" />
     <link rel="stylesheet" href="Content/OfficeThemes.css" />
@@ -27,14 +24,22 @@
         <div id="openDocumentDialog" class="open-document-dialog">
             <!-- Dialog Header -->
             <div class="dialog-header">
-                <h3 class="dialog-title">Open Document</h3>
-                <div class="auth-status-mini" id="authStatusMini">
-                    <span id="authStatusText">Not authenticated</span>
-                    <button id="loginBtn" class="ms-Button ms-Button--small">
-                        <span class="ms-Button-label">Login</span>
-                    </button>
-                    <button id="logoutBtn" class="ms-Button ms-Button--small" style="display: none;">
-                        <span class="ms-Button-label">Logout</span>
+                <h3 class="dialog-title">
+                    <span class="ms-Icon ms-Icon--FolderOpen" style="margin-right: 8px; color: #0078d4;"></span>
+                    Open Document
+                </h3>
+                <div class="header-controls">
+                    <div class="auth-status-mini" id="authStatusMini">
+                        <span id="authStatusText">Not authenticated</span>
+                        <button id="loginBtn" class="ms-Button ms-Button--small">
+                            <span class="ms-Button-label">Login</span>
+                        </button>
+                        <button id="logoutBtn" class="ms-Button ms-Button--small" style="display: none;">
+                            <span class="ms-Button-label">Logout</span>
+                        </button>
+                    </div>
+                    <button id="closeDialogBtn" class="close-dialog-btn" title="Close">
+                        <span class="ms-Icon ms-Icon--Cancel"></span>
                     </button>
                 </div>
             </div>

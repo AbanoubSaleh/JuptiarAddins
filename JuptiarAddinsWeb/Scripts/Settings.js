@@ -16,27 +16,27 @@ class SettingsPage {
      */
     initializeEventListeners() {
         // Save settings
-        $('#saveBtn').on('click', () => this.saveSettings());
-        
+        $.on('#saveBtn', 'click', () => this.saveSettings());
+
         // Reset to defaults
-        $('#resetBtn').on('click', () => this.resetToDefaults());
-        
+        $.on('#resetBtn', 'click', () => this.resetToDefaults());
+
         // Clear credentials
-        $('#clearCredentialsBtn').on('click', () => this.clearCredentials());
-        
+        $.on('#clearCredentialsBtn', 'click', () => this.clearCredentials());
+
         // Test connection, login, and logout
-        $('#testConnectionBtn').on('click', () => this.testConnection());
-        $('#loginBtn').on('click', () => this.performLogin());
-        $('#logoutBtn').on('click', () => this.performLogout());
+        $.on('#testConnectionBtn', 'click', () => this.testConnection());
+        $.on('#loginBtn', 'click', () => this.performLogin());
+        $.on('#logoutBtn', 'click', () => this.performLogout());
 
         // Form validation
-        $('#serverUrl').on('blur', () => this.validateServerUrl());
-        $('#username').on('blur', () => this.validateUsername());
-        $('#password').on('blur', () => this.validatePassword());
-        
+        $.on('#serverUrl', 'blur', () => this.validateServerUrl());
+        $.on('#username', 'blur', () => this.validateUsername());
+        $.on('#password', 'blur', () => this.validatePassword());
+
         // Auto-login checkbox dependency
-        $('#autoLogin').on('change', () => this.handleAutoLoginChange());
-        $('#rememberCredentials').on('change', () => this.handleRememberCredentialsChange());
+        $.on('#autoLogin', 'change', () => this.handleAutoLoginChange());
+        $.on('#rememberCredentials', 'change', () => this.handleRememberCredentialsChange());
     }
 
     /**
@@ -73,21 +73,21 @@ class SettingsPage {
      */
     populateForm(settings, credentials) {
         // Connection settings
-        $('#serverUrl').val(settings.serverUrl || '');
-        $('#apiEndpoint').val(settings.apiEndpoint || '/api/v1');
-        $('#connectionTimeout').val(settings.timeout / 1000 || 30);
-        
+        $.val('#serverUrl', settings.serverUrl || '');
+        $.val('#apiEndpoint', settings.apiEndpoint || '/api/v1');
+        $.val('#connectionTimeout', settings.timeout / 1000 || 30);
+
         // Authentication
-        $('#username').val(credentials.username || '');
+        $.val('#username', credentials.username || '');
         // Map old settings to new "Stay Logged In" option
         const stayLoggedIn = settings.rememberCredentials || settings.autoLogin || false;
-        $('#stayLoggedIn').prop('checked', stayLoggedIn);
-        
-        // Advanced settings
-        $('#defaultLibrary').val(settings.defaultLibrary || '');
-        $('#documentsPerPage').val(settings.documentsPerPage || 50);
+        $.prop('#stayLoggedIn', 'checked', stayLoggedIn);
 
-        $('#enableNotifications').prop('checked', settings.enableNotifications !== false);
+        // Advanced settings
+        $.val('#defaultLibrary', settings.defaultLibrary || '');
+        $.val('#documentsPerPage', settings.documentsPerPage || 50);
+
+        $.prop('#enableNotifications', 'checked', settings.enableNotifications !== false);
         
         // Handle auto-login dependency
         this.handleRememberCredentialsChange();
@@ -97,31 +97,33 @@ class SettingsPage {
      * Update connection status display
      */
     updateConnectionStatus(authStatus) {
-        const $indicator = $('#statusIndicator');
-        const $statusText = $('#statusText');
-        const $details = $('#connectionDetails');
-        
+        const indicator = $.select('#statusIndicator');
+        const statusText = $.select('#statusText');
+        const details = $.select('#connectionDetails');
+
         if (authStatus.isAuthenticated) {
-            $indicator.removeClass('offline testing').addClass('online');
-            $statusText.text('Connected');
+            $.removeClass(indicator, 'offline testing');
+            $.addClass(indicator, 'online');
+            $.text(statusText, 'Connected');
 
-            $('#connectedServer').text(authStatus.serverUrl || '-');
-            $('#connectedUser').text(authStatus.user?.username || '-');
-            $('#lastConnected').text(new Date().toLocaleString());
+            $.text('#connectedServer', authStatus.serverUrl || '-');
+            $.text('#connectedUser', authStatus.user?.username || '-');
+            $.text('#lastConnected', new Date().toLocaleString());
 
-            $details.show();
+            $.show(details);
 
             // Show logout button, hide login button
-            $('#loginBtn').hide();
-            $('#logoutBtn').show();
+            $.hide('#loginBtn');
+            $.show('#logoutBtn');
         } else {
-            $indicator.removeClass('online testing').addClass('offline');
-            $statusText.text('Not connected');
-            $details.hide();
+            $.removeClass(indicator, 'online testing');
+            $.addClass(indicator, 'offline');
+            $.text(statusText, 'Not connected');
+            $.hide(details);
 
             // Show login button, hide logout button
-            $('#loginBtn').show();
-            $('#logoutBtn').hide();
+            $.show('#loginBtn');
+            $.hide('#logoutBtn');
         }
     }
 
@@ -165,9 +167,9 @@ class SettingsPage {
      */
     validateServerUrl() {
         // Server URL is pre-configured, so always return true
-        const $field = $('#serverUrl');
-        $field.removeClass('error');
-        this.hideFieldError($field);
+        const field = $.select('#serverUrl');
+        $.removeClass(field, 'error');
+        this.hideFieldError(field);
         return true;
     }
 
@@ -175,17 +177,17 @@ class SettingsPage {
      * Validate username
      */
     validateUsername() {
-        const username = $('#username').val().trim();
-        const $field = $('#username');
+        const username = $.val('#username').trim();
+        const field = $.select('#username');
         
         if (!username) {
-            $field.addClass('error');
-            this.showFieldError($field, 'Username is required');
+            $.addClass(field, 'error');
+            this.showFieldError(field, 'Username is required');
             return false;
         }
-        
-        $field.removeClass('error');
-        this.hideFieldError($field);
+
+        $.removeClass(field, 'error');
+        this.hideFieldError(field);
         return true;
     }
 
@@ -193,33 +195,41 @@ class SettingsPage {
      * Validate password
      */
     validatePassword() {
-        const password = $('#password').val();
-        const $field = $('#password');
-        
+        const password = $.val('#password');
+        const field = $.select('#password');
+
         if (!password) {
-            $field.addClass('error');
-            this.showFieldError($field, 'Password is required');
+            $.addClass(field, 'error');
+            this.showFieldError(field, 'Password is required');
             return false;
         }
-        
-        $field.removeClass('error');
-        this.hideFieldError($field);
+
+        $.removeClass(field, 'error');
+        this.hideFieldError(field);
         return true;
     }
 
     /**
      * Show field-specific error
      */
-    showFieldError($field, message) {
-        $field.siblings('.error-message').remove();
-        $field.after(`<span class="error-message">${message}</span>`);
+    showFieldError(field, message) {
+        // Remove existing error messages
+        const existingErrors = field.parentNode.querySelectorAll('.error-message');
+        existingErrors.forEach(error => error.remove());
+
+        // Add new error message
+        const errorSpan = document.createElement('span');
+        errorSpan.className = 'error-message';
+        errorSpan.textContent = message;
+        field.parentNode.insertBefore(errorSpan, field.nextSibling);
     }
 
     /**
      * Hide field-specific error
      */
-    hideFieldError($field) {
-        $field.siblings('.error-message').remove();
+    hideFieldError(field) {
+        const existingErrors = field.parentNode.querySelectorAll('.error-message');
+        existingErrors.forEach(error => error.remove());
     }
 
     /**
@@ -390,22 +400,22 @@ class SettingsPage {
             this.showLoading('Validating credentials and saving settings...');
 
             // Collect form data
-            const stayLoggedIn = $('#stayLoggedIn').is(':checked');
+            const stayLoggedIn = $.prop('#stayLoggedIn', 'checked');
             const newSettings = {
-                serverUrl: $('#serverUrl').val().trim(),
-                apiEndpoint: $('#apiEndpoint').val().trim(),
-                timeout: parseInt($('#connectionTimeout').val()) * 1000,
+                serverUrl: $.val('#serverUrl').trim(),
+                apiEndpoint: $.val('#apiEndpoint').trim(),
+                timeout: parseInt($.val('#connectionTimeout')) * 1000,
                 // Map new "Stay Logged In" to both old options for backward compatibility
                 rememberCredentials: stayLoggedIn,
                 autoLogin: stayLoggedIn,
-                defaultLibrary: $('#defaultLibrary').val(),
-                documentsPerPage: parseInt($('#documentsPerPage').val()),
+                defaultLibrary: $.val('#defaultLibrary'),
+                documentsPerPage: parseInt($.val('#documentsPerPage')),
 
-                enableNotifications: $('#enableNotifications').is(':checked')
+                enableNotifications: $.prop('#enableNotifications', 'checked')
             };
 
-            const username = $('#username').val().trim();
-            const password = $('#password').val();
+            const username = $.val('#username').trim();
+            const password = $.val('#password');
 
             // SECURITY BEST PRACTICE: Validate credentials before saving anything
             if (username && password) {
@@ -570,42 +580,48 @@ class SettingsPage {
      * Show loading indicator
      */
     showLoading(message = 'Loading...') {
-        $('#loadingText').text(message);
-        $('#loadingSection').show();
-        $('#messageSection').hide();
+        $.text('#loadingText', message);
+        $.show('#loadingSection');
+        $.hide('#messageSection');
     }
 
     /**
      * Hide loading indicator
      */
     hideLoading() {
-        $('#loadingSection').hide();
+        $.hide('#loadingSection');
     }
 
     /**
      * Show error message
      */
     showError(message) {
-        $('#messageBar').removeClass().addClass('ms-MessageBar ms-MessageBar--error');
-        $('#messageIcon i').removeClass().addClass('ms-Icon ms-Icon--ErrorBadge');
-        $('#messageText').text(message);
-        $('#messageSection').show();
-        $('#loadingSection').hide();
+        const messageBar = $.select('#messageBar');
+        const messageIcon = $.select('#messageIcon i');
+
+        messageBar.className = 'ms-MessageBar ms-MessageBar--error';
+        messageIcon.className = 'ms-Icon ms-Icon--ErrorBadge';
+        $.text('#messageText', message);
+        $.show('#messageSection');
+        $.hide('#loadingSection');
     }
 
     /**
      * Show success message
      */
     showSuccess(message) {
-        $('#messageBar').removeClass().addClass('ms-MessageBar ms-MessageBar--success');
-        $('#messageIcon i').removeClass().addClass('ms-Icon ms-Icon--CheckMark');
-        $('#messageText').text(message);
-        $('#messageSection').show();
-        $('#loadingSection').hide();
+        const messageBar = $.select('#messageBar');
+        const messageIcon = $.select('#messageIcon i');
+
+        messageBar.className = 'ms-MessageBar ms-MessageBar--success';
+        messageIcon.className = 'ms-Icon ms-Icon--CheckMark';
+        $.text('#messageText', message);
+        $.show('#messageSection');
+        $.hide('#loadingSection');
 
         // Auto-hide success message after 3 seconds
         setTimeout(() => {
-            $('#messageSection').fadeOut();
+            $.hide('#messageSection');
         }, 3000);
     }
 

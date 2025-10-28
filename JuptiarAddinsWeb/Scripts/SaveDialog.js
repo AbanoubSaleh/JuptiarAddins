@@ -43,7 +43,7 @@ Office.onReady(() => {
     }
     
     // Handle authentication button clicks
-    $('#loginBtn').on('click', () => {
+    $.on('#loginBtn', 'click', () => {
         // Redirect to settings page for authentication
         window.open('Settings.html', '_blank');
     });
