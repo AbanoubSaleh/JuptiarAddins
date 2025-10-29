@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Document Detection Test</title>
+
+    <!-- Office JavaScript API -->
+    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
+
+    <!-- Office UI Fabric -->
+    <link rel="stylesheet" href="Content/fabric.min.css" />
+    <link rel="stylesheet" href="Content/OfficeThemes.css" />
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #e1e1e1;
+            border-radius: 5px;
+        }
+        .test-button {
+            background: #0078d4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .test-button:hover {
+            background: #106ebe;
+        }
+        .test-result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 3px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+    </style>
+</head>
+
+<body class="ms-font-m ms-welcome ms-Fabric">
+    <div class="test-container">
+        <h1>🔍 Document Detection Test Suite</h1>
+        <p>This page tests the new document detection functionality for Jupiter DMS integration.</p>
+
+        <!-- Document Type Detection -->
+        <div class="test-section">
+            <h2>📄 Document Type Detection</h2>
+            <p>Test the comprehensive document type detection logic.</p>
+            <button class="test-button" onclick="testDocumentTypeDetection()">Test Document Type Detection</button>
+            <div id="documentTypeResult" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Jupiter Metadata Scanning -->
+        <div class="test-section">
+            <h2>🏷️ Jupiter Metadata Scanning</h2>
+            <p>Test scanning for Jupiter metadata in various locations.</p>
+            <button class="test-button" onclick="testJupiterMetadataScanning()">Test Metadata Scanning</button>
+            <div id="metadataScanResult" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Document State Management -->
+        <div class="test-section">
+            <h2>💾 Document State Management</h2>
+            <p>Test document state persistence and retrieval.</p>
+            <button class="test-button" onclick="testDocumentStateManagement()">Test State Management</button>
+            <button class="test-button" onclick="clearDocumentState()">Clear Document State</button>
+            <div id="stateManagementResult" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Ribbon State Testing -->
+        <div class="test-section">
+            <h2>🎀 Ribbon State Testing</h2>
+            <p>Test ribbon button visibility based on document type.</p>
+            <button class="test-button" onclick="testNewDocumentRibbon()">Test New Document Ribbon</button>
+            <button class="test-button" onclick="testJupiterDocumentRibbon()">Test Jupiter Document Ribbon</button>
+            <button class="test-button" onclick="testExternalDocumentRibbon()">Test External Document Ribbon</button>
+            <div id="ribbonTestResult" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Custom Properties Testing -->
+        <div class="test-section">
+            <h2>📋 Custom Properties Testing</h2>
+            <p>Test reading and writing custom document properties.</p>
+            <button class="test-button" onclick="testSetCustomProperties()">Set Test Properties</button>
+            <button class="test-button" onclick="testReadCustomProperties()">Read Custom Properties</button>
+            <button class="test-button" onclick="testClearCustomProperties()">Clear Custom Properties</button>
+            <div id="customPropertiesResult" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Blank Document Detection -->
+        <div class="test-section">
+            <h2>📝 Blank Document Detection</h2>
+            <p>Test detection of blank/new documents.</p>
+            <button class="test-button" onclick="testBlankDocumentDetection()">Test Blank Document Detection</button>
+            <div id="blankDocumentResult" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Integration Test -->
+        <div class="test-section">
+            <h2>🔗 Full Integration Test</h2>
+            <p>Test the complete document detection workflow.</p>
+            <button class="test-button" onclick="runFullIntegrationTest()">Run Full Integration Test</button>
+            <div id="integrationTestResult" class="test-result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="text/javascript" src="Scripts/config.js"></script>
+    <script type="text/javascript" src="Scripts/JupiterService.js"></script>
+    <script type="text/javascript" src="Scripts/AuthManager.js"></script>
+    <script type="text/javascript" src="Scripts/DocumentStateManager.js"></script>
+    <script type="text/javascript" src="Scripts/RibbonManager.js"></script>
+
+    <script>
+        // Global test variables
+        let documentStateManager, ribbonManager, jupiterService;
+
+        // Initialize Office.js and services
+        Office.onReady(async (info) => {
+            log('✅ Office.js initialized successfully');
+            log(`Host: ${info.host}, Platform: ${info.platform}`);
+            
+            try {
+                await initializeServices();
+                log('✅ All services initialized successfully');
+            } catch (error) {
+                log(`❌ Service initialization failed: ${error.message}`, 'error');
+            }
+        });
+
+        async function initializeServices() {
+            // Initialize JupiterConfig
+            if (typeof window.JupiterConfig.init === 'function') {
+                window.JupiterConfig.init();
+            }
+
+            // Initialize DocumentStateManager
+            documentStateManager = new DocumentStateManager();
+            await documentStateManager.initialize();
+
+            // Initialize RibbonManager
+            ribbonManager = new RibbonManager();
+            await ribbonManager.initialize(documentStateManager);
+
+            // Initialize JupiterService
+            jupiterService = new JupiterService();
+            jupiterService.initialize({
+                serverUrl: window.JupiterConfig.get('server.baseUrl'),
+                apiEndpoint: window.JupiterConfig.get('server.apiEndpoint') || '/api',
+                timeout: window.JupiterConfig.get('server.timeout') || 30000
+            });
+        }
+
+        function log(message, type = 'info') {
+            console.log(message);
+        }
+
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `test-result ${type}`;
+            element.style.display = 'block';
+        }
+
+        // Test Functions
+        async function testDocumentTypeDetection() {
+            try {
+                showResult('documentTypeResult', 'Testing document type detection...', 'info');
+                
+                const documentType = await documentStateManager.detectDocumentType();
+                const message = `Document Type Detected: ${documentType.toUpperCase()}`;
+                
+                showResult('documentTypeResult', message, 'success');
+            } catch (error) {
+                showResult('documentTypeResult', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testJupiterMetadataScanning() {
+            try {
+                showResult('metadataScanResult', 'Scanning for Jupiter metadata...', 'info');
+                
+                const metadata = await documentStateManager.scanDocumentForJupiterMetadata();
+                const message = metadata 
+                    ? `Jupiter Metadata Found:\n${JSON.stringify(metadata, null, 2)}`
+                    : 'No Jupiter metadata found';
+                
+                showResult('metadataScanResult', message, metadata ? 'success' : 'warning');
+            } catch (error) {
+                showResult('metadataScanResult', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testDocumentStateManagement() {
+            try {
+                showResult('stateManagementResult', 'Testing document state management...', 'info');
+                
+                const currentState = await documentStateManager.getDocumentState();
+                const isNew = await documentStateManager.isNewDocument();
+                
+                const message = `Current State: ${JSON.stringify(currentState, null, 2)}\nIs New Document: ${isNew}`;
+                showResult('stateManagementResult', message, 'success');
+            } catch (error) {
+                showResult('stateManagementResult', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function clearDocumentState() {
+            try {
+                showResult('stateManagementResult', 'Clearing document state...', 'info');
+                
+                await documentStateManager.markAsNewDocument();
+                showResult('stateManagementResult', 'Document state cleared successfully', 'success');
+            } catch (error) {
+                showResult('stateManagementResult', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testNewDocumentRibbon() {
+            try {
+                showResult('ribbonTestResult', 'Applying new document ribbon state...', 'info');
+                
+                await ribbonManager.showNewDocumentRibbon();
+                showResult('ribbonTestResult', 'New document ribbon state applied', 'success');
+            } catch (error) {
+                showResult('ribbonTestResult', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testJupiterDocumentRibbon() {
+            try {
+                showResult('ribbonTestResult', 'Applying Jupiter document ribbon state...', 'info');
+                
+                await ribbonManager.showExistingDocumentRibbon();
+                showResult('ribbonTestResult', 'Jupiter document ribbon state applied', 'success');
+            } catch (error) {
+                showResult('ribbonTestResult', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testExternalDocumentRibbon() {
+            try {
+                showResult('ribbonTestResult', 'Applying external document ribbon state...', 'info');
+                
+                await ribbonManager.showExternalDocumentRibbon();
+                showResult('ribbonTestResult', 'External document ribbon state applied', 'success');
+            } catch (error) {
+                showResult('ribbonTestResult', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testSetCustomProperties() {
+            try {
+                showResult('customPropertiesResult', 'Setting test custom properties...', 'info');
+                
+                const testState = {
+                    documentId: 'test-doc-123',
+                    documentName: 'Test Document',
+                    folderId: 'test-folder-456',
+                    folderPath: '/Test/Folder',
+                    version: 1,
+                    checkoutStatus: 'Available',
+                    lastSaved: new Date().toISOString()
+                };
+                
+                await documentStateManager.setDocumentCustomProperties(testState);
+                showResult('customPropertiesResult', 'Test custom properties set successfully', 'success');
+            } catch (error) {
+                showResult('customPropertiesResult', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testReadCustomProperties() {
+            try {
+                showResult('customPropertiesResult', 'Reading custom properties...', 'info');
+                
+                const properties = await documentStateManager.getDocumentCustomProperties();
+                const message = properties 
+                    ? `Custom Properties:\n${JSON.stringify(properties, null, 2)}`
+                    : 'No custom properties found';
+                
+                showResult('customPropertiesResult', message, properties ? 'success' : 'warning');
+            } catch (error) {
+                showResult('customPropertiesResult', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testClearCustomProperties() {
+            try {
+                showResult('customPropertiesResult', 'Clearing custom properties...', 'info');
+                
+                // This would require implementing a clear method
+                showResult('customPropertiesResult', 'Clear custom properties not implemented yet', 'warning');
+            } catch (error) {
+                showResult('customPropertiesResult', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testBlankDocumentDetection() {
+            try {
+                showResult('blankDocumentResult', 'Testing blank document detection...', 'info');
+                
+                const isBlank = await documentStateManager.isBlankDocument();
+                const message = `Is Blank Document: ${isBlank}`;
+                
+                showResult('blankDocumentResult', message, 'success');
+            } catch (error) {
+                showResult('blankDocumentResult', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function runFullIntegrationTest() {
+            try {
+                showResult('integrationTestResult', 'Running full integration test...', 'info');
+                
+                let results = [];
+                
+                // Test 1: Document type detection
+                const documentType = await documentStateManager.detectDocumentType();
+                results.push(`Document Type: ${documentType}`);
+                
+                // Test 2: Metadata scanning
+                const metadata = await documentStateManager.scanDocumentForJupiterMetadata();
+                results.push(`Metadata Found: ${metadata ? 'Yes' : 'No'}`);
+                
+                // Test 3: Blank document check
+                const isBlank = await documentStateManager.isBlankDocument();
+                results.push(`Is Blank: ${isBlank}`);
+                
+                // Test 4: Apply appropriate ribbon state
+                switch (documentType) {
+                    case 'new':
+                        await ribbonManager.showNewDocumentRibbon();
+                        results.push('Applied: New Document Ribbon');
+                        break;
+                    case 'jupiter':
+                        await ribbonManager.showExistingDocumentRibbon();
+                        results.push('Applied: Jupiter Document Ribbon');
+                        break;
+                    case 'external':
+                        await ribbonManager.showExternalDocumentRibbon();
+                        results.push('Applied: External Document Ribbon');
+                        break;
+                }
+                
+                const message = `Integration Test Results:\n${results.join('\n')}`;
+                showResult('integrationTestResult', message, 'success');
+            } catch (error) {
+                showResult('integrationTestResult', `Error: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -34,7 +34,7 @@
     <Host Name="Document" />
   </Hosts>
   <DefaultSettings>
-    <SourceLocation DefaultValue="~remoteAppUrl/Home.html" />
+    <SourceLocation DefaultValue="~remoteAppUrl/DocumentBrowser.html" />
   </DefaultSettings>
   <!-- End TaskPane Mode integration.  -->
 

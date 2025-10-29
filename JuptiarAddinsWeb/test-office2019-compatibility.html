@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Office 2019 Compatibility Test</title>
+
+    <!-- Office JavaScript API -->
+    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .info-section {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196f3;
+        }
+        .warning-section {
+            background: #fff3e0;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #ff9800;
+        }
+        .test-button {
+            background: #0078d4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .test-button:hover {
+            background: #106ebe;
+        }
+        .test-result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 3px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+    </style>
+</head>
+
+<body>
+    <div class="test-container">
+        <h1>🏢 Office 2019 Compatibility Test</h1>
+        
+        <div class="info-section">
+            <h3>ℹ️ About Office 2019 Limitations</h3>
+            <p>Office 2019 has limited support for dynamic ribbon updates compared to Office 365/Microsoft 365. The <code>Office.ribbon.requestUpdate</code> API is not available, which means:</p>
+            <ul>
+                <li>✅ <strong>Buttons remain visible</strong> - All Jupiter buttons will always be visible in the ribbon</li>
+                <li>✅ <strong>Smart button behavior</strong> - Buttons check document state when clicked and show appropriate messages</li>
+                <li>✅ <strong>Document detection works</strong> - The add-in can still detect document types correctly</li>
+                <li>✅ <strong>State management works</strong> - Document state is properly tracked and persisted</li>
+            </ul>
+        </div>
+
+        <div class="warning-section">
+            <h3>⚠️ Expected Behavior in Office 2019</h3>
+            <p>Since dynamic ribbon updates aren't supported:</p>
+            <ul>
+                <li><strong>New Document</strong>: All buttons visible, but Properties/Check Out/Check In show "not available" messages when clicked</li>
+                <li><strong>Jupiter Document</strong>: All buttons visible and functional</li>
+                <li><strong>External Document</strong>: All buttons visible, but Properties/Check Out/Check In show "not available" messages when clicked</li>
+            </ul>
+        </div>
+
+        <!-- Office Version Detection -->
+        <div class="test-section">
+            <h2>🔍 Office Version Detection</h2>
+            <p>Detect your Office version and available APIs.</p>
+            <button class="test-button" onclick="detectOfficeVersion()">Detect Office Version</button>
+            <div id="versionResult" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Ribbon API Testing -->
+        <div class="test-section">
+            <h2>🎀 Ribbon API Testing</h2>
+            <p>Test if Office.ribbon.requestUpdate is available.</p>
+            <button class="test-button" onclick="testRibbonAPI()">Test Ribbon API</button>
+            <div id="ribbonApiResult" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Document State Testing -->
+        <div class="test-section">
+            <h2>📄 Document State Testing</h2>
+            <p>Test document detection and state management.</p>
+            <button class="test-button" onclick="testDocumentState()">Test Document State</button>
+            <div id="documentStateResult" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Button State Testing -->
+        <div class="test-section">
+            <h2>🔘 Button State Testing</h2>
+            <p>Test button state storage and retrieval.</p>
+            <button class="test-button" onclick="testButtonStates()">Test Button States</button>
+            <button class="test-button" onclick="clearButtonStates()">Clear Button States</button>
+            <div id="buttonStateResult" class="test-result" style="display: none;"></div>
+        </div>
+
+        <!-- Integration Test -->
+        <div class="test-section">
+            <h2>🔗 Full Integration Test</h2>
+            <p>Test the complete Office 2019 compatibility workflow.</p>
+            <button class="test-button" onclick="runOffice2019Test()">Run Office 2019 Test</button>
+            <div id="integrationResult" class="test-result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Office.js
+        Office.onReady((info) => {
+            console.log('Office.js initialized');
+            console.log('Host:', info.host);
+            console.log('Platform:', info.platform);
+        });
+
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `test-result ${type}`;
+            element.style.display = 'block';
+        }
+
+        function detectOfficeVersion() {
+            try {
+                showResult('versionResult', 'Detecting Office version...', 'info');
+                
+                let versionInfo = [];
+                
+                // Basic Office info
+                if (Office.context) {
+                    versionInfo.push(`Host: ${Office.context.host || 'Unknown'}`);
+                    versionInfo.push(`Platform: ${Office.context.platform || 'Unknown'}`);
+                    
+                    if (Office.context.diagnostics) {
+                        versionInfo.push(`Version: ${Office.context.diagnostics.version || 'Unknown'}`);
+                        versionInfo.push(`Host Version: ${Office.context.diagnostics.host || 'Unknown'}`);
+                    }
+                }
+                
+                // Check Office.js version
+                if (Office.context.requirements) {
+                    versionInfo.push(`Requirements API available: Yes`);
+                } else {
+                    versionInfo.push(`Requirements API available: No`);
+                }
+                
+                // Check specific APIs
+                const apis = [
+                    'Office.ribbon',
+                    'Office.ribbon.requestUpdate',
+                    'Office.context.ui.displayDialogAsync',
+                    'Office.context.document.settings'
+                ];
+                
+                versionInfo.push('\nAPI Availability:');
+                apis.forEach(api => {
+                    const available = eval(`typeof ${api}`) !== 'undefined';
+                    versionInfo.push(`  ${api}: ${available ? '✅ Available' : '❌ Not Available'}`);
+                });
+                
+                showResult('versionResult', versionInfo.join('\n'), 'success');
+                
+            } catch (error) {
+                showResult('versionResult', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        function testRibbonAPI() {
+            try {
+                showResult('ribbonApiResult', 'Testing ribbon API...', 'info');
+                
+                let results = [];
+                
+                // Test Office.ribbon existence
+                if (typeof Office.ribbon !== 'undefined') {
+                    results.push('✅ Office.ribbon is available');
+                    
+                    // Test requestUpdate method
+                    if (typeof Office.ribbon.requestUpdate === 'function') {
+                        results.push('✅ Office.ribbon.requestUpdate is available');
+                        results.push('🎉 Your Office version supports dynamic ribbon updates!');
+                    } else {
+                        results.push('❌ Office.ribbon.requestUpdate is NOT available');
+                        results.push('⚠️  This is expected in Office 2019 - using compatibility mode');
+                    }
+                } else {
+                    results.push('❌ Office.ribbon is NOT available');
+                    results.push('⚠️  This is expected in Office 2019 - using compatibility mode');
+                }
+                
+                showResult('ribbonApiResult', results.join('\n'), 'info');
+                
+            } catch (error) {
+                showResult('ribbonApiResult', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        function testDocumentState() {
+            try {
+                showResult('documentStateResult', 'Testing document state...', 'info');
+                
+                let results = [];
+                
+                // Test document settings API
+                if (Office.context.document && Office.context.document.settings) {
+                    results.push('✅ Document settings API available');
+                    
+                    // Test setting and getting values
+                    Office.context.document.settings.set('test_key', 'test_value');
+                    const testValue = Office.context.document.settings.get('test_key');
+                    
+                    if (testValue === 'test_value') {
+                        results.push('✅ Document settings read/write working');
+                    } else {
+                        results.push('❌ Document settings read/write failed');
+                    }
+                    
+                    // Clean up
+                    Office.context.document.settings.remove('test_key');
+                } else {
+                    results.push('❌ Document settings API not available');
+                }
+                
+                // Test document URL
+                if (Office.context.document.url) {
+                    results.push(`✅ Document URL: ${Office.context.document.url}`);
+                } else {
+                    results.push('ℹ️  Document URL not available (new document)');
+                }
+                
+                showResult('documentStateResult', results.join('\n'), 'success');
+                
+            } catch (error) {
+                showResult('documentStateResult', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        function testButtonStates() {
+            try {
+                showResult('buttonStateResult', 'Testing button states...', 'info');
+                
+                let results = [];
+                
+                // Test storing button states
+                const testButtons = [
+                    'Jupiter.SaveToJupiterButton',
+                    'Jupiter.PropertiesButton',
+                    'Jupiter.CheckOutButton',
+                    'Jupiter.CheckInButton'
+                ];
+                
+                testButtons.forEach((buttonId, index) => {
+                    const visible = index % 2 === 0; // Alternate true/false
+                    const key = `ribbonButton_${buttonId}_visible`;
+                    
+                    Office.context.document.settings.set(key, visible);
+                    results.push(`Set ${buttonId}: ${visible}`);
+                });
+                
+                // Save settings
+                Office.context.document.settings.saveAsync((result) => {
+                    if (result.status === Office.AsyncResultStatus.Succeeded) {
+                        results.push('✅ Button states saved successfully');
+                        
+                        // Read back the states
+                        testButtons.forEach(buttonId => {
+                            const key = `ribbonButton_${buttonId}_visible`;
+                            const value = Office.context.document.settings.get(key);
+                            results.push(`Read ${buttonId}: ${value}`);
+                        });
+                        
+                        showResult('buttonStateResult', results.join('\n'), 'success');
+                    } else {
+                        results.push('❌ Failed to save button states');
+                        showResult('buttonStateResult', results.join('\n'), 'error');
+                    }
+                });
+                
+            } catch (error) {
+                showResult('buttonStateResult', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        function clearButtonStates() {
+            try {
+                showResult('buttonStateResult', 'Clearing button states...', 'info');
+                
+                const testButtons = [
+                    'Jupiter.SaveToJupiterButton',
+                    'Jupiter.PropertiesButton',
+                    'Jupiter.CheckOutButton',
+                    'Jupiter.CheckInButton'
+                ];
+                
+                testButtons.forEach(buttonId => {
+                    const key = `ribbonButton_${buttonId}_visible`;
+                    Office.context.document.settings.remove(key);
+                });
+                
+                Office.context.document.settings.saveAsync((result) => {
+                    if (result.status === Office.AsyncResultStatus.Succeeded) {
+                        showResult('buttonStateResult', '✅ Button states cleared successfully', 'success');
+                    } else {
+                        showResult('buttonStateResult', '❌ Failed to clear button states', 'error');
+                    }
+                });
+                
+            } catch (error) {
+                showResult('buttonStateResult', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        function runOffice2019Test() {
+            try {
+                showResult('integrationResult', 'Running Office 2019 compatibility test...', 'info');
+                
+                let results = [];
+                
+                // Test 1: Office version detection
+                const isOffice2019 = typeof Office.ribbon === 'undefined' || typeof Office.ribbon.requestUpdate !== 'function';
+                results.push(`Office 2019 Mode: ${isOffice2019 ? 'YES' : 'NO'}`);
+                
+                // Test 2: Document state management
+                if (Office.context.document && Office.context.document.settings) {
+                    results.push('✅ Document state management available');
+                } else {
+                    results.push('❌ Document state management not available');
+                }
+                
+                // Test 3: Button state storage
+                Office.context.document.settings.set('test_button_state', true);
+                const buttonState = Office.context.document.settings.get('test_button_state');
+                results.push(`Button state storage: ${buttonState === true ? '✅ Working' : '❌ Failed'}`);
+                
+                // Test 4: Compatibility mode recommendation
+                if (isOffice2019) {
+                    results.push('\n🎯 RECOMMENDATION FOR OFFICE 2019:');
+                    results.push('• All ribbon buttons will remain visible');
+                    results.push('• Button handlers will check document state');
+                    results.push('• Inappropriate actions will show user-friendly messages');
+                    results.push('• Document detection and state management work normally');
+                    results.push('• This provides the best user experience for Office 2019');
+                } else {
+                    results.push('\n🎯 RECOMMENDATION FOR OFFICE 365/2021:');
+                    results.push('• Dynamic ribbon updates are supported');
+                    results.push('• Buttons can be hidden/shown based on document state');
+                    results.push('• Enhanced user experience with contextual ribbon');
+                }
+                
+                // Clean up
+                Office.context.document.settings.remove('test_button_state');
+                
+                showResult('integrationResult', results.join('\n'), 'success');
+                
+            } catch (error) {
+                showResult('integrationResult', `Error: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

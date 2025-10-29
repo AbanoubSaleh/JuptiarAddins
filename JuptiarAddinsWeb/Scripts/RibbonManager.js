@@ -6,6 +6,8 @@ class RibbonManager {
     constructor() {
         this.documentStateManager = null;
         this.isInitialized = false;
+        this.lastKnownDocumentType = null;
+        this.stateCheckInterval = null;
     }
     /**
      * Initialize the ribbon manager
@@ -35,6 +37,7 @@ class RibbonManager {
                 Office.EventType.DocumentSelectionChanged,
                 this.onDocumentSelectionChanged.bind(this)
             );
+
             // Listen for document saved events (if available)
             if (Office.context.document.addHandlerAsync) {
                 try {
@@ -44,10 +47,76 @@ class RibbonManager {
                     );
                 } catch (e) {
                     // DocumentSaved event might not be available in all Office versions
+                    console.warn('DocumentSaved event not available:', e.message);
                 }
             }
+
+            // Listen for settings changes (when document state is updated)
+            try {
+                Office.context.document.settings.addHandlerAsync(
+                    Office.EventType.SettingsChanged,
+                    this.onDocumentSettingsChanged.bind(this)
+                );
+            } catch (e) {
+                console.warn('SettingsChanged event not available:', e.message);
+            }
+
+            // Set up periodic document state checking for external document detection
+            this.setupPeriodicStateCheck();
+
         } catch (error) {
             console.error('Error setting up event listeners:', error);
+        }
+    }
+
+    /**
+     * Set up periodic document state checking
+     * This helps detect when documents are opened externally
+     */
+    setupPeriodicStateCheck() {
+        // Check document state every 30 seconds
+        this.stateCheckInterval = setInterval(async () => {
+            try {
+                await this.checkForDocumentStateChanges();
+            } catch (error) {
+                console.error('Error during periodic state check:', error);
+            }
+        }, 30000); // 30 seconds
+
+        console.log('✅ Periodic document state checking enabled');
+    }
+
+    /**
+     * Check for document state changes (e.g., external document opened)
+     */
+    async checkForDocumentStateChanges() {
+        try {
+            if (!this.documentStateManager) return;
+
+            // Get current document type
+            const currentDocumentType = await this.documentStateManager.detectDocumentType();
+
+            // Check if document type has changed since last check
+            if (this.lastKnownDocumentType !== currentDocumentType) {
+                console.log(`📄 Document type changed: ${this.lastKnownDocumentType} → ${currentDocumentType}`);
+
+                // Update ribbon based on new document type
+                switch (currentDocumentType) {
+                    case 'new':
+                        await this.showNewDocumentRibbon();
+                        break;
+                    case 'jupiter':
+                        await this.showExistingDocumentRibbon();
+                        break;
+                    case 'external':
+                        await this.showExternalDocumentRibbon();
+                        break;
+                }
+
+                this.lastKnownDocumentType = currentDocumentType;
+            }
+        } catch (error) {
+            console.error('Error checking document state changes:', error);
         }
     }
     /**
@@ -127,6 +196,9 @@ class RibbonManager {
                     lastUpdated: new Date().toISOString()
                 });
             }
+
+            console.log('✅ New document ribbon state applied (Office 2019 compatible mode)');
+            console.log('ℹ️  Note: In Office 2019, buttons remain visible but will show appropriate messages when clicked');
         } catch (error) {
             console.error('Error showing new document ribbon:', error);
         }
@@ -197,6 +269,78 @@ class RibbonManager {
             console.error('Error showing existing document ribbon:', error);
         }
     }
+
+    /**
+     * Show ribbon for external documents (opened via File > Open, not Jupiter-managed)
+     * Hides Jupiter-specific buttons since they don't apply to external documents
+     */
+    async showExternalDocumentRibbon() {
+        try {
+            console.log('🔧 Applying external document ribbon state...');
+
+            // Try to use Office.ribbon.requestUpdate to control button states
+            try {
+                if (Office.ribbon && Office.ribbon.requestUpdate) {
+                    await Office.ribbon.requestUpdate({
+                        tabs: [{
+                            id: "Jupiter.Tab",
+                            controls: [
+                                {
+                                    id: "Jupiter.SaveToJupiterButton",
+                                    enabled: true,
+                                    visible: true  // Allow saving external documents to Jupiter
+                                },
+                                {
+                                    id: "Jupiter.PropertiesButton",
+                                    enabled: false,
+                                    visible: false  // Hide Properties - not applicable to external documents
+                                },
+                                {
+                                    id: "Jupiter.CheckOutButton",
+                                    enabled: false,
+                                    visible: false  // Hide Check Out - not applicable to external documents
+                                },
+                                {
+                                    id: "Jupiter.CheckInButton",
+                                    enabled: false,
+                                    visible: false  // Hide Check In - not applicable to external documents
+                                }
+                            ]
+                        }]
+                    });
+                } else {
+                    // Fallback: Use setButtonVisibility method
+                    await this.setButtonVisibility('Jupiter.SaveToJupiterButton', true);
+                    await this.setButtonVisibility('Jupiter.PropertiesButton', false);
+                    await this.setButtonVisibility('Jupiter.CheckOutButton', false);
+                    await this.setButtonVisibility('Jupiter.CheckInButton', false);
+                }
+            } catch (error) {
+                // Fallback: Use setButtonVisibility method
+                await this.setButtonVisibility('Jupiter.SaveToJupiterButton', true);
+                await this.setButtonVisibility('Jupiter.PropertiesButton', false);
+                await this.setButtonVisibility('Jupiter.CheckOutButton', false);
+                await this.setButtonVisibility('Jupiter.CheckInButton', false);
+            }
+
+            // Store document state for button behavior
+            if (this.documentStateManager) {
+                const currentState = await this.documentStateManager.getDocumentState();
+                await this.documentStateManager.setDocumentState({
+                    ...currentState,
+                    isNew: false,
+                    isExternal: true,
+                    ribbonMode: 'external',
+                    lastUpdated: new Date().toISOString()
+                });
+            }
+
+            console.log('✅ External document ribbon state applied');
+        } catch (error) {
+            console.error('Error showing external document ribbon:', error);
+        }
+    }
+
     /**
      * Update checkout buttons based on document checkout status
      * Note: This method should only be called for existing documents
@@ -246,21 +390,66 @@ class RibbonManager {
         }
     }
     /**
-     * Set button visibility
+     * Set button visibility for Office 2019 compatibility
      * @param {string} buttonId - Button ID
      * @param {boolean} visible - Whether button should be visible
      */
     async setButtonVisibility(buttonId, visible) {
         try {
-            // In a real Office add-in, this would use Office.ribbon.requestUpdate
-            // For now, we'll simulate with DOM manipulation
-            const button = document.getElementById(buttonId);
-            if (button) {
-                button.style.display = visible ? 'inline-block' : 'none';
-                button.disabled = !visible;
+            console.log(`🔧 Setting button visibility: ${buttonId} = ${visible}`);
+
+            // Office 2019 doesn't support Office.ribbon.requestUpdate
+            // We need to use a different approach - store button states and handle in button functions
+
+            // Store button state in document settings for persistence
+            if (Office.context && Office.context.document && Office.context.document.settings) {
+                const buttonStateKey = `ribbonButton_${buttonId}_visible`;
+                Office.context.document.settings.set(buttonStateKey, visible);
+                await Office.context.document.settings.saveAsync();
+
+                console.log(`✅ Stored button state: ${buttonStateKey} = ${visible}`);
             }
+
+            // Also store in global variable for immediate access
+            if (!window.jupiterRibbonState) {
+                window.jupiterRibbonState = {};
+            }
+            window.jupiterRibbonState[buttonId] = visible;
+
+            console.log(`✅ Button state updated: ${buttonId} = ${visible}`);
+
         } catch (error) {
             console.error(`Error setting button visibility for ${buttonId}:`, error);
+        }
+    }
+
+    /**
+     * Check if button should be visible (Office 2019 compatibility)
+     * @param {string} buttonId - Button ID
+     * @returns {boolean} Whether button should be visible
+     */
+    async isButtonVisible(buttonId) {
+        try {
+            // Check global state first
+            if (window.jupiterRibbonState && window.jupiterRibbonState.hasOwnProperty(buttonId)) {
+                return window.jupiterRibbonState[buttonId];
+            }
+
+            // Check document settings
+            if (Office.context && Office.context.document && Office.context.document.settings) {
+                const buttonStateKey = `ribbonButton_${buttonId}_visible`;
+                const visible = Office.context.document.settings.get(buttonStateKey);
+                if (visible !== null && visible !== undefined) {
+                    return visible;
+                }
+            }
+
+            // Default: all buttons visible
+            return true;
+
+        } catch (error) {
+            console.error(`Error checking button visibility for ${buttonId}:`, error);
+            return true; // Default to visible on error
         }
     }
     /**
@@ -336,10 +525,30 @@ class RibbonManager {
      */
     async onDocumentSaved(eventArgs) {
         try {
+            console.log('📄 Document saved event detected');
             // Document was saved - might need to update ribbon state
             await this.updateRibbonState();
         } catch (error) {
             console.error('Error handling document saved:', error);
+        }
+    }
+
+    /**
+     * Handle document settings changed event
+     * This fires when Jupiter document state is updated
+     */
+    async onDocumentSettingsChanged(eventArgs) {
+        try {
+            console.log('⚙️ Document settings changed event detected');
+
+            // Check if Jupiter document state was updated
+            const documentState = await this.documentStateManager.getDocumentState();
+            if (documentState && documentState.documentId) {
+                console.log('🏷️ Jupiter document state detected, updating ribbon');
+                await this.showExistingDocumentRibbon();
+            }
+        } catch (error) {
+            console.error('Error handling document settings changed:', error);
         }
     }
     /**
@@ -347,6 +556,28 @@ class RibbonManager {
      */
     async refresh() {
         await this.updateRibbonState();
+    }
+
+    /**
+     * Cleanup resources when ribbon manager is destroyed
+     */
+    destroy() {
+        try {
+            // Clear periodic state check interval
+            if (this.stateCheckInterval) {
+                clearInterval(this.stateCheckInterval);
+                this.stateCheckInterval = null;
+                console.log('✅ Periodic state checking disabled');
+            }
+
+            // Remove event listeners (if Office.js supports it)
+            // Note: Office.js doesn't always provide removeHandlerAsync
+
+            this.isInitialized = false;
+            console.log('✅ RibbonManager destroyed');
+        } catch (error) {
+            console.error('Error destroying RibbonManager:', error);
+        }
     }
     /**
      * Force ribbon to new document mode (for testing)

@@ -145,6 +145,15 @@ class JupiterService {
     async getDocument(documentId) {
         return await this.makeRequest('GET', `/documents/${documentId}`);
     }
+
+    /**
+     * Get document by ID (alias for getDocument for clarity)
+     * @param {string} documentId - Document ID
+     * @returns {Promise<Object>} Document information
+     */
+    async getDocumentById(documentId) {
+        return await this.getDocument(documentId);
+    }
     async downloadDocument(documentId) {
         const url = this.getApiUrl(`/documents/${documentId}/download`);
         const headers = {};
@@ -189,7 +198,19 @@ class JupiterService {
         return await this.makeRequest('PUT', `/documents/${documentId}`, data);
     }
     async deleteDocument(documentId) {
-        return await this.makeRequest('DELETE', `/documents/${documentId}`);
+        try {
+            const response = await this.makeRequest('DELETE', `/documents/${documentId}`);
+            return response;
+        } catch (error) {
+            // Extract status code from error message if available
+            const statusMatch = error.message.match(/HTTP (\d+):/);
+            if (statusMatch) {
+                error.status = parseInt(statusMatch[1]);
+            }
+
+            // Re-throw with enhanced error information
+            throw error;
+        }
     }
     // Metadata Methods
     async getDocumentMetadata(documentId) {
@@ -338,11 +359,34 @@ class JupiterService {
      */
     async checkOutDocument(documentId) {
         try {
+            console.log(`🔒 Attempting to check out document: ${documentId}`);
+
             const response = await this.makeRequest('POST', `/documents/${documentId}/checkout`);
-            return { success: true, ...response };
+
+            console.log('✅ Document checked out successfully:', response);
+            return {
+                success: true,
+                message: 'Document checked out successfully',
+                ...response
+            };
         } catch (error) {
-            console.error('Error checking out document:', error);
-            return { success: false, error: error.message };
+            console.error('❌ Error checking out document:', error);
+
+            // Parse specific error messages from backend
+            let errorMessage = error.message;
+            if (error.message.includes('already checked out')) {
+                errorMessage = 'This document is already checked out by another user. Please try again later.';
+            } else if (error.message.includes('not found')) {
+                errorMessage = 'Document not found. It may have been deleted or moved.';
+            } else if (error.message.includes('unauthorized') || error.message.includes('403')) {
+                errorMessage = 'You do not have permission to check out this document.';
+            }
+
+            return {
+                success: false,
+                error: errorMessage,
+                originalError: error.message
+            };
         }
     }
     /**
@@ -351,8 +395,19 @@ class JupiterService {
      * @param {FormData} formData - Form data with file and version comment
      * @returns {Promise<Object>} Check-in result
      */
-    async checkInDocument(documentId, formData) {
+    async checkInDocument(documentId, fileBlob, versionComment = '') {
         try {
+            console.log(`📥 Attempting to check in document: ${documentId}`);
+
+            // Create FormData for file upload
+            const formData = new FormData();
+            if (fileBlob) {
+                formData.append('file', fileBlob, 'document.docx');
+            }
+            if (versionComment) {
+                formData.append('versionComment', versionComment);
+            }
+
             const response = await fetch(`${this.baseUrl}${this.apiEndpoint}/documents/${documentId}/checkin`, {
                 method: 'POST',
                 headers: {
@@ -360,17 +415,76 @@ class JupiterService {
                 },
                 body: formData
             });
+
             if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Check-in failed: ${response.status} - ${errorText}`);
+                const errorData = await response.json().catch(() => ({ message: `HTTP ${response.status}` }));
+                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
             }
-            const document = await response.json();
-            return { success: true, document };
+
+            const result = await response.json();
+            console.log('✅ Document checked in successfully:', result);
+
+            return {
+                success: true,
+                document: result,
+                message: 'Document checked in successfully'
+            };
         } catch (error) {
-            console.error('Error checking in document:', error);
-            return { success: false, error: error.message };
+            console.error('❌ Error checking in document:', error);
+
+            // Parse specific error messages from backend
+            let errorMessage = error.message;
+            if (error.message.includes('not checked out')) {
+                errorMessage = 'This document is not currently checked out. Please check out the document first.';
+            } else if (error.message.includes('not found')) {
+                errorMessage = 'Document not found. It may have been deleted or moved.';
+            } else if (error.message.includes('unauthorized') || error.message.includes('403')) {
+                errorMessage = 'You do not have permission to check in this document.';
+            }
+
+            return {
+                success: false,
+                error: errorMessage,
+                originalError: error.message
+            };
         }
     }
+
+    /**
+     * Cancel document check-out
+     * @param {string} documentId - Document ID
+     * @returns {Promise<Object>} Cancel check-out result
+     */
+    async cancelCheckOut(documentId) {
+        try {
+            console.log(`🔓 Attempting to cancel check-out for document: ${documentId}`);
+
+            const response = await this.makeRequest('POST', `/documents/${documentId}/cancel-checkout`);
+
+            console.log('✅ Document check-out cancelled successfully:', response);
+            return {
+                success: true,
+                message: 'Document check-out cancelled successfully',
+                ...response
+            };
+        } catch (error) {
+            console.error('❌ Error cancelling document check-out:', error);
+
+            let errorMessage = error.message;
+            if (error.message.includes('not checked out')) {
+                errorMessage = 'This document is not currently checked out.';
+            } else if (error.message.includes('not found')) {
+                errorMessage = 'Document not found. It may have been deleted or moved.';
+            }
+
+            return {
+                success: false,
+                error: errorMessage,
+                originalError: error.message
+            };
+        }
+    }
+
     // Error handling helper
     handleError(error) {
         console.error('Jupiter Service Error:', error);

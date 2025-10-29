@@ -2,7 +2,8 @@
 let messageBanner;
 
     // The initialize function must be run each time a new page is loaded.
-    Office.onReady(() => {
+    if (typeof Office !== 'undefined' && Office.onReady) {
+        Office.onReady(() => {
         DOMUtils.ready(() => {
             // Initialize he Office Fabric UI notification mechanism and hide it.
             let element = document.querySelector('.MessageBanner');
@@ -29,6 +30,9 @@ let messageBanner;
             $('#highlight-button').on('click',hightlightLongestWord);
         });
     });
+} else {
+    console.warn('Home.js: Office.js not available, skipping Office.onReady initialization');
+}
 
     async function loadSampleData() {
         try {

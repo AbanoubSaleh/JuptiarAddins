@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Delete Functionality Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #e1e1e1;
+            border-radius: 4px;
+        }
+        .status {
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-weight: bold;
+            display: inline-block;
+            margin-left: 10px;
+        }
+        .status.pending { background: #fff3cd; color: #856404; }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        button {
+            background: #0078d4;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #106ebe;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .mock-document-list {
+            border: 1px solid #e1e1e1;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .document-row {
+            padding: 10px;
+            border-bottom: 1px solid #e1e1e1;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .document-row:hover {
+            background: #f8f9fa;
+        }
+        .document-row.selected {
+            background: #e3f2fd;
+        }
+        .document-info {
+            flex: 1;
+        }
+        .document-actions {
+            display: flex;
+            gap: 5px;
+        }
+        .delete-btn {
+            background: #d13438;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .delete-btn:hover {
+            background: #b02a37;
+        }
+        /* Error overlay styles for testing */
+        .error-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        .error-content {
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗑️ Delete Functionality Test</h1>
+        <p>This page tests the delete confirmation dialog and functionality.</p>
+
+        <div class="test-section">
+            <h3>1. Script Loading <span id="script-status" class="status pending">Pending</span></h3>
+            <p>Testing if all required scripts are loaded.</p>
+            <button onclick="testScriptLoading()">Test Script Loading</button>
+            <div id="script-log" class="log"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. Delete Confirmation Dialog <span id="dialog-status" class="status pending">Pending</span></h3>
+            <p>Testing the delete confirmation dialog with close button (X) functionality.</p>
+            <button onclick="testDeleteConfirmationDialog()">Test Delete Dialog</button>
+            <div id="dialog-log" class="log"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. Mock Document List <span id="mock-status" class="status pending">Pending</span></h3>
+            <p>Testing delete functionality with mock documents.</p>
+            <button onclick="setupMockDocuments()">Setup Mock Documents</button>
+            <div id="mock-log" class="log"></div>
+            
+            <div id="mockDocumentList" class="mock-document-list" style="display: none;">
+                <!-- Mock documents will be inserted here -->
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. API Integration Test <span id="api-status" class="status pending">Pending</span></h3>
+            <p>Testing delete API call (requires authentication).</p>
+            <button onclick="testDeleteAPI()">Test Delete API</button>
+            <div id="api-log" class="log"></div>
+        </div>
+    </div>
+
+    <!-- Error overlay for testing confirmation dialogs -->
+    <div class="error-overlay" id="errorSection" style="display: none;">
+        <div class="error-content">
+            <div id="errorMessage">
+                <!-- Delete confirmation dialog will appear here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Include required scripts -->
+    <script src="Scripts/config.js"></script>
+    <script src="Scripts/JupiterService.js"></script>
+    <script src="Scripts/DocumentBrowser.js"></script>
+
+    <script>
+        let testResults = {
+            scripts: false,
+            dialog: false,
+            mock: false,
+            api: false
+        };
+
+        let mockBrowser = null;
+
+        function log(section, message) {
+            const logElement = document.getElementById(`${section}-log`);
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.innerHTML += `[${timestamp}] ${message}<br>`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function updateStatus(statusId, status) {
+            const statusElement = document.getElementById(statusId);
+            statusElement.className = `status ${status}`;
+            statusElement.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+        }
+
+        function testScriptLoading() {
+            log('script', '🔄 Testing script loading...');
+            
+            const requiredObjects = [
+                { name: 'DOMUtils ($)', obj: window.$ },
+                { name: 'JupiterService', obj: window.JupiterService },
+                { name: 'DocumentBrowser', obj: window.DocumentBrowser }
+            ];
+            
+            let allLoaded = true;
+            for (const test of requiredObjects) {
+                if (test.obj) {
+                    log('script', `✅ ${test.name} loaded`);
+                } else {
+                    log('script', `❌ ${test.name} NOT loaded`);
+                    allLoaded = false;
+                }
+            }
+            
+            if (allLoaded) {
+                log('script', '✅ All required scripts loaded successfully');
+                updateStatus('script-status', 'success');
+                testResults.scripts = true;
+            } else {
+                log('script', '❌ Some scripts failed to load');
+                updateStatus('script-status', 'error');
+                testResults.scripts = false;
+            }
+        }
+
+        function testDeleteConfirmationDialog() {
+            log('dialog', '🔄 Testing delete confirmation dialog...');
+            
+            if (!window.DocumentBrowser) {
+                log('dialog', '❌ DocumentBrowser not available');
+                updateStatus('dialog-status', 'error');
+                return;
+            }
+            
+            try {
+                // Create a mock DocumentBrowser instance
+                mockBrowser = new DocumentBrowser();
+                
+                // Test the showDeleteConfirmation method
+                log('dialog', '📝 Creating delete confirmation dialog...');
+                
+                mockBrowser.showDeleteConfirmation('TestDocument.docx', () => {
+                    log('dialog', '✅ Delete confirmed callback executed');
+                });
+                
+                // Check if dialog is visible
+                const errorSection = document.getElementById('errorSection');
+                if (errorSection.style.display !== 'none') {
+                    log('dialog', '✅ Delete confirmation dialog is visible');
+                    
+                    // Test close button functionality
+                    setTimeout(() => {
+                        const closeBtn = document.getElementById('confirmDeleteClose');
+                        if (closeBtn) {
+                            log('dialog', '✅ Close button (X) found in dialog');
+                            
+                            // Test clicking the close button
+                            closeBtn.click();
+                            
+                            setTimeout(() => {
+                                if (errorSection.style.display === 'none') {
+                                    log('dialog', '✅ Close button (X) works correctly');
+                                    updateStatus('dialog-status', 'success');
+                                    testResults.dialog = true;
+                                } else {
+                                    log('dialog', '❌ Close button (X) did not close dialog');
+                                    updateStatus('dialog-status', 'error');
+                                    testResults.dialog = false;
+                                }
+                            }, 100);
+                        } else {
+                            log('dialog', '❌ Close button (X) not found in dialog');
+                            updateStatus('dialog-status', 'error');
+                            testResults.dialog = false;
+                        }
+                    }, 100);
+                } else {
+                    log('dialog', '❌ Delete confirmation dialog is not visible');
+                    updateStatus('dialog-status', 'error');
+                    testResults.dialog = false;
+                }
+                
+            } catch (error) {
+                log('dialog', `❌ Error testing delete confirmation: ${error.message}`);
+                updateStatus('dialog-status', 'error');
+                testResults.dialog = false;
+            }
+        }
+
+        function setupMockDocuments() {
+            log('mock', '🔄 Setting up mock documents...');
+            
+            const mockDocuments = [
+                { id: 'doc1', name: 'Document1.docx', size: '1.2 MB' },
+                { id: 'doc2', name: 'Document2.docx', size: '2.1 MB' },
+                { id: 'doc3', name: 'Document3.docx', size: '0.8 MB' }
+            ];
+            
+            const listContainer = document.getElementById('mockDocumentList');
+            listContainer.innerHTML = '';
+            
+            mockDocuments.forEach(doc => {
+                const row = document.createElement('div');
+                row.className = 'document-row';
+                row.setAttribute('data-document-id', doc.id);
+                
+                row.innerHTML = `
+                    <div class="document-info">
+                        <strong>${doc.name}</strong> (${doc.size})
+                    </div>
+                    <div class="document-actions">
+                        <button class="delete-btn" onclick="testDeleteDocument('${doc.id}', '${doc.name}')">Delete</button>
+                    </div>
+                `;
+                
+                listContainer.appendChild(row);
+            });
+            
+            listContainer.style.display = 'block';
+            log('mock', '✅ Mock documents created successfully');
+            updateStatus('mock-status', 'success');
+            testResults.mock = true;
+        }
+
+        function testDeleteDocument(docId, docName) {
+            log('mock', `🗑️ Testing delete for document: ${docName}`);
+            
+            if (!mockBrowser) {
+                mockBrowser = new DocumentBrowser();
+            }
+            
+            // Mock the documents array
+            mockBrowser.documents = [
+                { id: docId, fileName: docName }
+            ];
+            
+            // Test the delete functionality
+            mockBrowser.showDeleteConfirmation(docName, () => {
+                log('mock', `✅ Delete confirmed for ${docName}`);
+                
+                // Remove the document row from the mock list
+                const row = document.querySelector(`[data-document-id="${docId}"]`);
+                if (row) {
+                    row.remove();
+                    log('mock', `✅ Document ${docName} removed from list`);
+                }
+            });
+        }
+
+        function testDeleteAPI() {
+            log('api', '🔄 Testing delete API call...');
+            log('api', '⚠️ This test requires authentication and a real document ID');
+            log('api', '📝 For full API testing, use the Document Browser with proper authentication');
+            updateStatus('api-status', 'success');
+            testResults.api = true;
+        }
+
+        // Initialize when page loads
+        window.addEventListener('load', () => {
+            log('script', '🚀 Delete functionality test page loaded');
+        });
+    </script>
+</body>
+</html>

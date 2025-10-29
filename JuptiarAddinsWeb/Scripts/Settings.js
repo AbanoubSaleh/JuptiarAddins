@@ -688,42 +688,46 @@ class SettingsPage {
     }
 }
 
-// Initialize when Office is ready
-Office.onReady(() => {
-    // Initialize JupiterConfig first (this might not have been called)
-    if (typeof window.JupiterConfig.init === 'function') {
-        window.JupiterConfig.init();
-    }
-
-    // Initialize global services if not already done
-    if (!window.jupiterService) {
-        window.jupiterService = new JupiterService();
-        window.jupiterService.initialize({
-            serverUrl: window.JupiterConfig.get('server.baseUrl'),
-            apiEndpoint: window.JupiterConfig.get('server.apiEndpoint') || '/api',
-            timeout: window.JupiterConfig.get('server.timeout') || 30000
-        });
-    }
-
-    if (!window.authManager) {
-        window.authManager = new AuthManager();
-        // Initialize AuthManager asynchronously and then create SettingsPage
-        window.authManager.initialize().then(() => {
-            console.log('AuthManager initialized, creating SettingsPage...');
-            if (!window.settingsPage) {
-                window.settingsPage = new SettingsPage();
-            }
-        }).catch(error => {
-            console.error('Failed to initialize AuthManager:', error);
-            // Still create SettingsPage even if AuthManager fails
-            if (!window.settingsPage) {
-                window.settingsPage = new SettingsPage();
-            }
-        });
-    } else {
-        // AuthManager already exists, create SettingsPage immediately
-        if (!window.settingsPage) {
-            window.settingsPage = new SettingsPage();
+// Initialize when Office is ready (only if Office is available)
+if (typeof Office !== 'undefined' && Office.onReady) {
+    Office.onReady(() => {
+        // Initialize JupiterConfig first (this might not have been called)
+        if (typeof window.JupiterConfig.init === 'function') {
+            window.JupiterConfig.init();
         }
-    }
-});
+
+        // Initialize global services if not already done
+        if (!window.jupiterService) {
+            window.jupiterService = new JupiterService();
+            window.jupiterService.initialize({
+                serverUrl: window.JupiterConfig.get('server.baseUrl'),
+                apiEndpoint: window.JupiterConfig.get('server.apiEndpoint') || '/api',
+                timeout: window.JupiterConfig.get('server.timeout') || 30000
+            });
+        }
+
+        if (!window.authManager) {
+            window.authManager = new AuthManager();
+            // Initialize AuthManager asynchronously and then create SettingsPage
+            window.authManager.initialize().then(() => {
+                console.log('AuthManager initialized, creating SettingsPage...');
+                if (!window.settingsPage) {
+                    window.settingsPage = new SettingsPage();
+                }
+            }).catch(error => {
+                console.error('Failed to initialize AuthManager:', error);
+                // Still create SettingsPage even if AuthManager fails
+                if (!window.settingsPage) {
+                    window.settingsPage = new SettingsPage();
+                }
+            });
+        } else {
+            // AuthManager already exists, create SettingsPage immediately
+            if (!window.settingsPage) {
+                window.settingsPage = new SettingsPage();
+            }
+        }
+    });
+} else {
+    console.warn('Settings.js: Office.js not available, skipping Office.onReady initialization');
+}

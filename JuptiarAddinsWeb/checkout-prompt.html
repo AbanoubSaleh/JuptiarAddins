@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Check Out Required</title>
+
+    <!-- Office JavaScript API -->
+    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .dialog-container {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .dialog-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .dialog-icon {
+            font-size: 24px;
+            margin-right: 12px;
+            color: #0078d4;
+        }
+
+        .dialog-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #323130;
+            margin: 0;
+        }
+
+        .dialog-content {
+            flex: 1;
+            margin-bottom: 24px;
+        }
+
+        .dialog-message {
+            font-size: 14px;
+            color: #605e5c;
+            line-height: 1.5;
+            margin-bottom: 16px;
+        }
+
+        .dialog-warning {
+            background: #fff4ce;
+            border: 1px solid #ffb900;
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+
+        .dialog-warning-text {
+            font-size: 13px;
+            color: #8a6914;
+            margin: 0;
+        }
+
+        .dialog-options {
+            margin-top: 16px;
+        }
+
+        .dialog-option {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            padding: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .dialog-option:hover {
+            background-color: #f3f2f1;
+        }
+
+        .dialog-option input[type="radio"] {
+            margin-right: 8px;
+            margin-top: 2px;
+        }
+
+        .dialog-option-content {
+            flex: 1;
+        }
+
+        .dialog-option-title {
+            font-weight: 600;
+            color: #323130;
+            margin-bottom: 4px;
+        }
+
+        .dialog-option-description {
+            font-size: 12px;
+            color: #605e5c;
+            line-height: 1.4;
+        }
+
+        .dialog-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: auto;
+            padding-top: 16px;
+            border-top: 1px solid #edebe9;
+        }
+
+        .dialog-button {
+            padding: 8px 16px;
+            border: 1px solid #8a8886;
+            border-radius: 2px;
+            background: white;
+            color: #323130;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .dialog-button:hover {
+            background: #f3f2f1;
+            border-color: #605e5c;
+        }
+
+        .dialog-button.primary {
+            background: #0078d4;
+            border-color: #0078d4;
+            color: white;
+        }
+
+        .dialog-button.primary:hover {
+            background: #106ebe;
+            border-color: #106ebe;
+        }
+
+        .dialog-button:disabled {
+            background: #f3f2f1;
+            border-color: #c8c6c4;
+            color: #a19f9d;
+            cursor: not-allowed;
+        }
+
+        .dialog-button:disabled:hover {
+            background: #f3f2f1;
+            border-color: #c8c6c4;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="dialog-container">
+        <div class="dialog-header">
+            <div class="dialog-icon">🔒</div>
+            <h2 class="dialog-title">Check Out Required</h2>
+        </div>
+
+        <div class="dialog-content">
+            <div class="dialog-message">
+                This document is managed by Jupiter DMS and needs to be checked out before you can make changes.
+            </div>
+
+            <div class="dialog-warning">
+                <p class="dialog-warning-text">
+                    <strong>Why check out?</strong> Checking out prevents other users from editing the document at the same time, avoiding conflicts and ensuring your changes are preserved.
+                </p>
+            </div>
+
+            <div class="dialog-options">
+                <label class="dialog-option">
+                    <input type="radio" name="action" value="checkout" checked>
+                    <div class="dialog-option-content">
+                        <div class="dialog-option-title">Check Out and Edit</div>
+                        <div class="dialog-option-description">
+                            Check out the document so you can make changes. Other users will see it's being edited by you.
+                        </div>
+                    </div>
+                </label>
+
+                <label class="dialog-option">
+                    <input type="radio" name="action" value="readonly">
+                    <div class="dialog-option-content">
+                        <div class="dialog-option-title">Continue Read-Only</div>
+                        <div class="dialog-option-description">
+                            Keep the document in read-only mode. You can view but not edit the content.
+                        </div>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <div class="dialog-buttons">
+            <button class="dialog-button" onclick="cancelAction()">Cancel</button>
+            <button class="dialog-button primary" onclick="confirmAction()">Continue</button>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Office.js
+        if (typeof Office !== 'undefined' && Office.onReady) {
+            Office.onReady(() => {
+                console.log('Checkout prompt dialog ready');
+            });
+        } else {
+            console.warn('checkout-prompt.html: Office.js not available');
+        }
+
+        function confirmAction() {
+            const selectedAction = document.querySelector('input[name="action"]:checked');
+            if (selectedAction) {
+                const action = selectedAction.value;
+                console.log('User selected action:', action);
+                
+                // Send message back to parent
+                if (Office.context.ui.messageParent) {
+                    Office.context.ui.messageParent(action);
+                } else {
+                    // Fallback for older Office versions
+                    window.parent.postMessage(action, '*');
+                }
+            }
+        }
+
+        function cancelAction() {
+            console.log('User cancelled checkout prompt');
+            
+            // Send cancel message back to parent
+            if (Office.context.ui.messageParent) {
+                Office.context.ui.messageParent('cancelled');
+            } else {
+                // Fallback for older Office versions
+                window.parent.postMessage('cancelled', '*');
+            }
+        }
+
+        // Handle Enter key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                confirmAction();
+            } else if (event.key === 'Escape') {
+                cancelAction();
+            }
+        });
+
+        // Handle option clicks
+        document.querySelectorAll('.dialog-option').forEach(option => {
+            option.addEventListener('click', function() {
+                const radio = this.querySelector('input[type="radio"]');
+                if (radio) {
+                    radio.checked = true;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

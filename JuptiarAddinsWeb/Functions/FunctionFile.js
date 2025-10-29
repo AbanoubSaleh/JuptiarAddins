@@ -7,24 +7,29 @@
 let documentStateManager = null;
 let ribbonManager = null;
 let documentUploader = null;
+let documentEditMonitor = null;
 
 // The initialize function must be run each time a new page is loaded.
-Office.onReady(async () => {
-    try {
-        console.log('Jupiter Add-in initializing...');
-        console.log('Abanoub --Ribbon intiated');
+if (typeof Office !== 'undefined' && Office.onReady) {
+    Office.onReady(async () => {
+        try {
+            console.log('Jupiter Add-in initializing...');
+            console.log('Abanoub --Ribbon intiated');
 
-        // Initialize global services first
-        await initializeGlobalServices();
+            // Initialize global services first
+            await initializeGlobalServices();
 
-        // Initialize managers
-        await initializeManagers();
+            // Initialize managers
+            await initializeManagers();
 
-        console.log('Jupiter Add-in initialized successfully');
-    } catch (error) {
-        console.error('Failed to initialize Jupiter Add-in:', error);
-    }
-});
+            console.log('Jupiter Add-in initialized successfully');
+        } catch (error) {
+            console.error('Failed to initialize Jupiter Add-in:', error);
+        }
+    });
+} else {
+    console.warn('FunctionFile.js: Office.js not available, skipping Office.onReady initialization');
+}
 
 /**
  * Initialize global services
@@ -70,17 +75,45 @@ async function initializeManagers() {
             await documentUploader.initialize(window.jupiterService, documentStateManager);
         }
 
-        // Check document state and update ribbon accordingly
-        if (documentStateManager && ribbonManager) {
-            const isNewDocument = await documentStateManager.isNewDocument();
-            console.log('Document is new:', isNewDocument);
+        // Initialize DocumentEditMonitor
+        if (typeof DocumentEditMonitor !== 'undefined' && documentStateManager && window.jupiterService && ribbonManager) {
+            documentEditMonitor = new DocumentEditMonitor(documentStateManager, window.jupiterService, ribbonManager);
+            console.log('✅ DocumentEditMonitor initialized');
+        }
 
-            if (isNewDocument) {
-                await ribbonManager.showNewDocumentRibbon();
-                console.log('Applied new document ribbon state');
-            } else {
-                await ribbonManager.showExistingDocumentRibbon();
-                console.log('Applied existing document ribbon state');
+        // Perform comprehensive document detection and update ribbon accordingly
+        if (documentStateManager && ribbonManager) {
+            console.log('🔍 Starting document type detection...');
+
+            const documentType = await documentStateManager.detectDocumentType();
+            console.log('📄 Detected document type:', documentType);
+
+            switch (documentType) {
+                case 'new':
+                    await ribbonManager.showNewDocumentRibbon();
+                    console.log('✅ Applied NEW document ribbon state');
+                    break;
+
+                case 'jupiter':
+                    await ribbonManager.showExistingDocumentRibbon();
+                    console.log('✅ Applied JUPITER document ribbon state');
+
+                    // Start edit monitoring for Jupiter documents
+                    if (documentEditMonitor) {
+                        await documentEditMonitor.startMonitoring();
+                    }
+                    break;
+
+                case 'external':
+                    await ribbonManager.showExternalDocumentRibbon();
+                    console.log('✅ Applied EXTERNAL document ribbon state');
+                    break;
+
+                default:
+                    // Fallback to new document state
+                    await ribbonManager.showNewDocumentRibbon();
+                    console.log('⚠️ Unknown document type, defaulting to NEW document ribbon state');
+                    break;
             }
         }
 
@@ -96,6 +129,20 @@ async function initializeManagers() {
 async function checkOutDocument(event) {
     try {
         console.log('Check out document function called');
+
+        // Check if button should be visible/enabled (Office 2019 compatibility)
+        if (window.ribbonManager) {
+            const isVisible = await window.ribbonManager.isButtonVisible('Jupiter.CheckOutButton');
+            if (!isVisible) {
+                console.log('❌ Check Out button is disabled for this document type');
+                Office.context.ui.displayDialogAsync(
+                    'Check Out is not available for this document type. This action is only available for Jupiter-managed documents.',
+                    { height: 30, width: 50 }
+                );
+                event.completed();
+                return;
+            }
+        }
 
         if (!documentStateManager) {
             throw new Error('Document state manager not initialized');
@@ -127,10 +174,22 @@ async function checkOutDocument(event) {
             await documentStateManager.updateCheckoutStatus('CheckedOut');
 
             // Update ribbon
-            await ribbonManager.updateCheckoutButtons();
+            if (ribbonManager) {
+                await ribbonManager.updateCheckoutButtons();
+            }
+
+            // Start edit monitoring if available
+            if (documentEditMonitor) {
+                await documentEditMonitor.startMonitoring();
+            }
 
             // Show success message
-            console.log('Document checked out successfully');
+            Office.context.ui.displayDialogAsync(
+                'Document checked out successfully! You can now edit the document.',
+                { height: 30, width: 50 }
+            );
+
+            console.log('✅ Document checked out successfully');
         } else {
             throw new Error(response.error || 'Failed to check out document');
         }
@@ -177,18 +236,55 @@ async function checkInDocument(event) {
             throw new Error('No document information found. This document may not be managed by Jupiter DMS.');
         }
 
-        // Check in the document
-        const response = await window.jupiterService.checkInDocument(documentState.documentId);
+        // Show check-in dialog to get version comment
+        const checkInResult = await showCheckInDialog();
+        if (!checkInResult || checkInResult.cancelled) {
+            console.log('Check-in cancelled by user');
+            event.completed();
+            return;
+        }
+
+        // Get current document content as blob
+        const documentBlob = await getCurrentDocumentAsBlob();
+
+        // Check in the document with content and version comment
+        const response = await window.jupiterService.checkInDocument(
+            documentState.documentId,
+            documentBlob,
+            checkInResult.versionComment
+        );
 
         if (response.success) {
             // Update document state
             await documentStateManager.updateCheckoutStatus('Available');
 
+            // Update document version info
+            if (response.document) {
+                await documentStateManager.setDocumentState({
+                    ...documentState,
+                    version: response.document.currentVersion,
+                    checkoutStatus: 'Available',
+                    lastSaved: new Date().toISOString()
+                });
+            }
+
             // Update ribbon
-            await ribbonManager.updateCheckoutButtons();
+            if (ribbonManager) {
+                await ribbonManager.updateCheckoutButtons();
+            }
+
+            // Stop edit monitoring
+            if (documentEditMonitor) {
+                await documentEditMonitor.stopMonitoring();
+            }
 
             // Show success message
-            console.log('Document checked in successfully');
+            Office.context.ui.displayDialogAsync(
+                `Document checked in successfully! New version: ${response.document?.currentVersion || 'Unknown'}`,
+                { height: 30, width: 50 }
+            );
+
+            console.log('✅ Document checked in successfully');
         } else {
             throw new Error(response.error || 'Failed to check in document');
         }
@@ -343,4 +439,121 @@ async function sampleFunction(event) {
 
     // Calling event.completed is required. event.completed lets the platform know that processing has completed.
     event.completed();
+}
+
+/**
+ * Get current document content as blob for upload
+ */
+async function getCurrentDocumentAsBlob() {
+    try {
+        return await Word.run(async (context) => {
+            // Get the document as a base64 string
+            const documentBody = context.document.body;
+            documentBody.load('*');
+            await context.sync();
+
+            // Use Office.js to get the document as a file
+            return new Promise((resolve, reject) => {
+                Office.context.document.getFileAsync(Office.FileType.Compressed, (result) => {
+                    if (result.status === Office.AsyncResultStatus.Succeeded) {
+                        const file = result.value;
+                        const sliceCount = file.sliceCount;
+                        let docData = [];
+
+                        // Read all slices
+                        const getSlice = (sliceIndex) => {
+                            file.getSliceAsync(sliceIndex, (sliceResult) => {
+                                if (sliceResult.status === Office.AsyncResultStatus.Succeeded) {
+                                    docData.push(sliceResult.value.data);
+
+                                    if (sliceIndex < sliceCount - 1) {
+                                        getSlice(sliceIndex + 1);
+                                    } else {
+                                        // All slices read, create blob
+                                        file.closeAsync();
+                                        const blob = new Blob(docData, { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+                                        resolve(blob);
+                                    }
+                                } else {
+                                    file.closeAsync();
+                                    reject(new Error('Failed to read document slice'));
+                                }
+                            });
+                        };
+
+                        getSlice(0);
+                    } else {
+                        reject(new Error('Failed to get document file'));
+                    }
+                });
+            });
+        });
+    } catch (error) {
+        console.error('Error getting document as blob:', error);
+        throw error;
+    }
+}
+
+/**
+ * Show check-in dialog to get version comment
+ */
+async function showCheckInDialog() {
+    try {
+        return new Promise((resolve) => {
+            const baseUrl = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '');
+            const dialogUrl = `${baseUrl}/CheckInDialog.html`;
+
+            Office.context.ui.displayDialogAsync(
+                dialogUrl,
+                { height: 60, width: 80 },
+                (asyncResult) => {
+                    if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
+                        const dialog = asyncResult.value;
+
+                        dialog.addEventHandler(Office.EventType.DialogMessageReceived, (arg) => {
+                            dialog.close();
+                            try {
+                                const result = JSON.parse(arg.message);
+                                resolve(result);
+                            } catch (error) {
+                                console.error('Error parsing dialog result:', error);
+                                resolve({ cancelled: true });
+                            }
+                        });
+
+                        dialog.addEventHandler(Office.EventType.DialogEventReceived, (arg) => {
+                            dialog.close();
+                            resolve({ cancelled: true });
+                        });
+                    } else {
+                        console.error('Failed to open check-in dialog:', asyncResult.error);
+                        resolve({ cancelled: true });
+                    }
+                }
+            );
+        });
+    } catch (error) {
+        console.error('Error showing check-in dialog:', error);
+        return { cancelled: true };
+    }
+}
+
+/**
+ * Show notification to user (Office 2019 compatible)
+ */
+function showNotification(title, message) {
+    try {
+        if (Office.context.ui && Office.context.ui.displayDialogAsync) {
+            Office.context.ui.displayDialogAsync(
+                `${title}: ${message}`,
+                { height: 30, width: 50 }
+            );
+        } else {
+            console.log(`${title}: ${message}`);
+            alert(`${title}: ${message}`);
+        }
+    } catch (error) {
+        console.error('Error showing notification:', error);
+        alert(`${title}: ${message}`);
+    }
 }

@@ -47,7 +47,7 @@ class DocumentBrowser {
         $.on('#fullTextSearchInput', 'keypress', (e) => {
             if (e.which === 13 || e.keyCode === 13) this.performFullTextSearch();
         });
-        $.on('#refreshBtn', 'click', () => this.refreshCurrentView());
+        $.on('#refreshBtn', 'click', () => this.handleRefreshClick());
 
         // Action buttons
         $.on('#openBtn', 'click', () => this.openSelectedDocument());
@@ -220,7 +220,10 @@ class DocumentBrowser {
         $.show('#loginBtn');
         $.hide('#logoutBtn');
         $.hide('#searchSection');
-        $.hide('#mainContent');
+
+        // Instead of hiding main content, show a helpful login prompt
+        this.showLoginPrompt();
+
         $.hide('#loadingSection');
 
         $.removeClass('.status-indicator', 'online');
@@ -229,6 +232,41 @@ class DocumentBrowser {
         // Clear any existing tree data
         $.empty('#folderTree');
         $.empty('#documentTableBody');
+    }
+
+    /**
+     * Show login prompt in main content area
+     */
+    showLoginPrompt() {
+        const mainContent = $.select('#mainContent');
+        if (mainContent) {
+            mainContent.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; padding: 40px;">
+                    <div style="font-size: 48px; margin-bottom: 20px; color: #0078d4;">🔐</div>
+                    <h2 style="color: #323130; margin-bottom: 16px;">Authentication Required</h2>
+                    <p style="color: #605e5c; margin-bottom: 24px; max-width: 400px; line-height: 1.5;">
+                        Please log in to access your Jupiter Document Management System libraries and documents.
+                    </p>
+                    <button id="mainLoginBtn" class="ms-Button ms-Button--primary" style="padding: 12px 24px; font-size: 14px;">
+                        <span class="ms-Button-label">🚀 Log In to Jupiter DMS</span>
+                    </button>
+                    <div style="margin-top: 20px; padding: 16px; background: #fff4ce; border: 1px solid #ffb900; border-radius: 4px; max-width: 400px;">
+                        <p style="margin: 0; font-size: 13px; color: #8a6914;">
+                            <strong>Server:</strong> ${window.JupiterConfig?.get('server.baseUrl') || 'Not configured'}<br>
+                            <strong>Status:</strong> Ready to connect
+                        </p>
+                    </div>
+                </div>
+            `;
+
+            // Add click handler for the main login button
+            const mainLoginBtn = $.select('#mainLoginBtn');
+            if (mainLoginBtn) {
+                $.on(mainLoginBtn, 'click', () => this.showLoginModal());
+            }
+
+            $.show('#mainContent');
+        }
     }
 
     /**
@@ -537,6 +575,17 @@ class DocumentBrowser {
     async loadDocumentsByFolder(folderId) {
         try {
             console.log('Loading documents for folder ID:', folderId);
+
+            // Validate folder ID
+            if (!folderId) {
+                throw new Error('No folder ID provided');
+            }
+
+            // Check authentication
+            if (!window.jupiterService || !window.jupiterService.authToken) {
+                throw new Error('Authentication required. Please log in to access documents.');
+            }
+
             this.showLoading('Loading documents...');
 
             const documents = await window.jupiterService.getDocumentsByFolder(folderId);
@@ -550,7 +599,23 @@ class DocumentBrowser {
 
         } catch (error) {
             console.error('Error loading documents by folder:', error);
-            this.showError('Failed to load documents: ' + error.message);
+            this.hideLoading();
+
+            let errorMessage = 'Failed to load documents';
+
+            if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+                errorMessage = 'Authentication required. Please log in to access documents.';
+            } else if (error.message.includes('403') || error.message.includes('Forbidden')) {
+                errorMessage = 'Access denied. You do not have permission to view this folder.';
+            } else if (error.message.includes('404') || error.message.includes('not found')) {
+                errorMessage = 'Folder not found. It may have been deleted or moved.';
+            } else if (error.message.includes('timeout')) {
+                errorMessage = 'Request timeout. Please check your connection and try again.';
+            } else if (error.message) {
+                errorMessage += ': ' + error.message;
+            }
+
+            this.showError(errorMessage);
         }
     }
 
@@ -752,19 +817,29 @@ class DocumentBrowser {
      */
     showDeleteConfirmation(fileName, onConfirm) {
         const confirmHtml = `
-            <div class="confirmation-dialog" style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; margin: 10px 0; border-radius: 4px;">
-                <h4 style="margin: 0 0 10px 0; color: #856404;">⚠️ Delete Document</h4>
-                <p style="margin: 0 0 15px 0; color: #856404;">
-                    Are you sure you want to delete "<strong>${fileName}</strong>"?<br>
-                    This action cannot be undone.
-                </p>
-                <div style="text-align: right;">
-                    <button id="confirmDeleteYes" class="ms-Button ms-Button--primary" style="margin-right: 10px; background-color: #d13438; border-color: #d13438;">
-                        <span class="ms-Button-label">Delete</span>
+            <div class="confirmation-dialog" style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; position: relative;">
+                <div class="confirmation-header" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 15px 10px 15px; border-bottom: 1px solid #ffeaa7;">
+                    <h4 style="margin: 0; color: #856404; display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 18px;">⚠️</span>
+                        Delete Document
+                    </h4>
+                    <button id="confirmDeleteClose" class="close-dialog-btn" style="background: none; border: none; cursor: pointer; padding: 4px; border-radius: 3px; color: #856404; font-size: 16px; line-height: 1; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;" title="Close">
+                        ×
                     </button>
-                    <button id="confirmDeleteNo" class="ms-Button">
-                        <span class="ms-Button-label">Cancel</span>
-                    </button>
+                </div>
+                <div class="confirmation-body" style="padding: 15px;">
+                    <p style="margin: 0 0 15px 0; color: #856404;">
+                        Are you sure you want to delete "<strong>${fileName}</strong>"?<br>
+                        This action cannot be undone.
+                    </p>
+                    <div style="text-align: right; display: flex; justify-content: flex-end; gap: 10px;">
+                        <button id="confirmDeleteYes" class="ms-Button ms-Button--primary" style="background-color: #d13438; border-color: #d13438;">
+                            <span class="ms-Button-label">Delete</span>
+                        </button>
+                        <button id="confirmDeleteNo" class="ms-Button">
+                            <span class="ms-Button-label">Cancel</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
@@ -774,15 +849,52 @@ class DocumentBrowser {
         $.show('#errorSection');
         $.hide('#loadingSection');
 
-        // Handle confirmation buttons
-        $.on('#confirmDeleteYes', 'click', () => {
-            $.hide('#errorSection');
-            onConfirm();
-        });
+        // Store handler references for proper cleanup
+        this.deleteConfirmationHandlers = {
+            confirmYes: () => {
+                this.hideDeleteConfirmation();
+                onConfirm();
+            },
+            confirmNo: () => {
+                this.hideDeleteConfirmation();
+            },
+            confirmClose: () => {
+                this.hideDeleteConfirmation();
+            },
+            mouseEnter: (e) => {
+                e.target.style.backgroundColor = '#f0e68c';
+            },
+            mouseLeave: (e) => {
+                e.target.style.backgroundColor = 'transparent';
+            }
+        };
 
-        $.on('#confirmDeleteNo', 'click', () => {
-            $.hide('#errorSection');
-        });
+        // Handle confirmation buttons
+        $.on('#confirmDeleteYes', 'click', this.deleteConfirmationHandlers.confirmYes);
+        $.on('#confirmDeleteNo', 'click', this.deleteConfirmationHandlers.confirmNo);
+        $.on('#confirmDeleteClose', 'click', this.deleteConfirmationHandlers.confirmClose);
+
+        // Add hover effect for close button
+        $.on('#confirmDeleteClose', 'mouseenter', this.deleteConfirmationHandlers.mouseEnter);
+        $.on('#confirmDeleteClose', 'mouseleave', this.deleteConfirmationHandlers.mouseLeave);
+    }
+
+    /**
+     * Hide delete confirmation dialog and cleanup event handlers
+     */
+    hideDeleteConfirmation() {
+        $.hide('#errorSection');
+
+        // Clean up event handlers if they exist
+        if (this.deleteConfirmationHandlers) {
+            $.off('#confirmDeleteYes', 'click', this.deleteConfirmationHandlers.confirmYes);
+            $.off('#confirmDeleteNo', 'click', this.deleteConfirmationHandlers.confirmNo);
+            $.off('#confirmDeleteClose', 'click', this.deleteConfirmationHandlers.confirmClose);
+            $.off('#confirmDeleteClose', 'mouseenter', this.deleteConfirmationHandlers.mouseEnter);
+            $.off('#confirmDeleteClose', 'mouseleave', this.deleteConfirmationHandlers.mouseLeave);
+
+            this.deleteConfirmationHandlers = null;
+        }
     }
 
     /**
@@ -794,17 +906,118 @@ class DocumentBrowser {
     }
 
     /**
+     * Show temporary success message that auto-hides
+     */
+    showTemporarySuccess(message) {
+        const successHtml = `
+            <div class="success-message" style="background: #dff6dd; border: 1px solid #4caf50; padding: 15px; margin: 10px 0; border-radius: 4px; color: #2e7d32;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 16px;">✓</span>
+                    <span>${message}</span>
+                </div>
+            </div>
+        `;
+
+        // Show the success message in the error section
+        $.html('#errorMessage', successHtml);
+        $.show('#errorSection');
+        $.hide('#loadingSection');
+
+        // Auto-hide after 3 seconds
+        setTimeout(() => {
+            $.hide('#errorSection');
+        }, 3000);
+    }
+
+    /**
+     * Handle refresh button click with user feedback
+     */
+    async handleRefreshClick() {
+        try {
+            console.log('Refresh button clicked');
+
+            // Show immediate feedback
+            this.showLoading('Refreshing...');
+
+            // Perform the refresh
+            await this.refreshCurrentView();
+
+            // Show success feedback briefly
+            this.showTemporarySuccess('Refreshed successfully');
+
+        } catch (error) {
+            console.error('Error during refresh:', error);
+            this.showError('Failed to refresh: ' + error.message);
+        }
+    }
+
+    /**
+     * Get current state for debugging
+     */
+    getCurrentState() {
+        return {
+            currentLibrary: this.currentLibrary,
+            currentFolder: this.currentFolder,
+            documentsCount: this.documents ? this.documents.length : 0,
+            selectedDocument: this.selectedDocument,
+            isAuthenticated: window.authManager ? window.authManager.getAuthStatus().isAuthenticated : false,
+            hasAuthToken: window.jupiterService ? !!window.jupiterService.authToken : false
+        };
+    }
+
+    /**
      * Refresh current view
      */
     async refreshCurrentView() {
-        // First re-check authentication status
-        await this.checkAuthenticationStatus();
+        try {
+            console.log('=== REFRESH CURRENT VIEW ===');
+            console.log('Current state before refresh:', this.getCurrentState());
 
-        // Then refresh the current view if authenticated
-        if (this.currentLibrary) {
-            await this.loadDocuments(this.currentLibrary, this.currentFolder);
-        } else {
-            await this.loadLibraryTree();
+            // First re-check authentication status
+            await this.checkAuthenticationStatus();
+
+            // Check if user is authenticated before proceeding
+            if (!window.authManager || !window.authManager.getAuthStatus().isAuthenticated) {
+                console.log('User not authenticated, cannot refresh view');
+                this.showError('Please log in to access documents');
+                return;
+            }
+
+            // Then refresh the current view based on what's currently selected
+            if (this.currentFolder) {
+                // If we have a folder selected, reload documents for that folder
+                console.log('Refreshing documents for folder:', this.currentFolder);
+                await this.loadDocumentsByFolder(this.currentFolder);
+            } else if (this.currentLibrary) {
+                // If we have a library selected but no folder, just clear documents
+                console.log('Refreshing library view:', this.currentLibrary);
+                this.renderDocumentList([]);
+            } else {
+                // No specific selection, reload the library tree
+                console.log('Refreshing library tree');
+                await this.loadLibraryTree();
+
+                // If library tree loads successfully but no folder is selected,
+                // try to find and select the currently selected folder in the UI
+                setTimeout(() => {
+                    const selectedFolder = $.select('.folder-item.selected');
+                    if (selectedFolder) {
+                        const folderId = selectedFolder.getAttribute('data-folder-id');
+                        const type = selectedFolder.getAttribute('data-type');
+
+                        if (type === 'folder' && folderId) {
+                            console.log('Re-selecting folder from UI:', folderId);
+                            this.currentFolder = folderId;
+                            this.loadDocumentsByFolder(folderId);
+                        }
+                    }
+                }, 500);
+            }
+
+            console.log('Current state after refresh:', this.getCurrentState());
+        } catch (error) {
+            console.error('Error refreshing current view:', error);
+            this.showError('Failed to refresh: ' + error.message);
         }
     }
 
@@ -969,6 +1182,9 @@ class DocumentBrowser {
                         await context.sync();
                     });
 
+                    // Mark document as Jupiter-managed after successful opening
+                    await this.markDocumentAsJupiterManaged(documentId);
+
                     this.hideLoading();
                     this.showSuccess('Document opened successfully');
 
@@ -1038,15 +1254,40 @@ class DocumentBrowser {
                 try {
                     this.showLoading('Deleting document...');
 
-                    await window.jupiterService.deleteDocument(documentId);
+                    const result = await window.jupiterService.deleteDocument(documentId);
 
-                    // Refresh the document list
-                    await this.refreshCurrentView();
+                    if (result) {
+                        // Refresh the document list
+                        await this.refreshCurrentView();
 
-                    this.showSuccess('Document deleted successfully');
+                        // Show success message temporarily
+                        this.showTemporarySuccess(`Document "${document.fileName}" deleted successfully`);
+                    } else {
+                        this.showError('Failed to delete document: Unknown error occurred');
+                    }
                 } catch (error) {
                     console.error('Error deleting document:', error);
-                    this.showError('Failed to delete document: ' + error.message);
+                    let errorMessage = 'Failed to delete document';
+
+                    if (error.message) {
+                        errorMessage += ': ' + error.message;
+                    } else if (error.status) {
+                        switch (error.status) {
+                            case 403:
+                                errorMessage += ': You do not have permission to delete this document';
+                                break;
+                            case 404:
+                                errorMessage += ': Document not found';
+                                break;
+                            case 409:
+                                errorMessage += ': Document is currently checked out and cannot be deleted';
+                                break;
+                            default:
+                                errorMessage += ': Server error occurred';
+                        }
+                    }
+
+                    this.showError(errorMessage);
                 }
             });
 
@@ -1085,80 +1326,185 @@ class DocumentBrowser {
             this.showError('Failed to open properties editor');
         }
     }
-}
 
-// Initialize when Office is ready
-Office.onReady(() => {
-    console.log('Office is ready, initializing DocumentBrowser...');
+    /**
+     * Mark document as Jupiter-managed by setting appropriate metadata
+     * @param {string} documentId - Jupiter document ID
+     */
+    async markDocumentAsJupiterManaged(documentId) {
+        try {
+            console.log('🏷️ Marking document as Jupiter-managed:', documentId);
 
-    // Ensure all dependencies are loaded
-    if (typeof JupiterConfig === 'undefined') {
-        console.error('JupiterConfig not loaded!');
-        return;
-    }
-
-    if (typeof JupiterService === 'undefined') {
-        console.error('JupiterService not loaded!');
-        return;
-    }
-
-    if (typeof AuthManager === 'undefined') {
-        console.error('AuthManager not loaded!');
-        return;
-    }
-
-    // Initialize global instances
-    window.jupiterConfig = JupiterConfig; // JupiterConfig is an object, not a constructor
-
-    // Initialize JupiterConfig first (this might not have been called)
-    if (typeof window.JupiterConfig.init === 'function') {
-        window.JupiterConfig.init();
-    }
-
-    // Initialize global services if not already done
-    if (!window.jupiterService) {
-        window.jupiterService = new JupiterService();
-
-        // Debug configuration values
-        const baseUrl = window.JupiterConfig.get('server.baseUrl');
-        const apiEndpoint = window.JupiterConfig.get('server.apiEndpoint') || '/api';
-        const timeout = window.JupiterConfig.get('server.timeout') || 30000;
-
-        console.log('DocumentBrowser: Initializing JupiterService with config:', {
-            baseUrl: baseUrl,
-            apiEndpoint: apiEndpoint,
-            timeout: timeout
-        });
-
-        window.jupiterService.initialize({
-            serverUrl: baseUrl,
-            apiEndpoint: apiEndpoint,
-            timeout: timeout
-        });
-
-        console.log('DocumentBrowser: JupiterService initialized. Current baseUrl:', window.jupiterService.baseUrl);
-    }
-
-    if (!window.authManager) {
-        window.authManager = new AuthManager();
-        // Initialize AuthManager asynchronously and then create DocumentBrowser
-        window.authManager.initialize().then(() => {
-            console.log('AuthManager initialized, creating DocumentBrowser...');
-            if (!window.documentBrowser) {
-                window.documentBrowser = new DocumentBrowser();
+            // Get document information from the API
+            const documentInfo = await window.jupiterService.getDocumentById(documentId);
+            if (!documentInfo) {
+                console.warn('Could not fetch document info for ID:', documentId);
+                return;
             }
-        }).catch(error => {
-            console.error('Failed to initialize AuthManager:', error);
-            // Still create DocumentBrowser even if AuthManager fails
-            if (!window.documentBrowser) {
-                window.documentBrowser = new DocumentBrowser();
+
+            // Create Jupiter document state
+            const jupiterState = {
+                documentId: documentId,
+                documentName: documentInfo.name,
+                folderId: documentInfo.folderId,
+                folderPath: documentInfo.folderPath || this.currentFolderPath || 'Unknown',
+                version: documentInfo.currentVersion || 1,
+                checkoutStatus: documentInfo.checkoutStatus || 'Available',
+                lastSaved: new Date().toISOString(),
+                openedVia: 'DocumentBrowser'
+            };
+
+            // Initialize DocumentStateManager if not already done
+            if (!window.documentStateManager) {
+                window.documentStateManager = new DocumentStateManager();
+                await window.documentStateManager.initialize();
             }
-        });
-    } else {
-        // AuthManager already exists, create DocumentBrowser immediately
-        console.log('Dependencies loaded, creating DocumentBrowser...');
-        if (!window.documentBrowser) {
-            window.documentBrowser = new DocumentBrowser();
+
+            // Set document state in Office settings
+            await window.documentStateManager.setDocumentState(jupiterState);
+
+            // Also set custom properties for persistence across sessions
+            await window.documentStateManager.setDocumentCustomProperties(jupiterState);
+
+            // Update ribbon to show Jupiter document buttons
+            if (window.ribbonManager) {
+                await window.ribbonManager.showExistingDocumentRibbon();
+            }
+
+            // Initialize and start DocumentEditMonitor for checkout workflow
+            await this.initializeDocumentEditMonitor();
+
+            console.log('✅ Document successfully marked as Jupiter-managed');
+
+        } catch (error) {
+            console.error('Error marking document as Jupiter-managed:', error);
         }
     }
-});
+
+    /**
+     * Initialize DocumentEditMonitor for checkout workflow
+     */
+    async initializeDocumentEditMonitor() {
+        try {
+            console.log('🔧 Initializing DocumentEditMonitor...');
+
+            // Ensure all dependencies are available
+            if (!window.documentStateManager) {
+                console.warn('DocumentStateManager not available - cannot initialize edit monitor');
+                return;
+            }
+
+            if (!window.jupiterService) {
+                console.warn('JupiterService not available - cannot initialize edit monitor');
+                return;
+            }
+
+            // Create a simple ribbon manager if not available
+            if (!window.ribbonManager) {
+                window.ribbonManager = {
+                    showCheckoutPrompt: async () => {
+                        console.log('Ribbon manager not available - using fallback');
+                        return false;
+                    }
+                };
+            }
+
+            // Initialize DocumentEditMonitor
+            if (!window.documentEditMonitor) {
+                window.documentEditMonitor = new DocumentEditMonitor(
+                    window.documentStateManager,
+                    window.jupiterService,
+                    window.ribbonManager
+                );
+            }
+
+            // Start monitoring for edit attempts
+            await window.documentEditMonitor.startMonitoring();
+
+            console.log('✅ DocumentEditMonitor initialized and started');
+
+        } catch (error) {
+            console.error('❌ Error initializing DocumentEditMonitor:', error);
+        }
+    }
+}
+
+// Initialize when Office is ready (only if Office is available)
+if (typeof Office !== 'undefined' && Office.onReady) {
+    Office.onReady(() => {
+        console.log('Office is ready, initializing DocumentBrowser...');
+
+        // Ensure all dependencies are loaded
+        if (typeof JupiterConfig === 'undefined') {
+            console.error('JupiterConfig not loaded!');
+            return;
+        }
+
+        if (typeof JupiterService === 'undefined') {
+            console.error('JupiterService not loaded!');
+            return;
+        }
+
+        if (typeof AuthManager === 'undefined') {
+            console.error('AuthManager not loaded!');
+            return;
+        }
+
+        // Initialize global instances
+        window.jupiterConfig = JupiterConfig; // JupiterConfig is an object, not a constructor
+
+        // Initialize JupiterConfig first (this might not have been called)
+        if (typeof window.JupiterConfig.init === 'function') {
+            window.JupiterConfig.init();
+        }
+
+        // Initialize global services if not already done
+        if (!window.jupiterService) {
+            window.jupiterService = new JupiterService();
+
+            // Debug configuration values
+            const baseUrl = window.JupiterConfig.get('server.baseUrl');
+            const apiEndpoint = window.JupiterConfig.get('server.apiEndpoint') || '/api';
+            const timeout = window.JupiterConfig.get('server.timeout') || 30000;
+
+            console.log('DocumentBrowser: Initializing JupiterService with config:', {
+                baseUrl: baseUrl,
+                apiEndpoint: apiEndpoint,
+                timeout: timeout
+            });
+
+            window.jupiterService.initialize({
+                serverUrl: baseUrl,
+                apiEndpoint: apiEndpoint,
+                timeout: timeout
+            });
+
+            console.log('DocumentBrowser: JupiterService initialized. Current baseUrl:', window.jupiterService.baseUrl);
+        }
+
+        if (!window.authManager) {
+            window.authManager = new AuthManager();
+            // Initialize AuthManager asynchronously and then create DocumentBrowser
+            window.authManager.initialize().then(() => {
+                console.log('AuthManager initialized, creating DocumentBrowser...');
+                if (!window.documentBrowser) {
+                    window.documentBrowser = new DocumentBrowser();
+                }
+            }).catch(error => {
+                console.error('Failed to initialize AuthManager:', error);
+                // Still create DocumentBrowser even if AuthManager fails
+                if (!window.documentBrowser) {
+                    window.documentBrowser = new DocumentBrowser();
+                }
+            });
+        } else {
+            // AuthManager already exists, create DocumentBrowser immediately
+            console.log('Dependencies loaded, creating DocumentBrowser...');
+            if (!window.documentBrowser) {
+                window.documentBrowser = new DocumentBrowser();
+            }
+        }
+    });
+} else {
+    console.warn('DocumentBrowser.js: Office.js not available, skipping Office.onReady initialization');
+}
