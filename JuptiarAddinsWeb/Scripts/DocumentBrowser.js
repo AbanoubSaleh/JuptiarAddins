@@ -1407,12 +1407,7 @@ class DocumentBrowser {
                 console.error('❌ Could not initialize DocumentTracker:', trackerError);
             }
 
-            // PRIORITY 5: Initialize DocumentEditMonitor for checkout workflow (legacy support)
-            try {
-                await this.initializeDocumentEditMonitor();
-            } catch (monitorError) {
-                console.warn('⚠️ Could not initialize DocumentEditMonitor:', monitorError.message);
-            }
+            // Edit enforcement is consolidated in DocumentTracker. Legacy DocumentEditMonitor disabled.
 
             console.log('✅ Document successfully marked as Jupiter-managed');
 

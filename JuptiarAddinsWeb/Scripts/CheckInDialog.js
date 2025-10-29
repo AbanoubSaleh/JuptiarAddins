@@ -168,53 +168,23 @@ class CheckInDialogController {
                 return;
             }
 
-            // Show progress
-            this.showProgress('Preparing document for check-in...');
-
-            // Get form data
+            // Collect form data
             const versionComment = DOMUtils.select('#versionComment').value.trim();
             const versionType = document.querySelector('input[name="versionType"]:checked').value;
             const keepCheckedOut = DOMUtils.select('#keepCheckedOut').checked;
 
-            // Update progress
-            this.updateProgress(25, 'Uploading document changes...');
-
-            // Check in document using DocumentUploader
-            const result = await this.documentUploader.checkInDocument(
-                this.documentInfo.id, 
-                versionComment
-            );
-
-            if (result.success) {
-                this.updateProgress(75, 'Updating document status...');
-
-                // Update document state
-                if (!keepCheckedOut) {
-                    await this.documentStateManager.updateCheckoutStatus('Available');
-                }
-
-                this.updateProgress(100, 'Document checked in successfully!');
-                
-                // Show success message
-                this.showSuccess('Document checked in successfully! New version created.');
-                
-                // Update ribbon state
-                await this.ribbonManager.updateCheckoutButtons();
-                
-                // Close dialog after delay
-                setTimeout(() => {
-                    this.handleCancel();
-                }, 2000);
-                
-            } else {
-                this.hideProgress();
-                this.showError('Failed to check in document: ' + (result.error || 'Unknown error'));
+            // In dialog pages, Office doesn't allow accessing the host document content.
+            // Send data back to the parent (taskpane/ribbon) to perform the actual check-in there.
+            const payload = { cancelled: false, versionComment, versionType, keepCheckedOut };
+            if (Office && Office.context && Office.context.ui && Office.context.ui.messageParent) {
+                Office.context.ui.messageParent(JSON.stringify(payload));
+            } else if (window.parent) {
+                // Fallback for environments where messageParent isn't available
+                window.parent.postMessage(JSON.stringify(payload), '*');
             }
-
         } catch (error) {
-            console.error('Error checking in document:', error);
-            this.hideProgress();
-            this.showError('Failed to check in document: ' + error.message);
+            console.error('Error preparing check-in data:', error);
+            this.showError('Failed to prepare check-in: ' + error.message);
         }
     }
 
@@ -292,10 +262,14 @@ class CheckInDialogController {
      * Handle cancel
      */
     handleCancel() {
-        // Close the task pane
-        if (Office.context.ui) {
-            Office.context.ui.closeContainer();
+        // Inform parent that dialog was cancelled
+        const payload = { cancelled: true };
+        if (Office && Office.context && Office.context.ui && Office.context.ui.messageParent) {
+            Office.context.ui.messageParent(JSON.stringify(payload));
+        } else if (window.parent) {
+            window.parent.postMessage(JSON.stringify(payload), '*');
         } else {
+            // Last resort
             window.close();
         }
     }

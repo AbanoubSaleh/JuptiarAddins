@@ -994,26 +994,17 @@ class DocumentUploader {
     async checkInDocument(documentId, versionComment) {
         try {
             const documentBlob = await this.getWordDocumentBlob();
-            const formData = new FormData();
-            formData.append('file', documentBlob);
-            if (versionComment) {
-                formData.append('versionComment', versionComment);
+
+            // Delegate API call to JupiterService for consistency
+            const result = await this.jupiterService.checkInDocument(documentId, documentBlob, versionComment);
+
+            if (result && result.success) {
+                // Update document state
+                await this.documentStateManager.updateCheckoutStatus('Available');
+                return { success: true, document: result.document };
+            } else {
+                throw new Error(result?.error || 'Check-in failed');
             }
-            const response = await fetch(`${this.jupiterService.baseUrl}/api/documents/${documentId}/checkin`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${this.jupiterService.getToken()}`
-                },
-                body: formData
-            });
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Check-in failed: ${response.status} - ${errorText}`);
-            }
-            const document = await response.json();
-            // Update document state
-            await this.documentStateManager.updateCheckoutStatus('Available');
-            return { success: true, document };
         } catch (error) {
             console.error('Error checking in document:', error);
             return { success: false, error: error.message };
