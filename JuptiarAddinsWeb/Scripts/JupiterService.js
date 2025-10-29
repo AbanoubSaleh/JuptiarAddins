@@ -154,6 +154,67 @@ class JupiterService {
     async getDocumentById(documentId) {
         return await this.getDocument(documentId);
     }
+
+    /**
+     * Get document status for checkout validation
+     * @param {string} documentId - Document ID
+     * @returns {Promise<Object>} Document status with checkout information
+     */
+    async getDocumentStatus(documentId) {
+        try {
+            console.log(`🔍 Getting document status for: ${documentId}`);
+
+            const response = await this.makeRequest('GET', `/documents/${documentId}/status`);
+
+            console.log('📄 Document status response:', response);
+            return response;
+
+        } catch (error) {
+            // If the specific status endpoint doesn't exist, fall back to getDocumentById
+            console.warn('Status endpoint not available, falling back to document info');
+
+            try {
+                const documentInfo = await this.getDocumentById(documentId);
+                if (!documentInfo) {
+                    throw new Error('Document not found');
+                }
+
+                // Get current user email for comparison
+                const currentUserEmail = await this.getCurrentUserEmail();
+
+                // Map to expected status format
+                return {
+                    isCheckedOut: documentInfo.checkoutStatus === 'CheckedOut',
+                    checkedOutBy: documentInfo.checkedOutBy || null,
+                    lockedByYou: documentInfo.checkoutStatus === 'CheckedOut' &&
+                               documentInfo.checkedOutBy === currentUserEmail,
+                    checkoutStatus: documentInfo.checkoutStatus,
+                    documentInfo: documentInfo
+                };
+
+            } catch (fallbackError) {
+                console.error('❌ Error getting document status (fallback):', fallbackError);
+                throw fallbackError;
+            }
+        }
+    }
+
+    /**
+     * Get current user email
+     * @returns {Promise<string|null>} Current user email
+     */
+    async getCurrentUserEmail() {
+        try {
+            if (window.authManager && window.authManager.getCurrentUser) {
+                const user = await window.authManager.getCurrentUser();
+                return user?.email || null;
+            }
+            return null;
+        } catch (error) {
+            console.warn('Could not get current user email:', error);
+            return null;
+        }
+    }
     async downloadDocument(documentId) {
         const url = this.getApiUrl(`/documents/${documentId}/download`);
         const headers = {};

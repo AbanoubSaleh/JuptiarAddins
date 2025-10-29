@@ -181,6 +181,58 @@
     <script type="text/javascript" src="Scripts/AuthManager.js?v=2"></script>
     <script type="text/javascript" src="Scripts/DocumentStateManager.js?v=1"></script>
     <script type="text/javascript" src="Scripts/DocumentEditMonitor.js?v=1"></script>
+    <script type="text/javascript" src="Scripts/DocumentTracker.js?v=1"></script>
     <script type="text/javascript" src="Scripts/DocumentBrowser.js?v=3"></script>
+
+    <!-- Initialize DocumentTracker on Office.onReady -->
+    <script type="text/javascript">
+        // Initialize DocumentTracker when Office is ready
+        if (typeof Office !== 'undefined' && Office.onReady) {
+            Office.onReady(async () => {
+                try {
+                    console.log('🚀 Office ready - checking DocumentTracker availability...');
+
+                    // Wait a bit for all scripts to load
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+
+                    console.log('🔍 DocumentTracker available?', typeof DocumentTracker !== 'undefined');
+                    console.log('🔍 DocumentStateManager available?', typeof DocumentStateManager !== 'undefined');
+
+                    if (typeof DocumentTracker !== 'undefined') {
+                        if (!window.documentTracker) {
+                            console.log('🔧 Creating DocumentTracker instance...');
+                            window.documentTracker = new DocumentTracker();
+                            await window.documentTracker.initializeDocumentTracking();
+                            console.log('✅ DocumentTracker initialized from Office.onReady');
+                        }
+                    } else {
+                        console.error('❌ DocumentTracker class not available after 2 second delay');
+                    }
+                } catch (error) {
+                    console.error('❌ Error initializing DocumentTracker from Office.onReady:', error);
+                }
+            });
+        }
+
+        // Also add a global test function
+        window.testDocumentTrackerManually = async function() {
+            try {
+                console.log('🧪 Manual DocumentTracker test...');
+                console.log('DocumentTracker available?', typeof DocumentTracker !== 'undefined');
+
+                if (typeof DocumentTracker !== 'undefined') {
+                    if (!window.documentTracker) {
+                        window.documentTracker = new DocumentTracker();
+                    }
+                    await window.documentTracker.initializeDocumentTracking();
+                    console.log('✅ Manual test completed - try typing now!');
+                } else {
+                    console.error('❌ DocumentTracker class not available');
+                }
+            } catch (error) {
+                console.error('❌ Manual test failed:', error);
+            }
+        };
+    </script>
 </body>
 </html>

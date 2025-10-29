@@ -8,6 +8,7 @@ let documentStateManager = null;
 let ribbonManager = null;
 let documentUploader = null;
 let documentEditMonitor = null;
+let documentTracker = null;
 
 // The initialize function must be run each time a new page is loaded.
 if (typeof Office !== 'undefined' && Office.onReady) {
@@ -81,39 +82,50 @@ async function initializeManagers() {
             console.log('✅ DocumentEditMonitor initialized');
         }
 
-        // Perform comprehensive document detection and update ribbon accordingly
-        if (documentStateManager && ribbonManager) {
-            console.log('🔍 Starting document type detection...');
+        // Initialize DocumentTracker for comprehensive document detection and validation
+        if (typeof DocumentTracker !== 'undefined') {
+            documentTracker = new DocumentTracker();
+            console.log('✅ DocumentTracker initialized');
 
-            const documentType = await documentStateManager.detectDocumentType();
-            console.log('📄 Detected document type:', documentType);
+            // Start document tracking - this will handle all detection and validation
+            await documentTracker.initializeDocumentTracking();
+        } else {
+            // Fallback to legacy document detection if DocumentTracker is not available
+            console.warn('DocumentTracker not available, using legacy detection');
 
-            switch (documentType) {
-                case 'new':
-                    await ribbonManager.showNewDocumentRibbon();
-                    console.log('✅ Applied NEW document ribbon state');
-                    break;
+            if (documentStateManager && ribbonManager) {
+                console.log('🔍 Starting legacy document type detection...');
 
-                case 'jupiter':
-                    await ribbonManager.showExistingDocumentRibbon();
-                    console.log('✅ Applied JUPITER document ribbon state');
+                const documentType = await documentStateManager.detectDocumentType();
+                console.log('📄 Detected document type:', documentType);
 
-                    // Start edit monitoring for Jupiter documents
-                    if (documentEditMonitor) {
-                        await documentEditMonitor.startMonitoring();
-                    }
-                    break;
+                switch (documentType) {
+                    case 'new':
+                        await ribbonManager.showNewDocumentRibbon();
+                        console.log('✅ Applied NEW document ribbon state');
+                        break;
 
-                case 'external':
-                    await ribbonManager.showExternalDocumentRibbon();
-                    console.log('✅ Applied EXTERNAL document ribbon state');
-                    break;
+                    case 'jupiter':
+                        await ribbonManager.showExistingDocumentRibbon();
+                        console.log('✅ Applied JUPITER document ribbon state');
 
-                default:
-                    // Fallback to new document state
-                    await ribbonManager.showNewDocumentRibbon();
-                    console.log('⚠️ Unknown document type, defaulting to NEW document ribbon state');
-                    break;
+                        // Start edit monitoring for Jupiter documents
+                        if (documentEditMonitor) {
+                            await documentEditMonitor.startMonitoring();
+                        }
+                        break;
+
+                    case 'external':
+                        await ribbonManager.showExternalDocumentRibbon();
+                        console.log('✅ Applied EXTERNAL document ribbon state');
+                        break;
+
+                    default:
+                        // Fallback to new document state
+                        await ribbonManager.showNewDocumentRibbon();
+                        console.log('⚠️ Unknown document type, defaulting to NEW document ribbon state');
+                        break;
+                }
             }
         }
 

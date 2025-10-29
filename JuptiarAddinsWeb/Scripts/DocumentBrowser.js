@@ -19,6 +19,9 @@ class DocumentBrowser {
             this.handleAuthStateChange(e.detail);
         });
 
+        // Initialize DocumentTracker for document detection
+        this.initializeDocumentTracker();
+
         // Check authentication status (but don't rely on it being accurate yet)
         this.checkAuthenticationStatus();
 
@@ -1342,42 +1345,86 @@ class DocumentBrowser {
                 return;
             }
 
-            // Create Jupiter document state
-            const jupiterState = {
-                documentId: documentId,
-                documentName: documentInfo.name,
-                folderId: documentInfo.folderId,
-                folderPath: documentInfo.folderPath || this.currentFolderPath || 'Unknown',
-                version: documentInfo.currentVersion || 1,
-                checkoutStatus: documentInfo.checkoutStatus || 'Available',
-                lastSaved: new Date().toISOString(),
-                openedVia: 'DocumentBrowser'
-            };
+            // PRIORITY 1: Set the required Jupiter custom properties for DocumentTracker
+            console.log('📝 Setting Jupiter custom properties...');
+            await this.setJupiterCustomProperties(documentId, documentInfo.libraryId || this.currentLibrary);
 
-            // Initialize DocumentStateManager if not already done
-            if (!window.documentStateManager) {
-                window.documentStateManager = new DocumentStateManager();
-                await window.documentStateManager.initialize();
+            // PRIORITY 2: Try to initialize DocumentStateManager for additional metadata
+            try {
+                if (!window.documentStateManager && typeof DocumentStateManager !== 'undefined') {
+                    window.documentStateManager = new DocumentStateManager();
+                    await window.documentStateManager.initialize();
+                }
+
+                if (window.documentStateManager) {
+                    // Create Jupiter document state
+                    const jupiterState = {
+                        documentId: documentId,
+                        documentName: documentInfo.name,
+                        folderId: documentInfo.folderId,
+                        folderPath: documentInfo.folderPath || 'Unknown',
+                        version: documentInfo.currentVersion || 1,
+                        checkoutStatus: documentInfo.checkoutStatus || 'Available',
+                        lastSaved: new Date().toISOString(),
+                        openedVia: 'DocumentBrowser'
+                    };
+
+                    // Set document state in Office settings
+                    await window.documentStateManager.setDocumentState(jupiterState);
+
+                    // Also set custom properties for persistence across sessions
+                    await window.documentStateManager.setDocumentCustomProperties(jupiterState);
+
+                    console.log('✅ DocumentStateManager metadata set successfully');
+                }
+            } catch (stateManagerError) {
+                console.warn('⚠️ DocumentStateManager not available, but custom properties were set:', stateManagerError.message);
             }
 
-            // Set document state in Office settings
-            await window.documentStateManager.setDocumentState(jupiterState);
-
-            // Also set custom properties for persistence across sessions
-            await window.documentStateManager.setDocumentCustomProperties(jupiterState);
-
-            // Update ribbon to show Jupiter document buttons
-            if (window.ribbonManager) {
-                await window.ribbonManager.showExistingDocumentRibbon();
+            // PRIORITY 3: Update ribbon if available
+            try {
+                if (window.ribbonManager) {
+                    await window.ribbonManager.showExistingDocumentRibbon();
+                }
+            } catch (ribbonError) {
+                console.warn('⚠️ Could not update ribbon:', ribbonError.message);
             }
 
-            // Initialize and start DocumentEditMonitor for checkout workflow
-            await this.initializeDocumentEditMonitor();
+            // PRIORITY 4: Initialize DocumentTracker for comprehensive edit detection
+            try {
+                console.log('🚀 Initializing DocumentTracker after document opened...');
+                if (typeof DocumentTracker !== 'undefined') {
+                    if (!window.documentTracker) {
+                        window.documentTracker = new DocumentTracker();
+                    }
+                    // Force re-initialization to detect the newly set properties
+                    await window.documentTracker.initializeDocumentTracking();
+                    console.log('✅ DocumentTracker initialized successfully');
+                } else {
+                    console.warn('⚠️ DocumentTracker class not available');
+                }
+            } catch (trackerError) {
+                console.error('❌ Could not initialize DocumentTracker:', trackerError);
+            }
+
+            // PRIORITY 5: Initialize DocumentEditMonitor for checkout workflow (legacy support)
+            try {
+                await this.initializeDocumentEditMonitor();
+            } catch (monitorError) {
+                console.warn('⚠️ Could not initialize DocumentEditMonitor:', monitorError.message);
+            }
 
             console.log('✅ Document successfully marked as Jupiter-managed');
 
         } catch (error) {
-            console.error('Error marking document as Jupiter-managed:', error);
+            console.error('❌ Error marking document as Jupiter-managed:', error);
+            // Even if there's an error, try to set the basic custom properties
+            try {
+                await this.setJupiterCustomProperties(documentId, this.currentLibrary);
+                console.log('✅ Fallback: Basic custom properties set');
+            } catch (fallbackError) {
+                console.error('❌ Even fallback failed:', fallbackError);
+            }
         }
     }
 
@@ -1425,6 +1472,186 @@ class DocumentBrowser {
 
         } catch (error) {
             console.error('❌ Error initializing DocumentEditMonitor:', error);
+        }
+    }
+
+    /**
+     * Set Jupiter custom properties required by DocumentTracker
+     * @param {string} documentId - Jupiter document ID
+     * @param {string} libraryId - Jupiter library ID
+     */
+    async setJupiterCustomProperties(documentId, libraryId) {
+        try {
+            console.log('🏷️ Setting Jupiter custom properties:', { documentId, libraryId });
+
+            await Word.run(async (context) => {
+                const properties = context.document.properties.customProperties;
+
+                // Load existing properties to check for duplicates
+                properties.load('items');
+                await context.sync();
+
+                // Remove existing Jupiter properties if they exist
+                const existingProps = properties.items.filter(p =>
+                    p.key === 'JupiterDocumentId' || p.key === 'LibraryId'
+                );
+
+                existingProps.forEach(prop => prop.delete());
+
+                // Add the required custom properties
+                properties.add('JupiterDocumentId', documentId);
+                if (libraryId) {
+                    properties.add('LibraryId', libraryId);
+                }
+
+                await context.sync();
+                console.log('✅ Jupiter custom properties set successfully');
+            });
+
+        } catch (error) {
+            console.error('❌ Error setting Jupiter custom properties:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Detect if current document is managed by Jupiter DMS
+     * @returns {Promise<string|null>} Document ID if Jupiter document, null otherwise
+     */
+    async detectJupiterDocument() {
+        try {
+            console.log('🔍 Detecting Jupiter document...');
+
+            return await Word.run(async (context) => {
+                const properties = context.document.properties.customProperties;
+                properties.load('items');
+                await context.sync();
+
+                // Look for JupiterDocumentId property
+                const jupiterDocProp = properties.items.find(p => p.key === 'JupiterDocumentId');
+
+                if (jupiterDocProp) {
+                    console.log('✅ Jupiter document detected:', jupiterDocProp.value);
+                    return jupiterDocProp.value;
+                } else {
+                    console.log('ℹ️ No Jupiter document ID found - this is not a Jupiter-managed document');
+                    return null;
+                }
+            });
+
+        } catch (error) {
+            console.warn('⚠️ Error detecting Jupiter document:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Show info message for non-Jupiter documents
+     */
+    async showNonJupiterDocumentInfo() {
+        try {
+            const message = "This document is not managed by Jupiter DMS. To manage it, please open a file from the Jupiter library.";
+            const options = [{ text: 'OK', action: 'ok' }];
+
+            await this.showJupiterPopup(message, options);
+
+        } catch (error) {
+            console.error('Error showing non-Jupiter document info:', error);
+        }
+    }
+
+    /**
+     * Show Jupiter popup dialog
+     * @param {string} message - Message to display
+     * @param {Array} options - Button options
+     * @returns {Promise<string>} User's choice
+     */
+    async showJupiterPopup(message, options) {
+        return new Promise((resolve) => {
+            try {
+                const encodedMessage = encodeURIComponent(message);
+                const encodedOptions = encodeURIComponent(JSON.stringify(options));
+                const popupUrl = `${window.location.origin}/jupiter-popup.html?message=${encodedMessage}&options=${encodedOptions}`;
+
+                console.log('🔔 Showing Jupiter popup:', message);
+
+                Office.context.ui.displayDialogAsync(popupUrl, { height: 30, width: 20 }, (result) => {
+                    if (result.status === Office.AsyncResultStatus.Succeeded) {
+                        const dialog = result.value;
+
+                        dialog.addEventHandler(Office.EventType.DialogMessageReceived, (arg) => {
+                            console.log('📨 Popup response:', arg.message);
+                            dialog.close();
+                            resolve(arg.message);
+                        });
+
+                        dialog.addEventHandler(Office.EventType.DialogEventReceived, (arg) => {
+                            console.log('🔔 Dialog event:', arg.error);
+                            dialog.close();
+                            resolve('cancel');
+                        });
+                    } else {
+                        console.error('Failed to show popup:', result.error);
+                        resolve('cancel');
+                    }
+                });
+
+            } catch (error) {
+                console.error('Error showing Jupiter popup:', error);
+                resolve('cancel');
+            }
+        });
+    }
+
+    /**
+     * Initialize DocumentTracker for document detection and validation
+     */
+    async initializeDocumentTracker() {
+        try {
+            console.log('🔍 Initializing DocumentTracker...');
+
+            // Check if DocumentTracker is available
+            if (typeof DocumentTracker === 'undefined') {
+                console.warn('DocumentTracker class not available');
+                return;
+            }
+
+            // Initialize DocumentTracker if not already done
+            if (!window.documentTracker) {
+                window.documentTracker = new DocumentTracker();
+                await window.documentTracker.initializeDocumentTracking();
+                console.log('✅ DocumentTracker initialized successfully');
+            }
+
+        } catch (error) {
+            console.error('❌ Error initializing DocumentTracker:', error);
+        }
+    }
+
+    /**
+     * Manual test function - call from console to test DocumentTracker
+     */
+    async testDocumentTracker() {
+        try {
+            console.log('🧪 Testing DocumentTracker manually...');
+
+            if (typeof DocumentTracker === 'undefined') {
+                console.error('❌ DocumentTracker class not available');
+                return;
+            }
+
+            if (!window.documentTracker) {
+                console.log('🔧 Creating new DocumentTracker instance...');
+                window.documentTracker = new DocumentTracker();
+            }
+
+            console.log('🚀 Initializing DocumentTracker...');
+            await window.documentTracker.initializeDocumentTracking();
+
+            console.log('✅ DocumentTracker test completed - try typing in the document now!');
+
+        } catch (error) {
+            console.error('❌ DocumentTracker test failed:', error);
         }
     }
 }
