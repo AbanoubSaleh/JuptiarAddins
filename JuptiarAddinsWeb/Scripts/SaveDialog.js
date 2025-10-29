@@ -101,6 +101,10 @@ class SaveDialogController {
      */
     async loadInitialData() {
         try {
+            // Start loading libraries immediately (optimistic loading)
+            // This shows the loading spinner right away for better UX
+            const librariesPromise = this.loadLibraries();
+
             // First check if this is a new document
             if (this.documentStateManager) {
                 const isNewDocument = await this.documentStateManager.isNewDocument();
@@ -110,27 +114,38 @@ class SaveDialogController {
                     return;
                 }
             }
-            // Check authentication status
+            // Check authentication status quickly first
             let isAuthenticated = false;
-            if (typeof window.authManager.isAuthenticated === 'function') {
-                isAuthenticated = await window.authManager.isAuthenticated();
-            } else if (window.authManager._isAuthenticated !== undefined) {
-                // Fallback to direct property access
+
+            // Try quick synchronous checks first
+            if (window.authManager._isAuthenticated !== undefined) {
                 isAuthenticated = window.authManager._isAuthenticated;
             } else if (window.authManager.getAuthStatus) {
-                // Fallback to getAuthStatus method
                 const authStatus = window.authManager.getAuthStatus();
                 isAuthenticated = authStatus.isAuthenticated;
             }
+
+            // If not authenticated via quick check, try async method
+            if (!isAuthenticated && typeof window.authManager.isAuthenticated === 'function') {
+                isAuthenticated = await window.authManager.isAuthenticated();
+            }
             this.handleAuthStateChange(isAuthenticated);
             if (isAuthenticated) {
-                // Load libraries for destination selection
-                await this.loadLibraries();
-                // Get suggested document name
-                const suggestedName = await this.documentUploader.getSuggestedDocumentName();
+                // Wait for libraries to finish loading (started earlier)
+                await librariesPromise;
+
+                // Load other data in parallel
+                const [suggestedName] = await Promise.all([
+                    this.documentUploader.getSuggestedDocumentName(),
+                    this.loadDocumentMetadata()
+                ]);
+
                 DOMUtils.select('#fileName').value = suggestedName.replace(/\.[^/.]+$/, ""); // Remove extension
-                // Try to get document metadata from Word
-                await this.loadDocumentMetadata();
+            } else {
+                // If not authenticated, cancel the libraries loading
+                librariesPromise.catch(() => {
+                    // Expected to fail if not authenticated
+                });
             }
         } catch (error) {
             console.error('Error loading initial data:', error);
@@ -187,6 +202,7 @@ class SaveDialogController {
         try {
             const librarySelect = DOMUtils.select('#librarySelect');
             const librarySpinner = DOMUtils.select('#libraryLoadingSpinner');
+
             // Show loading spinner
             librarySpinner.style.display = 'block';
             librarySelect.disabled = true;
@@ -206,8 +222,7 @@ class SaveDialogController {
             librarySelect.disabled = false;
         } catch (error) {
             console.error('Error loading libraries:', error);
-            this.showError('Failed to load libraries: ' + error.message);
-            // Hide spinner and keep dropdown disabled
+            // Hide spinner and keep dropdown disabled (no error message shown to user)
             const librarySpinner = DOMUtils.select('#libraryLoadingSpinner');
             librarySpinner.style.display = 'none';
         }

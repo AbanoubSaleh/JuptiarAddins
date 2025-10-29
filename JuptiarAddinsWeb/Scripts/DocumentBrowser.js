@@ -748,6 +748,44 @@ class DocumentBrowser {
     }
 
     /**
+     * Show delete confirmation dialog (Office Add-ins don't support window.confirm)
+     */
+    showDeleteConfirmation(fileName, onConfirm) {
+        const confirmHtml = `
+            <div class="confirmation-dialog" style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; margin: 10px 0; border-radius: 4px;">
+                <h4 style="margin: 0 0 10px 0; color: #856404;">⚠️ Delete Document</h4>
+                <p style="margin: 0 0 15px 0; color: #856404;">
+                    Are you sure you want to delete "<strong>${fileName}</strong>"?<br>
+                    This action cannot be undone.
+                </p>
+                <div style="text-align: right;">
+                    <button id="confirmDeleteYes" class="ms-Button ms-Button--primary" style="margin-right: 10px; background-color: #d13438; border-color: #d13438;">
+                        <span class="ms-Button-label">Delete</span>
+                    </button>
+                    <button id="confirmDeleteNo" class="ms-Button">
+                        <span class="ms-Button-label">Cancel</span>
+                    </button>
+                </div>
+            </div>
+        `;
+
+        // Show the confirmation in the error section (reusing existing UI)
+        $.html('#errorMessage', confirmHtml);
+        $.show('#errorSection');
+        $.hide('#loadingSection');
+
+        // Handle confirmation buttons
+        $.on('#confirmDeleteYes', 'click', () => {
+            $.hide('#errorSection');
+            onConfirm();
+        });
+
+        $.on('#confirmDeleteNo', 'click', () => {
+            $.hide('#errorSection');
+        });
+    }
+
+    /**
      * Show success message
      */
     showSuccess(message) {
@@ -995,17 +1033,22 @@ class DocumentBrowser {
                 return;
             }
 
-            const confirmed = confirm(`Are you sure you want to delete "${document.fileName}"?`);
-            if (!confirmed) return;
+            // Show confirmation dialog instead of using window.confirm
+            this.showDeleteConfirmation(document.fileName, async () => {
+                try {
+                    this.showLoading('Deleting document...');
 
-            this.showLoading('Deleting document...');
+                    await window.jupiterService.deleteDocument(documentId);
 
-            await window.jupiterService.deleteDocument(documentId);
+                    // Refresh the document list
+                    await this.refreshCurrentView();
 
-            // Refresh the document list
-            await this.refreshCurrentView();
-
-            this.showSuccess('Document deleted successfully');
+                    this.showSuccess('Document deleted successfully');
+                } catch (error) {
+                    console.error('Error deleting document:', error);
+                    this.showError('Failed to delete document: ' + error.message);
+                }
+            });
 
         } catch (error) {
             console.error('Error deleting document:', error);

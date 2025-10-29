@@ -170,11 +170,59 @@ class ErrorHandler {
             return;
         }
 
-        // Fallback to alert for critical errors
+        // Fallback to console for critical errors (alert not supported in Office Add-ins)
         if (severity === 'error') {
-            alert(`Error: ${message}`);
+            console.error(`Error: ${message}`);
+            // Try to show in DOM if possible
+            this.showInDOM(message, severity);
         } else {
             console.warn(`User message (${severity}): ${message}`);
+        }
+    }
+
+    /**
+     * Show message in DOM as fallback when other methods fail
+     */
+    showInDOM(message, severity = 'error') {
+        try {
+            // Try to find a suitable container
+            let container = document.getElementById('messageSection') ||
+                           document.getElementById('errorSection') ||
+                           document.querySelector('.message-container') ||
+                           document.body;
+
+            if (container) {
+                const messageDiv = document.createElement('div');
+                messageDiv.style.cssText = `
+                    position: fixed;
+                    top: 10px;
+                    right: 10px;
+                    background: ${severity === 'error' ? '#f8d7da' : '#fff3cd'};
+                    border: 1px solid ${severity === 'error' ? '#f5c6cb' : '#ffeaa7'};
+                    color: ${severity === 'error' ? '#721c24' : '#856404'};
+                    padding: 15px;
+                    border-radius: 4px;
+                    max-width: 300px;
+                    z-index: 9999;
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    font-size: 14px;
+                `;
+                messageDiv.innerHTML = `
+                    <strong>${severity === 'error' ? '❌ Error' : '⚠️ Warning'}</strong><br>
+                    ${message}
+                `;
+
+                container.appendChild(messageDiv);
+
+                // Auto-remove after 5 seconds
+                setTimeout(() => {
+                    if (messageDiv.parentNode) {
+                        messageDiv.parentNode.removeChild(messageDiv);
+                    }
+                }, 5000);
+            }
+        } catch (domError) {
+            console.error('Could not show message in DOM:', domError);
         }
     }
 
@@ -224,8 +272,9 @@ class ErrorHandler {
             }
         } catch (bannerError) {
             console.warn('Could not show message banner:', bannerError);
-            // Fallback to alert
-            alert(`${severity.toUpperCase()}: ${message}`);
+            // Fallback to console (alert not supported in Office Add-ins)
+            console.error(`${severity.toUpperCase()}: ${message}`);
+            this.showInDOM(message, severity);
         }
     }
 
