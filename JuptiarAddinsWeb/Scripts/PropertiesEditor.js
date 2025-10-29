@@ -291,7 +291,7 @@ class PropertiesEditor {
         documents.forEach(doc => {
             const itemHtml = `
                 <div class="document-item" data-document-id="${doc.id}">
-                    <div class="document-name">${doc.fileName || doc.title || 'Untitled'}</div>
+                    <div class="document-name">${doc.name || doc.fileName || doc.title || 'Untitled'}</div>
                     <div class="document-path">${doc.libraryName || ''} / ${doc.folderPath || ''}</div>
                 </div>
             `;
@@ -394,7 +394,7 @@ class PropertiesEditor {
      */
     showPropertiesEditor() {
         // Update document info
-        const docName = this.currentDocument?.fileName || this.currentDocument?.title || 'Current Document';
+        const docName = this.currentDocument?.name || this.currentDocument?.fileName || this.currentDocument?.title || 'Current Document';
         const status = this.currentDocument?.id ? 'Saved in Juptiar' : 'Not saved to Juptiar';
 
         DOMUtils.text('#currentDocName', docName);

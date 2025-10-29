@@ -592,11 +592,11 @@ class DocumentBrowser {
 
             row.innerHTML = `
                 <td>
-                    <span class="file-icon">${this.getFileTypeIcon(doc.fileName)}</span>
+                    <span class="file-icon">${this.getFileTypeIcon(doc.name || doc.fileName)}</span>
                 </td>
-                <td>${doc.fileName || 'Untitled'}</td>
+                <td>${doc.name || doc.fileName || 'Untitled'}</td>
                 <td>${this.formatDate(doc.modifiedOn || doc.dateModified)}</td>
-                <td>${this.formatFileSize(doc.size)}</td>
+                <td>${this.formatFileSize(doc.fileSizeBytes || doc.size)}</td>
             `;
 
             tbody.appendChild(row);
