@@ -8,6 +8,8 @@ class RibbonManager {
         this.isInitialized = false;
         this.lastKnownDocumentType = null;
         this.stateCheckInterval = null;
+        // Prevent recursive SettingsChanged loops triggered by our own saves
+        this._suppressSettingsEvent = false;
     }
     /**
      * Initialize the ribbon manager
@@ -398,14 +400,37 @@ class RibbonManager {
         try {
             console.log(`🔧 Setting button visibility: ${buttonId} = ${visible}`);
 
-            // Office 2019 doesn't support Office.ribbon.requestUpdate
-            // We need to use a different approach - store button states and handle in button functions
+            // Determine current value to avoid unnecessary writes that trigger SettingsChanged
+            let current = (window.jupiterRibbonState && window.jupiterRibbonState.hasOwnProperty(buttonId))
+                ? window.jupiterRibbonState[buttonId]
+                : undefined;
+
+            let buttonStateKey;
+            if (typeof current === 'undefined' && Office.context && Office.context.document && Office.context.document.settings) {
+                buttonStateKey = `ribbonButton_${buttonId}_visible`;
+                try {
+                    current = Office.context.document.settings.get(buttonStateKey);
+                } catch (_) {
+                    // ignore
+                }
+            }
+
+            if (current === visible) {
+                console.log(`⏭️ No change for ${buttonId}; skipping settings save.`);
+                return;
+            }
 
             // Store button state in document settings for persistence
             if (Office.context && Office.context.document && Office.context.document.settings) {
-                const buttonStateKey = `ribbonButton_${buttonId}_visible`;
+                if (!buttonStateKey) buttonStateKey = `ribbonButton_${buttonId}_visible`;
                 Office.context.document.settings.set(buttonStateKey, visible);
-                await Office.context.document.settings.saveAsync();
+
+                // Suppress handling of the SettingsChanged event triggered by this save
+                this._suppressSettingsEvent = true;
+                await new Promise((resolve) => {
+                    Office.context.document.settings.saveAsync(() => resolve());
+                });
+                this._suppressSettingsEvent = false;
 
                 console.log(`✅ Stored button state: ${buttonStateKey} = ${visible}`);
             }
@@ -419,6 +444,7 @@ class RibbonManager {
             console.log(`✅ Button state updated: ${buttonId} = ${visible}`);
 
         } catch (error) {
+            this._suppressSettingsEvent = false; // fail-safe
             console.error(`Error setting button visibility for ${buttonId}:`, error);
         }
     }
@@ -539,6 +565,10 @@ class RibbonManager {
      */
     async onDocumentSettingsChanged(eventArgs) {
         try {
+            if (this._suppressSettingsEvent) {
+                console.log('⚙️ SettingsChanged triggered by our own save — ignoring.');
+                return;
+            }
             console.log('⚙️ Document settings changed event detected');
 
             // Check if Jupiter document state was updated

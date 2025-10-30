@@ -458,50 +458,72 @@ async function sampleFunction(event) {
  */
 async function getCurrentDocumentAsBlob() {
     try {
-        return await Word.run(async (context) => {
-            // Get the document as a base64 string
-            const documentBody = context.document.body;
-            documentBody.load('*');
-            await context.sync();
+        // Ensure Word has committed the latest content before extraction
+        await Word.run(async (context) => {
+            try {
+                // Load something to ensure context is valid and synced
+                const body = context.document.body;
+                body.load('text');
+                await context.sync();
 
-            // Use Office.js to get the document as a file
-            return new Promise((resolve, reject) => {
-                Office.context.document.getFileAsync(Office.FileType.Compressed, (result) => {
-                    if (result.status === Office.AsyncResultStatus.Succeeded) {
-                        const file = result.value;
-                        const sliceCount = file.sliceCount;
-                        let docData = [];
+                // Try to save to commit pending changes to memory/location
+                await context.document.save();
+                await context.sync();
+            } catch (e) {
+                // Saving can fail in some hosts; continue to attempt extraction anyway
+                console.warn('Save before extraction did not complete (continuing):', e && e.message ? e.message : e);
+            }
+        });
 
-                        // Read all slices
-                        const getSlice = (sliceIndex) => {
-                            file.getSliceAsync(sliceIndex, (sliceResult) => {
-                                if (sliceResult.status === Office.AsyncResultStatus.Succeeded) {
-                                    docData.push(sliceResult.value.data);
+        // Now extract the file as a compressed docx with small slices for reliability
+        return await new Promise((resolve, reject) => {
+            const options = { sliceSize: 65536 };
+            Office.context.document.getFileAsync(Office.FileType.Compressed, options, (result) => {
+                if (result.status === Office.AsyncResultStatus.Succeeded) {
+                    const file = result.value;
+                    const sliceCount = file.sliceCount;
+                    if (sliceCount === 0) {
+                        file.closeAsync();
+                        reject(new Error('Document appears to be empty.'));
+                        return;
+                    }
 
-                                    if (sliceIndex < sliceCount - 1) {
-                                        getSlice(sliceIndex + 1);
-                                    } else {
-                                        // All slices read, create blob
-                                        file.closeAsync();
-                                        const blob = new Blob(docData, { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-                                        resolve(blob);
-                                    }
+                    const docData = [];
+
+                    const getSlice = (sliceIndex) => {
+                        file.getSliceAsync(sliceIndex, (sliceResult) => {
+                            if (sliceResult.status === Office.AsyncResultStatus.Succeeded) {
+                                docData.push(sliceResult.value.data);
+                                if (sliceIndex < sliceCount - 1) {
+                                    getSlice(sliceIndex + 1);
                                 } else {
                                     file.closeAsync();
-                                    reject(new Error('Failed to read document slice'));
+                                    resolve(new Blob(docData, { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }));
                                 }
-                            });
-                        };
+                            } else {
+                                file.closeAsync();
+                                const err = sliceResult.error;
+                                reject(new Error('Failed to read document slice' + (err && err.message ? (': ' + err.message) : '')));
+                            }
+                        });
+                    };
 
-                        getSlice(0);
-                    } else {
-                        reject(new Error('Failed to get document file'));
+                    getSlice(0);
+                } else {
+                    const err = result.error;
+                    // Provide actionable guidance for common cases
+                    let message = 'Unable to extract document content. ';
+                    if (err) {
+                        if (err.code !== undefined) message += `[${err.code}] `;
+                        if (err.message) message += err.message + ' ';
                     }
-                });
+                    message += 'Try saving the document (Ctrl+S) and then retry Check In.';
+                    reject(new Error(message));
+                }
             });
         });
     } catch (error) {
-        console.error('Error getting document as blob:', error);
+        // Avoid double-logging; let the caller handle the error display
         throw error;
     }
 }

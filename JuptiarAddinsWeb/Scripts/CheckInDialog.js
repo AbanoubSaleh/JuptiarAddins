@@ -62,13 +62,11 @@ class CheckInDialogController {
         this.documentStateManager = new DocumentStateManager();
         await this.documentStateManager.initialize();
 
-        // Initialize DocumentUploader
-        this.documentUploader = new DocumentUploader();
-        await this.documentUploader.initialize(window.jupiterService, this.documentStateManager);
-
-        // Initialize RibbonManager
-        this.ribbonManager = new RibbonManager();
-        await this.ribbonManager.initialize(this.documentStateManager);
+        // Note: In dialog pages we avoid initializing features that write to
+        // Office document settings or attach ribbon listeners to prevent loops.
+        // The host (task pane/ribbon) handles ribbon updates and state changes.
+        this.documentUploader = null;
+        this.ribbonManager = null;
     }
 
     /**
@@ -235,21 +233,12 @@ class CheckInDialogController {
             
             this.updateProgress(50, 'Updating document status...');
             
-            // Update document state to mark as available
-            await this.documentStateManager.updateCheckoutStatus('Available');
-            
-            this.updateProgress(100, 'Changes discarded successfully!');
-            
-            // Show success message
-            this.showSuccess('Changes discarded. Document is now available for others to edit.');
-            
-            // Update ribbon state
-            await this.ribbonManager.updateCheckoutButtons();
-            
-            // Close dialog after delay
-            setTimeout(() => {
-                this.handleCancel();
-            }, 2000);
+            // Send a discard request to the parent host to perform the action
+            const payload = { action: 'discard', cancelled: false };
+            if (Office && Office.context && Office.context.ui && Office.context.ui.messageParent) {
+                Office.context.ui.messageParent(JSON.stringify(payload));
+            }
+            // The host will update state, ribbon and close this dialog.
             
         } catch (error) {
             console.error('Error discarding changes:', error);
