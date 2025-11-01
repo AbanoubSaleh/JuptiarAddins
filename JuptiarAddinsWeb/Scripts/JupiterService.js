@@ -167,7 +167,48 @@ class JupiterService {
             const response = await this.makeRequest('GET', `/documents/${documentId}/status`);
 
             console.log('📄 Document status response:', response);
-            return response;
+
+            // Normalize various backend response shapes to a consistent status object
+            const currentUserEmail = (await this.getCurrentUserEmail()) || '';
+            const rawStatus = response?.checkoutStatus ?? response?.status ?? response?.state;
+            const rawIsCheckedOut = typeof response?.isCheckedOut === 'boolean' ? response.isCheckedOut : undefined;
+
+            // Extract checkedOutBy from common fields
+            const checkedOutBy = response?.checkedOutBy || response?.lockedBy || response?.checkedOutByEmail || null;
+
+            // Determine isCheckedOut
+            let isCheckedOut = false;
+            if (typeof rawIsCheckedOut !== 'undefined') {
+                isCheckedOut = rawIsCheckedOut;
+            } else if (typeof rawStatus === 'string') {
+                const s = rawStatus.toLowerCase();
+                isCheckedOut = s === 'checkedout' || s === 'checked_out' || s === 'locked' || s === '1';
+            } else if (typeof rawStatus === 'number') {
+                // Treat 1 as checked out (common enum), 0 as available
+                isCheckedOut = rawStatus === 1;
+            } else if (checkedOutBy) {
+                // If we know who checked it out, treat as checked out
+                isCheckedOut = true;
+            }
+
+            // Determine lockedByYou
+            let lockedByYou = false;
+            if (typeof response?.lockedByYou === 'boolean') {
+                lockedByYou = response.lockedByYou;
+            } else if (checkedOutBy && currentUserEmail) {
+                lockedByYou = String(checkedOutBy).toLowerCase() === String(currentUserEmail).toLowerCase();
+            }
+
+            const normalized = {
+                isCheckedOut,
+                checkedOutBy: checkedOutBy || null,
+                lockedByYou,
+                checkoutStatus: rawStatus ?? (isCheckedOut ? 'CheckedOut' : 'Available'),
+                documentInfo: response?.documentInfo || null,
+                _raw: response
+            };
+
+            return normalized;
 
         } catch (error) {
             // If the specific status endpoint doesn't exist, fall back to getDocumentById
@@ -200,18 +241,25 @@ class JupiterService {
     }
 
     /**
-     * Get current user email
-     * @returns {Promise<string|null>} Current user email
+     * Get current user email (or username if email not available)
+     * @returns {Promise<string|null>} Current user email/username
      */
     async getCurrentUserEmail() {
         try {
-            if (window.authManager && window.authManager.getCurrentUser) {
-                const user = await window.authManager.getCurrentUser();
-                return user?.email || null;
+            if (window.authManager) {
+                if (window.authManager.currentUser) {
+                    const u = window.authManager.currentUser;
+                    return u.email || u.username || u.userName || null;
+                }
+                if (typeof window.authManager.getAuthStatus === 'function') {
+                    const status = window.authManager.getAuthStatus();
+                    const u = status?.user;
+                    return (u && (u.email || u.username || u.userName)) || null;
+                }
             }
             return null;
         } catch (error) {
-            console.warn('Could not get current user email:', error);
+            console.warn('Could not get current user identity:', error);
             return null;
         }
     }
@@ -433,13 +481,29 @@ class JupiterService {
         } catch (error) {
             console.error('❌ Error checking out document:', error);
 
+            // If the backend says it's already checked out, verify who has it.
+            try {
+                const statusMatch = /HTTP\s+(\d+)/i.exec(error.message || '');
+                const statusCode = statusMatch ? parseInt(statusMatch[1], 10) : null;
+                if ((statusCode === 400 || statusCode === 409) && /already\s+checked\s+out/i.test(error.message)) {
+                    const status = await this.getDocumentStatus(documentId);
+                    if (status?.isCheckedOut && status?.lockedByYou) {
+                        // Treat as success: the current user already has it checked out
+                        console.warn('Checkout returned already-checked-out, but it is checked out by current user. Treating as success.');
+                        return { success: true, message: 'Document already checked out by you', ...status };
+                    }
+                }
+            } catch (verifyErr) {
+                console.warn('Could not verify checkout ownership after error:', verifyErr);
+            }
+
             // Parse specific error messages from backend
             let errorMessage = error.message;
-            if (error.message.includes('already checked out')) {
-                errorMessage = 'This document is already checked out by another user. Please try again later.';
-            } else if (error.message.includes('not found')) {
+            if (/already\s+checked\s+out/i.test(error.message)) {
+                errorMessage = 'This document is already checked out by another user.';
+            } else if (/not\s+found/i.test(error.message)) {
                 errorMessage = 'Document not found. It may have been deleted or moved.';
-            } else if (error.message.includes('unauthorized') || error.message.includes('403')) {
+            } else if (/unauthorized|403/i.test(error.message)) {
                 errorMessage = 'You do not have permission to check out this document.';
             }
 
@@ -456,7 +520,7 @@ class JupiterService {
      * @param {FormData} formData - Form data with file and version comment
      * @returns {Promise<Object>} Check-in result
      */
-    async checkInDocument(documentId, fileBlob, versionComment = '', keepCheckedOut = false, fileName = 'document.docx') {
+    async checkInDocument(documentId, fileBlob, versionComment = '', _keepCheckedOut = false, fileName = 'document.docx') {
         try {
             console.log(`📥 Attempting to check in document: ${documentId}`);
 
@@ -468,10 +532,6 @@ class JupiterService {
             }
             if (versionComment) {
                 formData.append('versionComment', versionComment);
-            }
-            // Some backends accept keepCheckedOut; harmless if ignored by API
-            if (typeof keepCheckedOut === 'boolean') {
-                formData.append('keepCheckedOut', keepCheckedOut ? 'true' : 'false');
             }
 
             const response = await fetch(`${this.baseUrl}${this.apiEndpoint}/documents/${documentId}/checkin`, {

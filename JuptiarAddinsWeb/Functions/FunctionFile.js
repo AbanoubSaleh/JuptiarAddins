@@ -243,8 +243,13 @@ async function checkInDocument(event) {
             throw new Error('No document information found. This document may not be managed by Jupiter DMS.');
         }
 
-        // Show check-in dialog to get version comment
-        const checkInResult = await showCheckInDialog();
+        // Prepare dialog init data and show dialog
+        const dialogInit = {
+            documentId: documentState.documentId,
+            documentName: documentState.documentName || (await documentStateManager.getWordDocumentName()),
+            checkoutStatus: documentState.checkoutStatus || 'CheckedOut'
+        };
+        const checkInResult = await showCheckInDialog(dialogInit);
         if (!checkInResult || checkInResult.cancelled) {
             console.log('Check-in cancelled by user');
             event.completed();
@@ -255,14 +260,14 @@ async function checkInDocument(event) {
         const documentBlob = await getCurrentDocumentAsBlob();
 
         // Determine a friendly filename to send to server
-        const fileName = documentState.documentName || (await documentStateManager.getWordDocumentName());
+        const fileName = dialogInit.documentName || (await documentStateManager.getWordDocumentName());
 
         // Check in the document with content and version comment
         const response = await window.jupiterService.checkInDocument(
             documentState.documentId,
             documentBlob,
             checkInResult.versionComment,
-            !!checkInResult.keepCheckedOut,
+            false,
             fileName
         );
 
@@ -484,10 +489,37 @@ async function getCurrentDocumentAsBlob() {
 
                     const docData = [];
 
+                    const toUint8 = (data) => {
+                        try {
+                            if (data instanceof ArrayBuffer) {
+                                return new Uint8Array(data);
+                            }
+                            if (ArrayBuffer.isView(data)) {
+                                return new Uint8Array(data.buffer);
+                            }
+                            if (typeof data === 'string') {
+                                // Some hosts may return base64 for compressed slices
+                                const bin = atob(data);
+                                const out = new Uint8Array(bin.length);
+                                for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+                                return out;
+                            }
+                            if (Array.isArray(data)) {
+                                return new Uint8Array(data);
+                            }
+                            // Fallback: attempt to iterate
+                            return new Uint8Array(Array.from(data || []));
+                        } catch (e) {
+                            console.warn('Could not normalize slice data to bytes:', e);
+                            return new Uint8Array();
+                        }
+                    };
+
                     const getSlice = (sliceIndex) => {
                         file.getSliceAsync(sliceIndex, (sliceResult) => {
                             if (sliceResult.status === Office.AsyncResultStatus.Succeeded) {
-                                docData.push(sliceResult.value.data);
+                                const bytes = toUint8(sliceResult.value.data);
+                                docData.push(bytes);
                                 if (sliceIndex < sliceCount - 1) {
                                     getSlice(sliceIndex + 1);
                                 } else {
@@ -525,10 +557,15 @@ async function getCurrentDocumentAsBlob() {
 /**
  * Show check-in dialog to get version comment
  */
-async function showCheckInDialog() {
+async function showCheckInDialog(initData) {
     try {
         return new Promise((resolve) => {
-            const dialogUrl = new URL('../CheckInDialog.html', window.location.href).href;
+            const url = new URL('../CheckInDialog.html', window.location.href);
+            url.searchParams.set('v', Date.now().toString());
+            const dialogUrl = url.href;
+
+            // Mark dialog as open to suppress noisy SettingsChanged handling while the dialog is active
+            window.jupiterDialogOpen = true;
 
             Office.context.ui.displayDialogAsync(
                 dialogUrl,
@@ -537,23 +574,45 @@ async function showCheckInDialog() {
                     if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
                         const dialog = asyncResult.value;
 
+                        // Send initial document info to the dialog for display
+                        try {
+                            const initPayload = {
+                                type: 'init',
+                                document: {
+                                    id: initData && initData.documentId,
+                                    name: initData && initData.documentName,
+                                    checkoutStatus: (initData && initData.checkoutStatus) || 'CheckedOut'
+                                }
+                            };
+                            dialog.messageChild(JSON.stringify(initPayload));
+                        } catch (e) {
+                            console.warn('Unable to send init payload to dialog:', e);
+                        }
+
                         dialog.addEventHandler(Office.EventType.DialogMessageReceived, (arg) => {
-                            dialog.close();
                             try {
                                 const result = JSON.parse(arg.message);
                                 resolve(result);
                             } catch (error) {
                                 console.error('Error parsing dialog result:', error);
                                 resolve({ cancelled: true });
+                            } finally {
+                                window.jupiterDialogOpen = false;
+                                dialog.close();
                             }
                         });
 
                         dialog.addEventHandler(Office.EventType.DialogEventReceived, (arg) => {
-                            dialog.close();
-                            resolve({ cancelled: true });
+                            try {
+                                resolve({ cancelled: true });
+                            } finally {
+                                window.jupiterDialogOpen = false;
+                                dialog.close();
+                            }
                         });
                     } else {
                         console.error('Failed to open check-in dialog:', asyncResult.error);
+                        window.jupiterDialogOpen = false;
                         resolve({ cancelled: true });
                     }
                 }
@@ -561,6 +620,7 @@ async function showCheckInDialog() {
         });
     } catch (error) {
         console.error('Error showing check-in dialog:', error);
+        window.jupiterDialogOpen = false;
         return { cancelled: true };
     }
 }

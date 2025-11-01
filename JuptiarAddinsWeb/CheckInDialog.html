@@ -61,33 +61,12 @@
 
             </div>
 
-            <!-- Additional Options -->
-            <div class="ms-Grid-col ms-sm12 form-section">
-                <h3 class="ms-font-l">Check-In Options</h3>
-                
-                <div class="ms-CheckBox">
-                    <input type="checkbox" id="notifyUsers" class="ms-CheckBox-input" checked />
-                    <label class="ms-CheckBox-label" for="notifyUsers">
-                        Notify other users about this new version
-                    </label>
-                </div>
-
-                <div class="ms-CheckBox">
-                    <input type="checkbox" id="keepCheckedOut" class="ms-CheckBox-input" />
-                    <label class="ms-CheckBox-label" for="keepCheckedOut">
-                        Keep document checked out after creating version
-                    </label>
-                </div>
-            </div>
 
             <!-- Action Buttons -->
             <div class="ms-Grid-col ms-sm12 action-section">
                 <div class="action-buttons">
                     <button id="checkinBtn" class="ms-Button ms-Button--primary">
                         <span class="ms-Button-label">Check In</span>
-                    </button>
-                    <button id="discardBtn" class="ms-Button ms-Button--secondary">
-                        <span class="ms-Button-label">Discard Changes</span>
                     </button>
                     <button id="cancelBtn" class="ms-Button">
                         <span class="ms-Button-label">Cancel</span>
@@ -126,38 +105,9 @@
         </div>
     </div>
 
-    <!-- Confirmation Dialog -->
-    <div id="discardConfirmDialog" class="modal" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Discard Changes</h3>
-                <span class="close" id="closeDiscardDialog">&times;</span>
-            </div>
-            <div class="modal-body">
-                <div class="warning-content">
-                    <div class="warning-icon">⚠️</div>
-                    <div class="warning-text">
-                        <p><strong>Are you sure you want to discard your changes?</strong></p>
-                        <p>This action cannot be undone. All changes made to the document will be lost, and the document will be returned to its previous state.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button id="confirmDiscardBtn" class="ms-Button ms-Button--primary">
-                    <span class="ms-Button-label">Discard Changes</span>
-                </button>
-                <button id="cancelDiscardBtn" class="ms-Button">
-                    <span class="ms-Button-label">Cancel</span>
-                </button>
-            </div>
-        </div>
-    </div>
 
     <!-- Custom JavaScript -->
-    <script type="text/javascript" src="Scripts/config.js"></script>
-    <script type="text/javascript" src="Scripts/JupiterService.js"></script>
-    <script type="text/javascript" src="Scripts/AuthManager.js"></script>
-    <script type="text/javascript" src="Scripts/DocumentStateManager.js"></script>
-    <script type="text/javascript" src="Scripts/CheckInDialog.js"></script>
+    <script type="text/javascript" src="Scripts/config.js?v=20251101a"></script>
+    <script type="text/javascript" src="Scripts/CheckInDialog.js?v=20251101a"></script>
 </body>
 </html>

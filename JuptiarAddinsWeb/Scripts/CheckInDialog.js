@@ -21,15 +21,12 @@ class CheckInDialogController {
                 window.JupiterConfig.init();
             }
 
-            // Initialize global services
-            await this.initializeServices();
-            
-            // Initialize UI components
+            // Initialize UI components (dialog-only)
             this.initializeUI();
-            
-            // Load document information
-            await this.loadDocumentInfo();
-            
+
+            // Set up lightweight parent<->dialog messaging bridge
+            this.setupMessageBridge();
+
             this.isInitialized = true;
             console.log('CheckInDialogController initialized successfully');
         } catch (error) {
@@ -42,31 +39,10 @@ class CheckInDialogController {
      * Initialize all required services
      */
     async initializeServices() {
-        // Initialize JupiterService
-        if (!window.jupiterService) {
-            window.jupiterService = new JupiterService();
-            window.jupiterService.initialize({
-                serverUrl: window.JupiterConfig.get('server.baseUrl'),
-                apiEndpoint: window.JupiterConfig.get('server.apiEndpoint') || '/api',
-                timeout: window.JupiterConfig.get('server.timeout') || 30000
-            });
-        }
-
-        // Initialize AuthManager
-        if (!window.authManager) {
-            window.authManager = new AuthManager();
-            await window.authManager.initialize();
-        }
-
-        // Initialize DocumentStateManager
-        this.documentStateManager = new DocumentStateManager();
-        await this.documentStateManager.initialize();
-
-        // Note: In dialog pages we avoid initializing features that write to
-        // Office document settings or attach ribbon listeners to prevent loops.
-        // The host (task pane/ribbon) handles ribbon updates and state changes.
-        this.documentUploader = null;
-        this.ribbonManager = null;
+        // Dialog-safe no-op: Do not initialize heavy services in a dialog context.
+        // Parent (taskpane/ribbon) handles auth, state, and network calls.
+        console.log('[Dialog] initializeServices skipped');
+        return;
     }
 
     /**
@@ -78,52 +54,42 @@ class CheckInDialogController {
             this.handleCheckIn();
         });
 
-        // Discard changes button
-        DOMUtils.on('#discardBtn', 'click', () => {
-            this.showDiscardConfirmDialog();
-        });
-
         // Cancel button
         DOMUtils.on('#cancelBtn', 'click', () => {
             this.handleCancel();
-        });
-
-        // Discard confirmation dialog
-        DOMUtils.on('#closeDiscardDialog', 'click', () => {
-            this.hideDiscardConfirmDialog();
-        });
-
-        DOMUtils.on('#cancelDiscardBtn', 'click', () => {
-            this.hideDiscardConfirmDialog();
-        });
-
-        DOMUtils.on('#confirmDiscardBtn', 'click', () => {
-            this.handleDiscardChanges();
         });
     }
 
     /**
      * Load document information
      */
-    async loadDocumentInfo() {
-        try {
-            // Get document state
-            const documentState = await this.documentStateManager.getDocumentState();
-            
-            if (!documentState || !documentState.documentId) {
-                throw new Error('No document information found. This document may not be managed by Jupiter DMS.');
-            }
 
-            // Get document details from Jupiter DMS
-            this.documentInfo = await window.jupiterService.getDocumentById(documentState.documentId);
-            
-            // Update UI with document information
-            this.updateDocumentDisplay();
-            
-        } catch (error) {
-            console.error('Error loading document info:', error);
-            this.showError('Failed to load document information: ' + error.message);
-        }
+    /**
+     * Receive initial data from parent and update the UI.
+     * In dialog pages we cannot access Office document settings; we rely on the parent to send data.
+     */
+    setupMessageBridge() {
+        window.addEventListener('message', (event) => {
+            try {
+                const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                if (data && data.type === 'init' && data.document) {
+                    this.documentInfo = {
+                        name: data.document.name || 'This document',
+                        folderPath: data.document.folderPath || '',
+                        checkoutStatus: data.document.checkoutStatus || 'CheckedOut'
+                    };
+                    this.updateDocumentDisplay();
+                }
+            } catch (err) {
+                console.warn('Ignored invalid init message from parent:', err);
+            }
+        });
+    }
+
+    async loadDocumentInfo() {
+        // Dialog relies on parent to send initial document info via postMessage
+        console.log('[Dialog] loadDocumentInfo skipped; waiting for parent init payload');
+        return;
     }
 
     /**
@@ -168,12 +134,12 @@ class CheckInDialogController {
 
             // Collect form data
             const versionComment = DOMUtils.select('#versionComment').value.trim();
-            const keepCheckedOut = DOMUtils.select('#keepCheckedOut').checked;
+            const keepCheckedOut = false; // UI option removed; backend doesn’t support it
 
             // In dialog pages, Office doesn't allow accessing the host document content.
             // Send data back to the parent (taskpane/ribbon) to perform the actual check-in there.
             const payload = { cancelled: false, versionComment, keepCheckedOut };
-            if (Office && Office.context && Office.context.ui && Office.context.ui.messageParent) {
+            if (typeof Office !== 'undefined' && Office.context && Office.context.ui && typeof Office.context.ui.messageParent === 'function') {
                 Office.context.ui.messageParent(JSON.stringify(payload));
             } else if (window.parent) {
                 // Fallback for environments where messageParent isn't available
@@ -190,7 +156,7 @@ class CheckInDialogController {
      */
     validateForm() {
         const versionComment = DOMUtils.select('#versionComment').value.trim();
-        
+
         if (!versionComment) {
             return { isValid: false, message: 'Please enter a version comment describing your changes.' };
         }
@@ -202,49 +168,6 @@ class CheckInDialogController {
         return { isValid: true };
     }
 
-    /**
-     * Show discard confirmation dialog
-     */
-    showDiscardConfirmDialog() {
-        const dialog = DOMUtils.select('#discardConfirmDialog');
-        dialog.style.display = 'flex';
-    }
-
-    /**
-     * Hide discard confirmation dialog
-     */
-    hideDiscardConfirmDialog() {
-        const dialog = DOMUtils.select('#discardConfirmDialog');
-        dialog.style.display = 'none';
-    }
-
-    /**
-     * Handle discard changes
-     */
-    async handleDiscardChanges() {
-        try {
-            this.hideDiscardConfirmDialog();
-            this.showProgress('Discarding changes...');
-
-            // Here you would implement the logic to discard changes
-            // This might involve reverting to the last saved version
-            // For now, we'll just update the checkout status
-            
-            this.updateProgress(50, 'Updating document status...');
-            
-            // Send a discard request to the parent host to perform the action
-            const payload = { action: 'discard', cancelled: false };
-            if (Office && Office.context && Office.context.ui && Office.context.ui.messageParent) {
-                Office.context.ui.messageParent(JSON.stringify(payload));
-            }
-            // The host will update state, ribbon and close this dialog.
-            
-        } catch (error) {
-            console.error('Error discarding changes:', error);
-            this.hideProgress();
-            this.showError('Failed to discard changes: ' + error.message);
-        }
-    }
 
     /**
      * Handle cancel
@@ -252,7 +175,7 @@ class CheckInDialogController {
     handleCancel() {
         // Inform parent that dialog was cancelled
         const payload = { cancelled: true };
-        if (Office && Office.context && Office.context.ui && Office.context.ui.messageParent) {
+        if (typeof Office !== 'undefined' && Office.context && Office.context.ui && typeof Office.context.ui.messageParent === 'function') {
             Office.context.ui.messageParent(JSON.stringify(payload));
         } else if (window.parent) {
             window.parent.postMessage(JSON.stringify(payload), '*');
@@ -327,10 +250,10 @@ class CheckInDialogController {
 
         // Set message type styling
         messageBar.className = `ms-MessageBar ms-MessageBar--${type}`;
-        
+
         // Set appropriate icon
-        const iconClass = type === 'error' ? 'ms-Icon--Error' : 
-                         type === 'success' ? 'ms-Icon--Completed' : 
+        const iconClass = type === 'error' ? 'ms-Icon--Error' :
+                         type === 'success' ? 'ms-Icon--Completed' :
                          'ms-Icon--Info';
         messageIcon.innerHTML = `<i class="ms-Icon ${iconClass}"></i>`;
 
@@ -346,11 +269,10 @@ class CheckInDialogController {
     }
 }
 
-// Initialize when Office is ready
-Office.onReady(async () => {
+// Initialize when DOM is ready (avoid Office.onReady in dialog to prevent host registration issues)
+document.addEventListener('DOMContentLoaded', async () => {
     const checkInDialogController = new CheckInDialogController();
     await checkInDialogController.initialize();
-    
     // Make it globally available for debugging
     window.checkInDialogController = checkInDialogController;
 });

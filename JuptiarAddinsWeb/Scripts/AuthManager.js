@@ -23,32 +23,45 @@ class AuthManager {
      */
     async loadSettings() {
         try {
-            // Try to load from Office Runtime storage first (more secure)
             let savedSettings = null;
-            try {
-                const settingsJson = await OfficeRuntime.storage.getItem('juptiarSettings');
-                if (settingsJson) {
-                    savedSettings = JSON.parse(settingsJson);
+
+            // Prefer OfficeRuntime.storage when available
+            if (window.OfficeRuntime && OfficeRuntime.storage && typeof OfficeRuntime.storage.getItem === 'function') {
+                try {
+                    const settingsJson = await OfficeRuntime.storage.getItem('juptiarSettings');
+                    if (settingsJson) {
+                        savedSettings = JSON.parse(settingsJson);
+                    }
+                } catch (runtimeError) {
+                    if (window.JupiterConfig?.debug?.enabled) {
+                        console.warn('Runtime storage load failed:', runtimeError);
+                    }
                 }
-            } catch (runtimeError) {
-                console.warn('Could not load from OfficeRuntime storage, trying Office settings:', runtimeError);
-                // Fallback to Office.context.document.settings for backward compatibility
-                await Office.context.document.settings.refreshAsync();
-                savedSettings = Office.context.document.settings.get('juptiarSettings');
             }
+
+            // Fallback to Office.context.document.settings when available
+            if (!savedSettings && typeof Office !== 'undefined' && Office.context && Office.context.document && Office.context.document.settings && typeof Office.context.document.settings.get === 'function') {
+                try {
+                    savedSettings = Office.context.document.settings.get('juptiarSettings');
+                } catch (settingsError) {
+                    if (window.JupiterConfig?.debug?.enabled) {
+                        console.warn('Office settings load failed:', settingsError);
+                    }
+                }
+            }
+
             if (savedSettings) {
                 this.settings = { ...this.settings, ...savedSettings };
-                // Initialize service with settings only if it doesn't have a baseUrl
                 if (window.jupiterService) {
-                    // Only re-initialize if the service doesn't have a baseUrl or if our settings are different
                     if (!window.jupiterService.baseUrl || window.jupiterService.baseUrl === '') {
                         window.jupiterService.initialize(this.settings);
-                    } else {
                     }
                 }
             }
         } catch (error) {
-            console.warn('Could not load settings:', error);
+            if (window.JupiterConfig?.debug?.enabled) {
+                console.warn('Could not load settings:', error);
+            }
         }
     }
     /**
@@ -57,20 +70,36 @@ class AuthManager {
     async saveSettings(newSettings) {
         try {
             this.settings = { ...this.settings, ...newSettings };
-            // Save to Office Runtime storage (primary method)
-            try {
-                await OfficeRuntime.storage.setItem('juptiarSettings', JSON.stringify(this.settings));
-            } catch (runtimeError) {
-                console.warn('Could not save to OfficeRuntime storage, using Office settings fallback:', runtimeError);
-                // Fallback to Office.context.document.settings
-                Office.context.document.settings.set('juptiarSettings', this.settings);
-                await Office.context.document.settings.saveAsync();
+
+            let saved = false;
+            if (window.OfficeRuntime && OfficeRuntime.storage && typeof OfficeRuntime.storage.setItem === 'function') {
+                try {
+                    await OfficeRuntime.storage.setItem('juptiarSettings', JSON.stringify(this.settings));
+                    saved = true;
+                } catch (runtimeError) {
+                    if (window.JupiterConfig?.debug?.enabled) {
+                        console.warn('Runtime storage save failed:', runtimeError);
+                    }
+                }
             }
+
+            if (!saved && typeof Office !== 'undefined' && Office.context && Office.context.document && Office.context.document.settings && typeof Office.context.document.settings.set === 'function' && typeof Office.context.document.settings.saveAsync === 'function') {
+                try {
+                    Office.context.document.settings.set('juptiarSettings', this.settings);
+                    await Office.context.document.settings.saveAsync();
+                    saved = true;
+                } catch (settingsError) {
+                    if (window.JupiterConfig?.debug?.enabled) {
+                        console.warn('Office settings save failed:', settingsError);
+                    }
+                }
+            }
+
             // Update service configuration
             if (window.jupiterService) {
                 window.jupiterService.initialize(this.settings);
             }
-            return true;
+            return saved;
         } catch (error) {
             console.error('Could not save settings:', error);
             throw new Error('Failed to save settings');
@@ -99,17 +128,21 @@ class AuthManager {
     async clearStoredCredentials() {
         try {
             // Clear legacy stored credentials if they exist
-            try {
-                await OfficeRuntime.storage.removeItem('juptiarCredentials');
-            } catch (runtimeError) {
-                // Ignore - likely doesn't exist
+            if (window.OfficeRuntime && OfficeRuntime.storage && typeof OfficeRuntime.storage.removeItem === 'function') {
+                try {
+                    await OfficeRuntime.storage.removeItem('juptiarCredentials');
+                } catch (runtimeError) {
+                    // Ignore - likely doesn't exist
+                }
             }
             // Also clear from Office settings (fallback/legacy)
-            try {
-                Office.context.document.settings.remove('juptiarCredentials');
-                await Office.context.document.settings.saveAsync();
-            } catch (settingsError) {
-                // Ignore - likely doesn't exist
+            if (typeof Office !== 'undefined' && Office.context && Office.context.document && Office.context.document.settings && typeof Office.context.document.settings.remove === 'function' && typeof Office.context.document.settings.saveAsync === 'function') {
+                try {
+                    Office.context.document.settings.remove('juptiarCredentials');
+                    await Office.context.document.settings.saveAsync();
+                } catch (settingsError) {
+                    // Ignore - likely doesn't exist
+                }
             }
             this.storedUsername = null;
             this.storedPassword = null;
@@ -122,7 +155,9 @@ class AuthManager {
      */
     async storeAuthToken(token) {
         try {
-            await OfficeRuntime.storage.setItem('authToken', token);
+            if (window.OfficeRuntime && OfficeRuntime.storage && typeof OfficeRuntime.storage.setItem === 'function') {
+                await OfficeRuntime.storage.setItem('authToken', token);
+            }
         } catch (error) {
             console.error('Could not store auth token:', error);
         }
@@ -132,12 +167,16 @@ class AuthManager {
      */
     async loadAuthToken() {
         try {
-            const token = await OfficeRuntime.storage.getItem('authToken');
-            if (token) {
-                return token;
+            if (window.OfficeRuntime && OfficeRuntime.storage && typeof OfficeRuntime.storage.getItem === 'function') {
+                const token = await OfficeRuntime.storage.getItem('authToken');
+                if (token) {
+                    return token;
+                }
             }
         } catch (error) {
-            console.warn('Could not load auth token:', error);
+            if (window.JupiterConfig?.debug?.enabled) {
+                console.warn('Could not load auth token:', error);
+            }
         }
         return null;
     }
@@ -146,9 +185,13 @@ class AuthManager {
      */
     async clearAuthToken() {
         try {
-            await OfficeRuntime.storage.removeItem('authToken');
+            if (window.OfficeRuntime && OfficeRuntime.storage && typeof OfficeRuntime.storage.removeItem === 'function') {
+                await OfficeRuntime.storage.removeItem('authToken');
+            }
         } catch (error) {
-            console.warn('Could not clear auth token:', error);
+            if (window.JupiterConfig?.debug?.enabled) {
+                console.warn('Could not clear auth token:', error);
+            }
         }
     }
     // Password encryption/decryption methods removed for security

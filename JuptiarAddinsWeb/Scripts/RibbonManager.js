@@ -520,6 +520,11 @@ class RibbonManager {
      */
     async onDocumentSettingsChanged(eventArgs) {
         try {
+            // Suppress ribbon churn while a Jupiter dialog is open
+            if (window.jupiterDialogOpen) {
+                console.log('⚙️ SettingsChanged ignored (dialog open)');
+                return;
+            }
             if (this._suppressSettingsEvent) {
                 console.log('⚙️ SettingsChanged triggered by our own save — ignoring.');
                 return;
