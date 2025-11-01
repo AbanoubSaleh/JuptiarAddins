@@ -492,7 +492,7 @@ body {
 /* Modal Styles */
 .modal {
     position: fixed;
-    z-index: 1000;
+    z-index: 2001;
     left: 0;
     top: 0;
     width: 100%;

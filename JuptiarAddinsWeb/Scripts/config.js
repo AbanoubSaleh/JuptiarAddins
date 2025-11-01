@@ -138,7 +138,12 @@ class DOMUtils {
     static show(element, display = 'block') {
         const el = typeof element === 'string' ? this.select(element) : element;
         if (el) {
-            el.style.display = display;
+            // Ensure overlays/modals are visible correctly
+            if (el.classList && (el.classList.contains('modal') || el.classList.contains('dialog-overlay'))) {
+                el.style.display = 'flex';
+            } else {
+                el.style.display = display;
+            }
         }
     }
 

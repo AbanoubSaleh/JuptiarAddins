@@ -77,9 +77,18 @@ class DocumentBrowser {
                 this.showError('Failed to open document: ' + error.message);
             }
         });
-        $.on('#viewHistory', 'click', async () => {
+        // Use delegated handler to be robust if the menu is re-rendered
+        $.delegate(document, 'click', '#viewHistory', async (e) => {
             try {
-                await this.viewDocumentHistory();
+                e.stopPropagation();
+                const id = this._contextMenuDocId || this.selectedDocument;
+                console.log('🕘 View History clicked; docId =', id);
+                if (!id) {
+                    this.showError('Please select a document first.');
+                    return;
+                }
+                this.hideContextMenu();
+                await this.showVersionHistory(id);
             } catch (error) {
                 console.error('Error loading version history:', error);
                 this.showError('Failed to load version history: ' + error.message);
@@ -1144,8 +1153,10 @@ class DocumentBrowser {
     showContextMenu(event, row) {
         this.selectDocument(row);
 
-        const documentId = $.data(row, 'document-id');
-        const document = this.documents.find(doc => doc.id === documentId);
+        // Persist the context-menu target document id for subsequent actions
+        this._contextMenuDocId = row.getAttribute('data-document-id');
+        const document = this.documents?.find(doc => doc.id === this._contextMenuDocId);
+        console.log('Context menu opened for doc:', this._contextMenuDocId, 'document found:', !!document);
 
         // Enable/disable menu items based on permissions
         $.toggle('#viewHistory', !!document);
@@ -1224,7 +1235,11 @@ class DocumentBrowser {
      * View version history for selected document
      */
     async viewDocumentHistory() {
-        if (!this.selectedDocument) return;
+        if (!this.selectedDocument) {
+            console.warn('View History: no selectedDocument');
+            this.showError('Please select a document first.');
+            return;
+        }
         await this.showVersionHistory(this.selectedDocument);
     }
 
@@ -1233,13 +1248,47 @@ class DocumentBrowser {
      */
     async showVersionHistory(documentId) {
         try {
+            console.log('showVersionHistory called with documentId:', documentId);
             this.hideContextMenu();
+
+            const modal = $.select('#versionHistoryModal');
+            if (!modal) {
+                console.error('Version history modal not found in DOM');
+                this.showError('Version history UI is unavailable.');
+                return;
+            }
+            // Ensure modal becomes visible
             $.show('#versionHistoryModal');
+            console.log('Version history modal shown');
+            // Log the exact URL we will call for transparency
+            if (window.jupiterService) {
+                const url = window.jupiterService.getApiUrl(`/documents/${documentId}/versions`);
+                console.log('Fetching versions from:', url);
+            }
+
             const listEl = $.select('#versionHistoryList');
             if (listEl) {
                 listEl.innerHTML = '<p>Loading versions...</p>';
             }
-            const versions = await window.jupiterService.getDocumentVersions(documentId);
+
+            let versions;
+            if (window.jupiterService && typeof window.jupiterService.getDocumentVersions === 'function') {
+                versions = await window.jupiterService.getDocumentVersions(documentId);
+            } else {
+                console.warn('getDocumentVersions not found on jupiterService – using direct fetch fallback');
+                const baseUrl = window.JupiterConfig?.get('server.baseUrl') || '';
+                const apiEndpoint = window.JupiterConfig?.get('server.apiEndpoint') || '/api';
+                const url = window.jupiterService
+                    ? window.jupiterService.getApiUrl(`/documents/${documentId}/versions`)
+                    : `${baseUrl}${apiEndpoint}/documents/${documentId}/versions`;
+                const headers = {};
+                if (window.jupiterService?.authToken) headers['Authorization'] = `Bearer ${window.jupiterService.authToken}`;
+                const res = await fetch(url, { headers });
+                if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                const ct = res.headers.get('content-type') || '';
+                versions = ct.includes('application/json') ? await res.json() : [];
+            }
+            console.log('Versions received:', versions);
             this.renderVersionHistoryList(documentId, Array.isArray(versions) ? versions : (versions?.items || []));
         } catch (error) {
             console.error('Error loading version history:', error);
@@ -1298,7 +1347,22 @@ class DocumentBrowser {
     async openDocumentVersion(documentId, version) {
         try {
             this.showLoading('Opening version ' + version + '...');
-            const blob = await window.jupiterService.downloadDocumentVersion(documentId, version);
+            let blob;
+            if (window.jupiterService && typeof window.jupiterService.downloadDocumentVersion === 'function') {
+                blob = await window.jupiterService.downloadDocumentVersion(documentId, version);
+            } else {
+                console.warn('downloadDocumentVersion not found on jupiterService  using direct fetch fallback');
+                const baseUrl = window.JupiterConfig?.get('server.baseUrl') || '';
+                const apiEndpoint = window.JupiterConfig?.get('server.apiEndpoint') || '/api';
+                const url = window.jupiterService
+                    ? window.jupiterService.getApiUrl(`/documents/${documentId}/versions/${encodeURIComponent(version)}/download`)
+                    : `${baseUrl}${apiEndpoint}/documents/${documentId}/versions/${encodeURIComponent(version)}/download`;
+                const headers = {};
+                if (window.jupiterService?.authToken) headers['Authorization'] = `Bearer ${window.jupiterService.authToken}`;
+                const response = await fetch(url, { headers });
+                if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                blob = await response.blob();
+            }
 
             const reader = new FileReader();
             reader.onload = async () => {
