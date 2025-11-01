@@ -169,10 +169,23 @@
     <div id="contextMenu" class="context-menu" style="display: none;">
         <ul>
             <li id="openDocument">Open</li>
-            <li id="editDocument">Edit</li>
+            <li id="viewHistory">View History</li>
             <li id="deleteDocument">Delete</li>
             <li id="editProperties">Properties</li>
         </ul>
+    </div>
+
+    <!-- Version History Modal -->
+    <div id="versionHistoryModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Version History</h3>
+                <span class="close" id="closeVersionModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="versionHistoryList" class="version-list"></div>
+            </div>
+        </div>
     </div>
 
     <!-- Custom JavaScript -->

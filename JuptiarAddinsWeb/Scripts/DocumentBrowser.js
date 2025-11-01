@@ -77,12 +77,12 @@ class DocumentBrowser {
                 this.showError('Failed to open document: ' + error.message);
             }
         });
-        $.on('#editDocument', 'click', async () => {
+        $.on('#viewHistory', 'click', async () => {
             try {
-                await this.editSelectedDocument();
+                await this.viewDocumentHistory();
             } catch (error) {
-                console.error('Error editing document:', error);
-                this.showError('Failed to edit document: ' + error.message);
+                console.error('Error loading version history:', error);
+                this.showError('Failed to load version history: ' + error.message);
             }
         });
         $.on('#deleteDocument', 'click', async () => {
@@ -99,6 +99,22 @@ class DocumentBrowser {
             } catch (error) {
                 console.error('Error editing properties:', error);
                 this.showError('Failed to edit properties: ' + error.message);
+            }
+        });
+
+        // Version History modal bindings
+        $.on('#closeVersionModal', 'click', () => this.hideVersionHistory());
+        $.delegate(document, 'click', '.open-version-btn', async (e) => {
+            e.stopPropagation();
+            const btn = e.currentTarget;
+            const documentId = btn.getAttribute('data-document-id');
+            const version = btn.getAttribute('data-version');
+            try {
+                await this.openDocumentVersion(documentId, version);
+                this.hideVersionHistory();
+            } catch (error) {
+                console.error('Error opening version:', error);
+                this.showError('Failed to open selected version: ' + error.message);
             }
         });
 
@@ -628,13 +644,13 @@ class DocumentBrowser {
     async loadDocuments(libraryId, folderId = null) {
         try {
             this.showLoading('Loading documents...');
-            
+
             const response = await window.jupiterService.getDocuments(libraryId, folderId);
             this.documents = response.documents || [];
-            
+
             this.renderDocumentList(this.documents);
             this.hideLoading();
-            
+
         } catch (error) {
             console.error('Error loading documents:', error);
             this.showError('Failed to load documents: ' + error.message);
@@ -699,7 +715,7 @@ class DocumentBrowser {
      */
     formatDate(dateString) {
         if (!dateString) return '-';
-        
+
         try {
             const date = new Date(dateString);
             return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
@@ -713,7 +729,7 @@ class DocumentBrowser {
      */
     formatFileSize(bytes) {
         if (!bytes || bytes === 0) return '-';
-        
+
         const sizes = ['B', 'KB', 'MB', 'GB'];
         const i = Math.floor(Math.log(bytes) / Math.log(1024));
         return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
@@ -1132,7 +1148,7 @@ class DocumentBrowser {
         const document = this.documents.find(doc => doc.id === documentId);
 
         // Enable/disable menu items based on permissions
-        $.toggle('#editDocument', document && document.canEdit);
+        $.toggle('#viewHistory', !!document);
         $.toggle('#deleteDocument', document && document.canDelete);
 
         const contextMenu = $.select('#contextMenu');
@@ -1204,6 +1220,113 @@ class DocumentBrowser {
             this.showError('Failed to open document: ' + error.message);
         }
     }
+    /**
+     * View version history for selected document
+     */
+    async viewDocumentHistory() {
+        if (!this.selectedDocument) return;
+        await this.showVersionHistory(this.selectedDocument);
+    }
+
+    /**
+     * Show version history modal for a document
+     */
+    async showVersionHistory(documentId) {
+        try {
+            this.hideContextMenu();
+            $.show('#versionHistoryModal');
+            const listEl = $.select('#versionHistoryList');
+            if (listEl) {
+                listEl.innerHTML = '<p>Loading versions...</p>';
+            }
+            const versions = await window.jupiterService.getDocumentVersions(documentId);
+            this.renderVersionHistoryList(documentId, Array.isArray(versions) ? versions : (versions?.items || []));
+        } catch (error) {
+            console.error('Error loading version history:', error);
+            this.showError('Failed to load version history: ' + error.message);
+        }
+    }
+
+    /**
+     * Hide version history modal
+     */
+    hideVersionHistory() {
+        $.hide('#versionHistoryModal');
+    }
+
+    /**
+     * Render version history list
+     */
+    renderVersionHistoryList(documentId, versions) {
+        const listEl = $.select('#versionHistoryList');
+        if (!listEl) return;
+
+        if (!versions || versions.length === 0) {
+            listEl.innerHTML = '<p>No versions found.</p>';
+            return;
+        }
+
+        const esc = (s) => String(s || '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
+
+        const rows = versions.map(v => {
+            const vNum = v.version ?? v.versionNumber ?? v.number ?? v.sequence ?? v.id ?? '?';
+            const by = (v.createdBy && (v.createdBy.name || v.createdBy.email)) || v.createdBy || v.author || v.user || '';
+            const dateRaw = v.createdAt || v.createdOn || v.timestamp || v.dateCreated || v.date;
+            const date = dateRaw ? new Date(dateRaw).toLocaleString() : '';
+            const comment = v.comment || v.versionComment || v.message || '';
+            return `
+                <div class='version-row' style='display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee;'>
+                    <div class='version-main'>
+                        <div class='version-title'><strong>v${esc(vNum)}</strong> ${comment ? '- ' + esc(comment) : ''}</div>
+                        <div class='version-meta' style='font-size:12px; color:#555;'>${esc(by || 'Unknown')}${date ? ' • ' + esc(date) : ''}</div>
+                    </div>
+                    <div class='version-actions'>
+                        <button class='ms-Button ms-Button--primary open-version-btn' data-document-id='${esc(documentId)}' data-version='${esc(vNum)}'>
+                            <span class='ms-Button-label'>Open</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        listEl.innerHTML = '<div class=\'version-list-wrap\'>' + rows + '</div>';
+    }
+
+    /**
+     * Open a specific version of a document
+     */
+    async openDocumentVersion(documentId, version) {
+        try {
+            this.showLoading('Opening version ' + version + '...');
+            const blob = await window.jupiterService.downloadDocumentVersion(documentId, version);
+
+            const reader = new FileReader();
+            reader.onload = async () => {
+                try {
+                    const base64Data = reader.result.split(',')[1];
+
+                    await Word.run(async (context) => {
+                        context.document.body.clear();
+                        context.document.body.insertFileFromBase64(base64Data, Word.InsertLocation.start);
+                        await context.sync();
+                    });
+
+                    await this.markDocumentAsJupiterManaged(documentId);
+
+                    this.hideLoading();
+                    this.showSuccess('Version v' + version + ' opened successfully');
+                } catch (error) {
+                    console.error('Error inserting version into Word:', error);
+                    this.showError('Failed to open selected version in Word');
+                }
+            };
+            reader.readAsDataURL(blob);
+        } catch (error) {
+            console.error('Error opening version:', error);
+            this.showError('Failed to open selected version: ' + error.message);
+        }
+    }
+
 
     /**
      * Edit selected document

@@ -275,6 +275,34 @@ class JupiterService {
         }
         return response.blob();
     }
+    /**
+     * Get document versions
+     * @param {string} documentId
+     * @returns {Promise<Array>} Array of version DTOs
+     */
+    async getDocumentVersions(documentId) {
+        return await this.makeRequest('GET', `/documents/${documentId}/versions`);
+    }
+
+    /**
+     * Download a specific document version
+     * @param {string} documentId
+     * @param {string|number} version
+     * @returns {Promise<Blob>} File content
+     */
+    async downloadDocumentVersion(documentId, version) {
+        const url = this.getApiUrl(`/documents/${documentId}/versions/${encodeURIComponent(version)}/download`);
+        const headers = {};
+        if (this.authToken) {
+            headers['Authorization'] = `Bearer ${this.authToken}`;
+        }
+        const response = await fetch(url, { headers });
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.blob();
+    }
+
     async uploadDocument(libraryId, folderId, file, metadata = {}) {
         const formData = new FormData();
         formData.append('file', file);
