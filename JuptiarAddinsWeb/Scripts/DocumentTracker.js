@@ -13,7 +13,7 @@ class DocumentTracker {
         this.validationIntervalMs = 20000; // 20 seconds
         this.isEditing = false;
         this.popupShown = false;
-        
+
         // Bind methods to preserve 'this' context
         this.onDocumentChanged = this.onDocumentChanged.bind(this);
         this.onSelectionChanged = this.onSelectionChanged.bind(this);
@@ -30,7 +30,7 @@ class DocumentTracker {
 
             // Step 1: Detect if document is managed by Jupiter
             const jupiterInfo = await this.getJupiterDocumentId();
-            
+
             if (!jupiterInfo) {
                 // Document is not managed by Jupiter
                 this.isJupiterDocument = false;
@@ -43,7 +43,7 @@ class DocumentTracker {
             this.isJupiterDocument = true;
             this.documentId = jupiterInfo.documentId;
             this.libraryId = jupiterInfo.libraryId;
-            
+
             console.log('✅ Jupiter document detected:', {
                 documentId: this.documentId,
                 libraryId: this.libraryId
@@ -168,18 +168,18 @@ class DocumentTracker {
 
             // Call the backend API to get document status
             const response = await window.jupiterService.getDocumentById(documentId);
-            
+
             if (!response) {
                 throw new Error('No response from backend');
             }
 
             // Map the response to the expected format
             const currentUserEmail = await this.getCurrentUserEmail();
-            
+
             return {
                 isCheckedOut: response.checkoutStatus === 'CheckedOut',
                 checkedOutBy: response.checkedOutBy || null,
-                lockedByYou: response.checkoutStatus === 'CheckedOut' && 
+                lockedByYou: response.checkoutStatus === 'CheckedOut' &&
                            response.checkedOutBy === currentUserEmail,
                 checkoutStatus: response.checkoutStatus,
                 documentInfo: response
@@ -222,17 +222,35 @@ class DocumentTracker {
 
             console.log('📄 Document status:', status);
 
+            // Sync local state so ribbon reflects accurate checkout status
+            try {
+                if (window.documentStateManager && typeof window.documentStateManager.getDocumentState === 'function') {
+                    const localState = await window.documentStateManager.getDocumentState();
+                    const desiredStatus = status.isCheckedOut ? 'CheckedOut' : 'Available';
+                    const needsUpdate = !localState || localState.checkoutStatus !== desiredStatus
+                        || (status.checkedOutBy && localState.checkedOutBy !== status.checkedOutBy);
+                    if (needsUpdate) {
+                        await window.documentStateManager.updateCheckoutStatus(desiredStatus, {
+                            checkedOutBy: status.checkedOutBy,
+                            lockedByYou: !!status.lockedByYou
+                        });
+                    }
+                }
+            } catch (syncErr) {
+                console.warn('⚠️ Could not sync checkout status to document state:', syncErr);
+            }
+
             // Handle different scenarios
             if (!status.isCheckedOut) {
                 // Document is available - user must check out before editing
                 console.log('🔓 Document is available - checkout required for editing');
                 // Don't show popup immediately, wait for edit attempt
-                
+
             } else if (status.isCheckedOut && !status.lockedByYou) {
                 // Document is locked by another user
                 console.log('🔒 Document is locked by another user:', status.checkedOutBy);
                 await this.showLockedByOtherUserPopup(status.checkedOutBy);
-                
+
             } else if (status.isCheckedOut && status.lockedByYou) {
                 // Document is checked out by current user - editing allowed
                 console.log('✅ Document is checked out by you - editing allowed');
@@ -295,6 +313,19 @@ class DocumentTracker {
                 return;
             }
 
+            // Fast-path: trust local document state if it clearly indicates CheckedOut for this document
+            if (window.documentStateManager && typeof window.documentStateManager.getDocumentState === 'function') {
+                try {
+                    const localState = await window.documentStateManager.getDocumentState();
+                    if (localState && localState.documentId === this.documentId && localState.checkoutStatus === 'CheckedOut') {
+                        console.log('✅ Local state indicates document is already checked out by you — allowing edit');
+                        return; // Do not show any popup
+                    }
+                } catch (e) {
+                    console.warn('Could not read local document state:', e && e.message ? e.message : e);
+                }
+            }
+
             console.log('📝 Processing edit attempt...');
             this.isEditing = true;
 
@@ -337,8 +368,12 @@ class DocumentTracker {
             let lastContent = '';
             let isFirstCheck = true;
 
-            // Poll document content every 2 seconds to detect changes
+            // Poll document content every 3 seconds to detect changes
             this.editDetectionInterval = setInterval(async () => {
+                if (this._pollingBusy) {
+                    return;
+                }
+                this._pollingBusy = true;
                 try {
                     if (!this.isJupiterDocument || this.popupShown) {
                         return;
@@ -368,13 +403,14 @@ class DocumentTracker {
                             await this.onDocumentChanged({});
                         }
                     });
-
                 } catch (error) {
                     console.warn('⚠️ Error in alternative edit detection:', error);
+                } finally {
+                    this._pollingBusy = false;
                 }
-            }, 2000); // Check every 2 seconds
+            }, 3000); // Check every 3 seconds
 
-            console.log('✅ Alternative edit detection started (polling every 2 seconds)');
+            console.log('✅ Alternative edit detection started (polling every 3 seconds)');
 
         } catch (error) {
             console.error('❌ Error setting up alternative edit detection:', error);
@@ -426,10 +462,10 @@ class DocumentTracker {
      */
     async showCheckoutRequiredPopup() {
         if (this.popupShown) return;
-        
+
         this.popupShown = true;
         const message = "You need to check out this document before editing.";
-        
+
         const result = await this.showPopup(message, [
             { text: 'Check Out', action: 'checkout' },
             { text: 'Cancel', action: 'cancel' }
@@ -438,7 +474,7 @@ class DocumentTracker {
         if (result === 'checkout') {
             await this.checkOutDocument(this.documentId);
         }
-        
+
         this.popupShown = false;
     }
 

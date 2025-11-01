@@ -168,12 +168,11 @@ class CheckInDialogController {
 
             // Collect form data
             const versionComment = DOMUtils.select('#versionComment').value.trim();
-            const versionType = document.querySelector('input[name="versionType"]:checked').value;
             const keepCheckedOut = DOMUtils.select('#keepCheckedOut').checked;
 
             // In dialog pages, Office doesn't allow accessing the host document content.
             // Send data back to the parent (taskpane/ribbon) to perform the actual check-in there.
-            const payload = { cancelled: false, versionComment, versionType, keepCheckedOut };
+            const payload = { cancelled: false, versionComment, keepCheckedOut };
             if (Office && Office.context && Office.context.ui && Office.context.ui.messageParent) {
                 Office.context.ui.messageParent(JSON.stringify(payload));
             } else if (window.parent) {

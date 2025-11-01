@@ -456,30 +456,42 @@ class JupiterService {
      * @param {FormData} formData - Form data with file and version comment
      * @returns {Promise<Object>} Check-in result
      */
-    async checkInDocument(documentId, fileBlob, versionComment = '') {
+    async checkInDocument(documentId, fileBlob, versionComment = '', keepCheckedOut = false, fileName = 'document.docx') {
         try {
             console.log(`📥 Attempting to check in document: ${documentId}`);
 
             // Create FormData for file upload
             const formData = new FormData();
             if (fileBlob) {
-                formData.append('file', fileBlob, 'document.docx');
+                // Include filename so server can persist a meaningful name
+                formData.append('file', fileBlob, fileName || 'document.docx');
             }
             if (versionComment) {
                 formData.append('versionComment', versionComment);
+            }
+            // Some backends accept keepCheckedOut; harmless if ignored by API
+            if (typeof keepCheckedOut === 'boolean') {
+                formData.append('keepCheckedOut', keepCheckedOut ? 'true' : 'false');
             }
 
             const response = await fetch(`${this.baseUrl}${this.apiEndpoint}/documents/${documentId}/checkin`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${this.authToken}`
+                    'Authorization': `Bearer ${this.authToken}`,
+                    'Accept': 'application/json'
                 },
                 body: formData
             });
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ message: `HTTP ${response.status}` }));
-                throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+                let errorText = '';
+                try {
+                    const errorData = await response.json();
+                    errorText = errorData?.message || '';
+                } catch (_) {
+                    // ignore JSON parse error
+                }
+                throw new Error(errorText || `HTTP error! status: ${response.status}`);
             }
 
             const result = await response.json();
@@ -495,11 +507,11 @@ class JupiterService {
 
             // Parse specific error messages from backend
             let errorMessage = error.message;
-            if (error.message.includes('not checked out')) {
+            if (error.message?.toLowerCase().includes('not checked out')) {
                 errorMessage = 'This document is not currently checked out. Please check out the document first.';
-            } else if (error.message.includes('not found')) {
+            } else if (error.message?.toLowerCase().includes('not found') || error.message?.includes('404')) {
                 errorMessage = 'Document not found. It may have been deleted or moved.';
-            } else if (error.message.includes('unauthorized') || error.message.includes('403')) {
+            } else if (error.message?.toLowerCase().includes('unauthorized') || error.message?.includes('403')) {
                 errorMessage = 'You do not have permission to check in this document.';
             }
 

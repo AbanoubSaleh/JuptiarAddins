@@ -10,6 +10,7 @@ class RibbonManager {
         this.stateCheckInterval = null;
         // Prevent recursive SettingsChanged loops triggered by our own saves
         this._suppressSettingsEvent = false;
+        this._settingsChangedTimer = null;
     }
     /**
      * Initialize the ribbon manager
@@ -190,15 +191,7 @@ class RibbonManager {
                 await this.setButtonVisibility('Jupiter.CheckInButton', false);
                 await this.setButtonVisibility('Jupiter.SaveToJupiterButton', true);
             }
-            // Store document state for button behavior
-            if (this.documentStateManager) {
-                await this.documentStateManager.setDocumentState({
-                    isNew: true,
-                    ribbonMode: 'new',
-                    lastUpdated: new Date().toISOString()
-                });
-            }
-
+            // Note: do not write document state from ribbon; avoid SettingsChanged loops
             console.log('✅ New document ribbon state applied (Office 2019 compatible mode)');
             console.log('ℹ️  Note: In Office 2019, buttons remain visible but will show appropriate messages when clicked');
         } catch (error) {
@@ -255,16 +248,7 @@ class RibbonManager {
                 await this.setButtonVisibility('Jupiter.CheckInButton', true);
                 await this.setButtonVisibility('Jupiter.SaveToJupiterButton', true);
             }
-            // Store document state for button behavior
-            if (this.documentStateManager) {
-                const currentState = await this.documentStateManager.getDocumentState();
-                await this.documentStateManager.setDocumentState({
-                    ...currentState,
-                    isNew: false,
-                    ribbonMode: 'existing',
-                    lastUpdated: new Date().toISOString()
-                });
-            }
+            // Note: do not write document state from ribbon; avoid SettingsChanged loops
             // Update checkout status
             await this.updateCheckoutButtons();
         } catch (error) {
@@ -325,18 +309,7 @@ class RibbonManager {
                 await this.setButtonVisibility('Jupiter.CheckInButton', false);
             }
 
-            // Store document state for button behavior
-            if (this.documentStateManager) {
-                const currentState = await this.documentStateManager.getDocumentState();
-                await this.documentStateManager.setDocumentState({
-                    ...currentState,
-                    isNew: false,
-                    isExternal: true,
-                    ribbonMode: 'external',
-                    lastUpdated: new Date().toISOString()
-                });
-            }
-
+            // Note: do not write document state from ribbon; avoid SettingsChanged loops
             console.log('✅ External document ribbon state applied');
         } catch (error) {
             console.error('Error showing external document ribbon:', error);
@@ -352,22 +325,22 @@ class RibbonManager {
             // First check if this is a new document - if so, hide all checkout buttons
             const isNew = await this.documentStateManager.isNewDocument();
             if (isNew) {
-                await this.setButtonVisibility('CheckOutButton', false);
-                await this.setButtonVisibility('CheckInButton', false);
+                await this.setButtonVisibility('Jupiter.CheckOutButton', false);
+                await this.setButtonVisibility('Jupiter.CheckInButton', false);
                 return;
             }
             // For existing documents, show appropriate checkout buttons based on status
             const checkoutInfo = await this.documentStateManager.getCheckoutInfo();
             if (checkoutInfo && checkoutInfo.status === 'CheckedOut') {
                 // Document is checked out
-                await this.setButtonVisibility('CheckOutButton', false);
-                await this.setButtonVisibility('CheckInButton', true);
-                await this.updateButtonLabel('CheckInButton', 'Check In');
+                await this.setButtonVisibility('Jupiter.CheckOutButton', false);
+                await this.setButtonVisibility('Jupiter.CheckInButton', true);
+                await this.updateButtonLabel('Jupiter.CheckInButton', 'Check In');
             } else {
                 // Document is available
-                await this.setButtonVisibility('CheckOutButton', true);
-                await this.setButtonVisibility('CheckInButton', false);
-                await this.updateButtonLabel('CheckOutButton', 'Check Out');
+                await this.setButtonVisibility('Jupiter.CheckOutButton', true);
+                await this.setButtonVisibility('Jupiter.CheckInButton', false);
+                await this.updateButtonLabel('Jupiter.CheckOutButton', 'Check Out');
             }
         } catch (error) {
             console.error('Error updating checkout buttons:', error);
@@ -398,17 +371,16 @@ class RibbonManager {
      */
     async setButtonVisibility(buttonId, visible) {
         try {
-            console.log(`🔧 Setting button visibility: ${buttonId} = ${visible}`);
-
             // Determine current value to avoid unnecessary writes that trigger SettingsChanged
-            let current = (window.jupiterRibbonState && window.jupiterRibbonState.hasOwnProperty(buttonId))
-                ? window.jupiterRibbonState[buttonId]
+            const key = buttonId;
+            let current = (window.jupiterRibbonState && Object.prototype.hasOwnProperty.call(window.jupiterRibbonState, key))
+                ? window.jupiterRibbonState[key]
                 : undefined;
 
-            let buttonStateKey;
-            if (typeof current === 'undefined' && Office.context && Office.context.document && Office.context.document.settings) {
-                buttonStateKey = `ribbonButton_${buttonId}_visible`;
+            // Try reading persisted value as a last resort (do not save back to settings here)
+            if (typeof current === 'undefined' && Office.context?.document?.settings) {
                 try {
+                    const buttonStateKey = `ribbonButton_${key}_visible`;
                     current = Office.context.document.settings.get(buttonStateKey);
                 } catch (_) {
                     // ignore
@@ -416,35 +388,18 @@ class RibbonManager {
             }
 
             if (current === visible) {
-                console.log(`⏭️ No change for ${buttonId}; skipping settings save.`);
+                // No change; avoid noisy logs/writes
                 return;
             }
 
-            // Store button state in document settings for persistence
-            if (Office.context && Office.context.document && Office.context.document.settings) {
-                if (!buttonStateKey) buttonStateKey = `ribbonButton_${buttonId}_visible`;
-                Office.context.document.settings.set(buttonStateKey, visible);
+            console.log(`🔧 Setting button visibility: ${key} = ${visible}`);
 
-                // Suppress handling of the SettingsChanged event triggered by this save
-                this._suppressSettingsEvent = true;
-                await new Promise((resolve) => {
-                    Office.context.document.settings.saveAsync(() => resolve());
-                });
-                this._suppressSettingsEvent = false;
-
-                console.log(`✅ Stored button state: ${buttonStateKey} = ${visible}`);
-            }
-
-            // Also store in global variable for immediate access
+            // Update only in-memory to avoid SettingsChanged loops in Office 2019 fallback
             if (!window.jupiterRibbonState) {
                 window.jupiterRibbonState = {};
             }
-            window.jupiterRibbonState[buttonId] = visible;
-
-            console.log(`✅ Button state updated: ${buttonId} = ${visible}`);
-
+            window.jupiterRibbonState[key] = visible;
         } catch (error) {
-            this._suppressSettingsEvent = false; // fail-safe
             console.error(`Error setting button visibility for ${buttonId}:`, error);
         }
     }
@@ -569,16 +524,31 @@ class RibbonManager {
                 console.log('⚙️ SettingsChanged triggered by our own save — ignoring.');
                 return;
             }
-            console.log('⚙️ Document settings changed event detected');
-
-            // Check if Jupiter document state was updated
-            const documentState = await this.documentStateManager.getDocumentState();
-            if (documentState && documentState.documentId) {
-                console.log('🏷️ Jupiter document state detected, updating ribbon');
-                await this.showExistingDocumentRibbon();
+            // Debounce rapid successive events
+            if (this._settingsChangedTimer) {
+                clearTimeout(this._settingsChangedTimer);
             }
+            this._settingsChangedTimer = setTimeout(async () => {
+                console.log('⚙️ Document settings changed event detected');
+                try {
+                    // Check if Jupiter document state was updated
+                    const documentState = await this.documentStateManager.getDocumentState();
+                    if (documentState && documentState.documentId) {
+                        const sig = `${documentState.documentId}|${documentState.checkoutStatus}|${documentState.version || ''}`;
+                        if (this._lastProcessedStateSig === sig) {
+                            console.log('ℹ️ Ribbon already up-to-date for current state; skipping update.');
+                            return;
+                        }
+                        this._lastProcessedStateSig = sig;
+                        console.log('🏷️ Jupiter document state detected, updating ribbon');
+                        await this.showExistingDocumentRibbon();
+                    }
+                } catch (innerErr) {
+                    console.error('Error handling (debounced) document settings changed:', innerErr);
+                }
+            }, 250);
         } catch (error) {
-            console.error('Error handling document settings changed:', error);
+            console.error('Error scheduling document settings changed handling:', error);
         }
     }
     /**

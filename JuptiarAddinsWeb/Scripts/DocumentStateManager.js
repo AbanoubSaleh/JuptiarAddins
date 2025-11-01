@@ -486,12 +486,19 @@ class DocumentStateManager {
     async updateCheckoutStatus(status, checkoutInfo = {}) {
         const currentState = await this.getDocumentState();
         if (currentState) {
-            const updatedState = {
+            const nextState = {
                 ...currentState,
                 checkoutStatus: status,
                 ...checkoutInfo
             };
-            await this.setDocumentState(updatedState);
+            // Avoid unnecessary writes that can trigger SettingsChanged loops
+            const noChange = currentState.checkoutStatus === nextState.checkoutStatus &&
+                currentState.checkedOutBy === nextState.checkedOutBy &&
+                currentState.lockedByYou === nextState.lockedByYou;
+            if (noChange) {
+                return;
+            }
+            await this.setDocumentState(nextState);
         }
     }
     /**

@@ -132,17 +132,16 @@
     <Content Include="Home.css" />
     <Content Include="Home.html" />
     <Content Include="Home.js" />
-
     <!-- Juptiar Add-in Pages -->
     <Content Include="DocumentBrowser.html" />
     <Content Include="DocumentBrowser.css" />
     <Content Include="SaveDialog.html" />
     <Content Include="SaveDialog.css" />
+    <Content Include="Scripts\DocumentTracker.js" />
     <Content Include="Settings.html" />
     <Content Include="Settings.css" />
     <Content Include="Properties.html" />
     <Content Include="Properties.css" />
-
     <!-- Jupiter JavaScript Files -->
     <Content Include="Scripts\JupiterService.js" />
     <Content Include="Scripts\AuthManager.js" />
@@ -152,14 +151,12 @@
     <Content Include="Scripts\Settings.js" />
     <Content Include="Scripts\SaveDialog.js" />
     <Content Include="Scripts\Properties.js" />
-
     <!-- Images -->
     <Content Include="Images\AddinIcon.png" />
     <Content Include="Images\Button16x16.png" />
     <Content Include="Images\Button32x32.png" />
     <Content Include="Images\Button80x80.png" />
     <Content Include="Images\Close.png" />
-
     <!-- Jupiter Icons -->
     <Content Include="Images\JupiterIcon16x16.png" />
     <Content Include="Images\JupiterIcon32x32.png" />

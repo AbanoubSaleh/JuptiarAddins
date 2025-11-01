@@ -147,26 +147,25 @@ async function checkOutDocument(event) {
             const isVisible = await window.ribbonManager.isButtonVisible('Jupiter.CheckOutButton');
             if (!isVisible) {
                 console.log('❌ Check Out button is disabled for this document type');
-                Office.context.ui.displayDialogAsync(
-                    'Check Out is not available for this document type. This action is only available for Jupiter-managed documents.',
-                    { height: 30, width: 50 }
-                );
+                showNotification('Jupiter DMS', 'Check Out is not available for this document type. This action is only available for Jupiter-managed documents.');
                 event.completed();
                 return;
             }
         }
 
         if (!documentStateManager) {
-            throw new Error('Document state manager not initialized');
+            try {
+                documentStateManager = new DocumentStateManager();
+                await documentStateManager.initialize();
+            } catch (_) {
+                throw new Error('Document state manager not initialized');
+            }
         }
 
         // Check if this is a new document
         const isNewDocument = await documentStateManager.isNewDocument();
         if (isNewDocument) {
-            Office.context.ui.displayDialogAsync(
-                'Check Out is not available for new documents. Please save the document to Jupiter DMS first.',
-                { height: 30, width: 50 }
-            );
+            showNotification('Jupiter DMS', 'Check Out is not available for new documents. Please save the document to Jupiter DMS first.');
             event.completed();
             return;
         }
@@ -196,10 +195,7 @@ async function checkOutDocument(event) {
             }
 
             // Show success message
-            Office.context.ui.displayDialogAsync(
-                'Document checked out successfully! You can now edit the document.',
-                { height: 30, width: 50 }
-            );
+            showNotification('Jupiter DMS', 'Document checked out successfully! You can now edit the document.');
 
             console.log('✅ Document checked out successfully');
         } else {
@@ -210,10 +206,7 @@ async function checkOutDocument(event) {
         console.error('Error checking out document:', error);
 
         // Show error to user
-        Office.context.ui.displayDialogAsync(
-            `Error: ${error.message}`,
-            { height: 30, width: 50 }
-        );
+        showNotification('Jupiter DMS', `Error: ${error.message}`);
     }
 
     // Required for ribbon functions
@@ -228,16 +221,18 @@ async function checkInDocument(event) {
         console.log('Check in document function called');
 
         if (!documentStateManager) {
-            throw new Error('Document state manager not initialized');
+            try {
+                documentStateManager = new DocumentStateManager();
+                await documentStateManager.initialize();
+            } catch (_) {
+                throw new Error('Document state manager not initialized');
+            }
         }
 
         // Check if this is a new document
         const isNewDocument = await documentStateManager.isNewDocument();
         if (isNewDocument) {
-            Office.context.ui.displayDialogAsync(
-                'Check In is not available for new documents. Please save the document to Jupiter DMS first.',
-                { height: 30, width: 50 }
-            );
+            showNotification('Jupiter DMS', 'Check In is not available for new documents. Please save the document to Jupiter DMS first.');
             event.completed();
             return;
         }
@@ -259,11 +254,16 @@ async function checkInDocument(event) {
         // Get current document content as blob
         const documentBlob = await getCurrentDocumentAsBlob();
 
+        // Determine a friendly filename to send to server
+        const fileName = documentState.documentName || (await documentStateManager.getWordDocumentName());
+
         // Check in the document with content and version comment
         const response = await window.jupiterService.checkInDocument(
             documentState.documentId,
             documentBlob,
-            checkInResult.versionComment
+            checkInResult.versionComment,
+            !!checkInResult.keepCheckedOut,
+            fileName
         );
 
         if (response.success) {
@@ -291,10 +291,7 @@ async function checkInDocument(event) {
             }
 
             // Show success message
-            Office.context.ui.displayDialogAsync(
-                `Document checked in successfully! New version: ${response.document?.currentVersion || 'Unknown'}`,
-                { height: 30, width: 50 }
-            );
+            showNotification('Jupiter DMS', `Document checked in successfully! New version: ${response.document?.currentVersion || 'Unknown'}`);
 
             console.log('✅ Document checked in successfully');
         } else {
@@ -305,10 +302,7 @@ async function checkInDocument(event) {
         console.error('Error checking in document:', error);
 
         // Show error to user
-        Office.context.ui.displayDialogAsync(
-            `Error: ${error.message}`,
-            { height: 30, width: 50 }
-        );
+        showNotification('Jupiter DMS', `Error: ${error.message}`);
     }
 
     // Required for ribbon functions
@@ -534,8 +528,7 @@ async function getCurrentDocumentAsBlob() {
 async function showCheckInDialog() {
     try {
         return new Promise((resolve) => {
-            const baseUrl = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '');
-            const dialogUrl = `${baseUrl}/CheckInDialog.html`;
+            const dialogUrl = new URL('../CheckInDialog.html', window.location.href).href;
 
             Office.context.ui.displayDialogAsync(
                 dialogUrl,
@@ -576,18 +569,31 @@ async function showCheckInDialog() {
  * Show notification to user (Office 2019 compatible)
  */
 function showNotification(title, message) {
+    // Notifications disabled per request: log to console only, no UI popups
     try {
-        if (Office.context.ui && Office.context.ui.displayDialogAsync) {
-            Office.context.ui.displayDialogAsync(
-                `${title}: ${message}`,
-                { height: 30, width: 50 }
-            );
-        } else {
-            console.log(`${title}: ${message}`);
-            alert(`${title}: ${message}`);
+        const fullMessage = `${title ? title + ': ' : ''}${message}`;
+        if (console && console.log) {
+            console.log(fullMessage);
         }
+        // No dialogs/alerts to avoid UX interruptions and missing backend support
     } catch (error) {
-        console.error('Error showing notification:', error);
-        alert(`${title}: ${message}`);
+        // Swallow errors; notifications are non-critical
     }
+}
+
+
+// Associate ribbon commands with handlers (ensures buttons invoke functions)
+try {
+    if (typeof Office !== 'undefined' && Office.actions && typeof Office.actions.associate === 'function') {
+        Office.actions.associate('checkOutDocument', checkOutDocument);
+        Office.actions.associate('checkInDocument', checkInDocument);
+    }
+    // Also expose on window for environments that rely on global functions
+    if (typeof window !== 'undefined') {
+        window.checkOutDocument = checkOutDocument;
+        window.checkInDocument = checkInDocument;
+    }
+} catch (e) {
+    // Safe no-op if Office.actions is not available
+    console.warn('Could not associate Office actions:', e && e.message ? e.message : e);
 }
