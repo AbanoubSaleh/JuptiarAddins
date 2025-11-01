@@ -7,6 +7,8 @@ class DocumentUploader {
         this.jupiterService = null;
         this.documentStateManager = null;
         this.isInitialized = false;
+        // Guard: prevent concurrent duplicate uploads
+        this._savingNew = false;
     }
     /**
      * Initialize the document uploader
@@ -35,6 +37,14 @@ class DocumentUploader {
      * @returns {Promise<Object>} Upload result
      */
     async saveNewDocument(saveOptions) {
+        const requestId = `upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        console.log(`[${requestId}] saveNewDocument invoked`);
+        if (this._savingNew || window._jupiterSaveInFlight) {
+            console.warn(`[${requestId}] Save already in progress; skipping duplicate invocation`);
+            return { success: false, cancelled: true };
+        }
+        this._savingNew = true;
+        window._jupiterSaveInFlight = true;
         try {
             if (!this.isInitialized) {
                 throw new Error('DocumentUploader not initialized');
@@ -137,6 +147,9 @@ class DocumentUploader {
                 console.error('Error saving new document:', error);
             }
             throw error;
+        } finally {
+            this._savingNew = false;
+            window._jupiterSaveInFlight = false;
         }
     }
     /**
@@ -239,6 +252,7 @@ class DocumentUploader {
      * @returns {Promise<Object>} Upload result
      */
     async uploadWithOptions(formData) {
+        const requestId = `post-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
         try {
             const response = await fetch(`${this.jupiterService.baseUrl}/api/documents/upload-with-options`, {
                 method: 'POST',
@@ -247,6 +261,7 @@ class DocumentUploader {
                 },
                 body: formData
             });
+            console.log(`[${requestId}] uploadWithOptions response:`, response.status);
             if (!response.ok) {
                 const errorText = await response.text();
                 throw new Error(`Upload failed: ${response.status} - ${errorText}`);

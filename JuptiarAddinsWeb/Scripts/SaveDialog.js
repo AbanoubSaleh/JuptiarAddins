@@ -12,6 +12,8 @@ class SaveDialogController {
         this.selectedFolderName = null;
         this.selectedFolderPath = null;
         this.isInitialized = false;
+        // Guard: prevent duplicate save submissions
+        this._saving = false;
     }
     /**
      * Initialize the save dialog controller
@@ -80,8 +82,9 @@ class SaveDialogController {
             this.onFolderChange(e.target.value);
         });
         // Save button
-        DOMUtils.on('#saveBtn', 'click', () => {
-            this.handleSaveDocument();
+        DOMUtils.on('#saveBtn', 'click', (e) => {
+            if (e) { e.preventDefault(); e.stopPropagation(); }
+            this.handleSaveDocument(e);
         });
         // Cancel button
         DOMUtils.on('#cancelBtn', 'click', () => {
@@ -317,7 +320,17 @@ class SaveDialogController {
     /**
      * Handle save document
      */
-    async handleSaveDocument() {
+    async handleSaveDocument(e) {
+        const requestId = `save-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        console.log(`[${requestId}] handleSaveDocument called`);
+        if (this._saving || window._jupiterSaveInFlight) {
+            console.warn(`[${requestId}] Save already in progress; ignoring duplicate click`);
+            return;
+        }
+        this._saving = true;
+        window._jupiterSaveInFlight = true;
+        const btn = document.getElementById('saveBtn');
+        if (btn) { btn.disabled = true; btn.classList.add('is-disabled'); }
         try {
             // Validate form
             const validation = this.validateForm();
@@ -361,6 +374,11 @@ class SaveDialogController {
             console.error('Error saving document:', error);
             this.hideProgress();
             this.showError('Failed to save document: ' + error.message);
+        } finally {
+            this._saving = false;
+            window._jupiterSaveInFlight = false;
+            const btn = document.getElementById('saveBtn');
+            if (btn) { btn.disabled = false; btn.classList.remove('is-disabled'); }
         }
     }
     /**
@@ -476,6 +494,10 @@ class SaveDialogController {
 }
 // Initialize when Office is ready
 Office.onReady(async () => {
+    if (window.saveDialogController) {
+        console.warn('SaveDialogController already initialized; skipping duplicate init');
+        return;
+    }
     const saveDialogController = new SaveDialogController();
     await saveDialogController.initialize();
     // Make it globally available for debugging

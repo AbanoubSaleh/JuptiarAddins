@@ -10,6 +10,9 @@ class DocumentBrowser {
         this.documents = [];
         this.selectedDocument = null;
         this.folderTree = [];
+        // Guards to prevent duplicate backend calls
+        this._loadingVersions = false;
+        this._openingVersionKey = null;
 
         this.initializeEventListeners();
 
@@ -80,6 +83,7 @@ class DocumentBrowser {
         // Use delegated handler to be robust if the menu is re-rendered
         $.delegate(document, 'click', '#viewHistory', async (e) => {
             try {
+                e.preventDefault();
                 e.stopPropagation();
                 const id = this._contextMenuDocId || this.selectedDocument;
                 console.log('🕘 View History clicked; docId =', id);
@@ -1247,6 +1251,11 @@ class DocumentBrowser {
      * Show version history modal for a document
      */
     async showVersionHistory(documentId) {
+        if (this._loadingVersions) {
+            console.warn('Version history already loading; skipping duplicate request');
+            return;
+        }
+        this._loadingVersions = true;
         try {
             console.log('showVersionHistory called with documentId:', documentId);
             this.hideContextMenu();
@@ -1293,6 +1302,8 @@ class DocumentBrowser {
         } catch (error) {
             console.error('Error loading version history:', error);
             this.showError('Failed to load version history: ' + error.message);
+        } finally {
+            this._loadingVersions = false;
         }
     }
 
