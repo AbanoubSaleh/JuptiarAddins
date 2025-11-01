@@ -67,20 +67,46 @@ class DocumentStateManager {
      */
     async setDocumentState(state) {
         try {
-            const stateWithTimestamp = {
-                ...state,
-                lastUpdated: new Date().toISOString()
+            // Read previous state to avoid redundant writes that can cause SettingsChanged loops
+            const previous = (() => {
+                try { return Office.context.document.settings.get(this.STATE_KEY) || null; } catch (_) { return null; }
+            })();
+
+            const equalsIgnoringTimestamps = (a, b) => {
+                if (!a || !b) return false;
+                const keys = ['documentId','documentName','folderId','folderPath','version','checkoutStatus','checkedOutBy','lockedByYou'];
+                for (const k of keys) {
+                    if ((a[k] ?? undefined) !== (b[k] ?? undefined)) return false;
+                }
+                return true;
             };
+
+            // Avoid unnecessary saves if nothing material changed
+            if (equalsIgnoringTimestamps(previous, state)) {
+                return false;
+            }
+
+            const stateWithTimestamp = { ...state, lastUpdated: new Date().toISOString() };
+
             return new Promise((resolve, reject) => {
-                Office.context.document.settings.set(this.STATE_KEY, stateWithTimestamp);
-                Office.context.document.settings.saveAsync((result) => {
-                    if (result.status === Office.AsyncResultStatus.Succeeded) {
-                        resolve(true);
-                    } else {
-                        console.error('Failed to save document state:', result.error);
-                        reject(new Error('Failed to save document state'));
-                    }
-                });
+                try {
+                    // Suppress SettingsChanged handler while we persist new state
+                    window._jupiterSuppressSettingsEvent = true;
+                    Office.context.document.settings.set(this.STATE_KEY, stateWithTimestamp);
+                    Office.context.document.settings.saveAsync((result) => {
+                        // Re-enable SettingsChanged handling
+                        window._jupiterSuppressSettingsEvent = false;
+                        if (result.status === Office.AsyncResultStatus.Succeeded) {
+                            resolve(true);
+                        } else {
+                            console.error('Failed to save document state:', result.error);
+                            reject(new Error('Failed to save document state'));
+                        }
+                    });
+                } catch (err) {
+                    window._jupiterSuppressSettingsEvent = false;
+                    reject(err);
+                }
             });
         } catch (error) {
             console.error('Error setting document state:', error);
@@ -93,16 +119,23 @@ class DocumentStateManager {
     async markAsNewDocument() {
         try {
             return new Promise((resolve, reject) => {
-                Office.context.document.settings.remove(this.STATE_KEY);
-                Office.context.document.settings.remove(this.METADATA_KEY);
-                Office.context.document.settings.saveAsync((result) => {
-                    if (result.status === Office.AsyncResultStatus.Succeeded) {
-                        resolve(true);
-                    } else {
-                        console.error('Failed to mark document as new:', result.error);
-                        reject(new Error('Failed to mark document as new'));
-                    }
-                });
+                try {
+                    window._jupiterSuppressSettingsEvent = true;
+                    Office.context.document.settings.remove(this.STATE_KEY);
+                    Office.context.document.settings.remove(this.METADATA_KEY);
+                    Office.context.document.settings.saveAsync((result) => {
+                        window._jupiterSuppressSettingsEvent = false;
+                        if (result.status === Office.AsyncResultStatus.Succeeded) {
+                            resolve(true);
+                        } else {
+                            console.error('Failed to mark document as new:', result.error);
+                            reject(new Error('Failed to mark document as new'));
+                        }
+                    });
+                } catch (err) {
+                    window._jupiterSuppressSettingsEvent = false;
+                    reject(err);
+                }
             });
         } catch (error) {
             console.error('Error marking document as new:', error);
@@ -507,16 +540,23 @@ class DocumentStateManager {
     async clearDocumentState() {
         try {
             return new Promise((resolve, reject) => {
-                Office.context.document.settings.remove(this.STATE_KEY);
-                Office.context.document.settings.remove(this.METADATA_KEY);
-                Office.context.document.settings.saveAsync((result) => {
-                    if (result.status === Office.AsyncResultStatus.Succeeded) {
-                        resolve(true);
-                    } else {
-                        console.error('Failed to clear document state:', result.error);
-                        reject(new Error('Failed to clear document state'));
-                    }
-                });
+                try {
+                    window._jupiterSuppressSettingsEvent = true;
+                    Office.context.document.settings.remove(this.STATE_KEY);
+                    Office.context.document.settings.remove(this.METADATA_KEY);
+                    Office.context.document.settings.saveAsync((result) => {
+                        window._jupiterSuppressSettingsEvent = false;
+                        if (result.status === Office.AsyncResultStatus.Succeeded) {
+                            resolve(true);
+                        } else {
+                            console.error('Failed to clear document state:', result.error);
+                            reject(new Error('Failed to clear document state'));
+                        }
+                    });
+                } catch (err) {
+                    window._jupiterSuppressSettingsEvent = false;
+                    reject(err);
+                }
             });
         } catch (error) {
             console.error('Error clearing document state:', error);

@@ -322,6 +322,9 @@ class RibbonManager {
      */
     async updateCheckoutButtons() {
         try {
+            // Mark the time of a UI update to suppress immediate SettingsChanged loops
+            this._uiUpdateAt = Date.now();
+
             // First check if this is a new document - if so, hide all checkout buttons
             const isNew = await this.documentStateManager.isNewDocument();
             if (isNew) {
@@ -527,6 +530,16 @@ class RibbonManager {
             }
             if (this._suppressSettingsEvent) {
                 console.log('⚙️ SettingsChanged triggered by our own save — ignoring.');
+                return;
+            }
+            // Ignore SettingsChanged events we explicitly caused while writing settings
+            if (window._jupiterSuppressSettingsEvent) {
+                console.log('⚙️ SettingsChanged ignored (suppressed write)');
+                return;
+            }
+            // Ignore bursts of events immediately after UI updates
+            if (this._uiUpdateAt && (Date.now() - this._uiUpdateAt) < 1000) {
+                console.log('⚙️ SettingsChanged ignored (cooldown)');
                 return;
             }
             // Debounce rapid successive events
