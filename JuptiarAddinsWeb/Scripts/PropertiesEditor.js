@@ -21,7 +21,6 @@ class PropertiesEditor {
 
         // Action buttons
         DOMUtils.on('#savePropertiesBtn', 'click', () => this.saveProperties());
-        DOMUtils.on('#resetPropertiesBtn', 'click', () => this.resetProperties());
         DOMUtils.on('#cancelPropertiesBtn', 'click', () => this.cancelEditing());
 
         // Listen for authentication state changes
@@ -437,9 +436,16 @@ class PropertiesEditor {
             // Collect form data
             const updatedMetadata = this.collectFormData();
 
-            // Save to Juptiar if document exists there
+            // Save to Jupiter if document exists there
             if (this.currentDocument?.id) {
-                await window.jupiterService.updateDocumentMetadata(this.currentDocument.id, updatedMetadata);
+                const payload = {
+                    id: this.currentDocument.id,
+                    name: this.currentDocument.name || this.currentDocument.Name || 'Document',
+                    title: updatedMetadata.title || null,
+                    description: updatedMetadata.description || null,
+                    tags: updatedMetadata.tags || null
+                };
+                await window.jupiterService.updateDocument(this.currentDocument.id, payload);
             }
 
             // Update Word document properties
@@ -453,7 +459,7 @@ class PropertiesEditor {
 
         } catch (error) {
             console.error('Error saving properties:', error);
-            this.showError('Failed to save properties: ' + error.message);
+            this.showError('Failed to save properties: ' + (error?.message || error));
         }
     }
 
@@ -490,16 +496,7 @@ class PropertiesEditor {
         });
     }
 
-    /**
-     * Reset properties to original values
-     */
-    resetProperties() {
-        const confirmed = confirm('Are you sure you want to reset all changes?');
-        if (!confirmed) return;
 
-        this.populatePropertiesForm();
-        this.showInfo('Properties reset to original values');
-    }
 
     /**
      * Cancel editing
