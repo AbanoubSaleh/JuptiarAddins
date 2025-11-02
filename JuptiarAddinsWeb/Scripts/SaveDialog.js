@@ -89,7 +89,8 @@ class SaveDialogController {
             this.handleSaveDocument(e);
         });
         // Cancel button
-        DOMUtils.on('#cancelBtn', 'click', () => {
+        DOMUtils.on('#cancelBtn', 'click', (e) => {
+            if (e) { e.preventDefault(); e.stopPropagation(); }
             this.handleCancel();
         });
         // Listen for authentication state changes
@@ -439,6 +440,21 @@ class SaveDialogController {
      * Handle cancel
      */
     handleCancel() {
+        const broadcastClose = () => {
+            try {
+                if (typeof BroadcastChannel !== 'undefined') {
+                    const bc = new BroadcastChannel('jupiter-addin');
+                    bc.postMessage({ type: 'closeTaskpane' });
+                    // Close channel asynchronously
+                    setTimeout(() => { try { bc.close(); } catch(_){} }, 0);
+                }
+            } catch (_) { /* ignore */ }
+            try {
+                if (typeof localStorage !== 'undefined') {
+                    localStorage.setItem('JUPITER_ADDIN_CLOSE_TASKPANE', String(Date.now()));
+                }
+            } catch (_) { /* ignore */ }
+        };
         const fallbackClose = () => {
             try {
                 if (Office.context && Office.context.ui && typeof Office.context.ui.messageParent === 'function') {
@@ -457,6 +473,8 @@ class SaveDialogController {
         try {
             if (Office.addin && typeof Office.addin.hide === 'function') {
                 const result = Office.addin.hide();
+                // Also notify the background function file to hide (for stubborn hosts)
+                broadcastClose();
                 if (result && typeof result.then === 'function') {
                     result.catch((err) => {
                         console.warn('Office.addin.hide() rejected, attempting fallback:', err && err.message ? err.message : err);
@@ -465,12 +483,14 @@ class SaveDialogController {
                 }
                 return;
             }
-            // If hide API not available, use fallback
+            // If hide API not available, signal background and use fallback
+            broadcastClose();
             if (!fallbackClose()) {
                 console.warn('No supported method to close Save dialog in this host.');
             }
         } catch (e) {
             console.warn('Failed to close Save dialog (primary path):', e && e.message ? e.message : e);
+            broadcastClose();
             fallbackClose();
         }
     }

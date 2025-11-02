@@ -10,6 +10,46 @@ let documentUploader = null;
 let documentEditMonitor = null;
 let documentTracker = null;
 
+// Channel for inter-page communication to close the taskpane from SaveDialog
+function setupInterPageCloseChannel() {
+    // Preferred: BroadcastChannel (modern WebView/Edge)
+    try {
+        if (typeof BroadcastChannel !== 'undefined') {
+            const bc = new BroadcastChannel('jupiter-addin');
+            bc.onmessage = async (ev) => {
+                try {
+                    const msg = ev && ev.data;
+                    if (msg && msg.type === 'closeTaskpane') {
+                        if (Office && Office.addin && typeof Office.addin.hide === 'function') {
+                            await Office.addin.hide();
+                        }
+                    }
+                } catch (err) {
+                    console.warn('BroadcastChannel close handler error:', err && err.message ? err.message : err);
+                }
+            };
+        }
+    } catch (e) {
+        console.warn('BroadcastChannel not available:', e && e.message ? e.message : e);
+    }
+    // Fallback: storage event (fires across pages of same origin)
+    try {
+        window.addEventListener('storage', async (e) => {
+            try {
+                if (e && e.key === 'JUPITER_ADDIN_CLOSE_TASKPANE' && e.newValue) {
+                    if (Office && Office.addin && typeof Office.addin.hide === 'function') {
+                        await Office.addin.hide();
+                    }
+                }
+            } catch (err) {
+                console.warn('Storage close handler error:', err && err.message ? err.message : err);
+            }
+        });
+    } catch (e) {
+        console.warn('Storage event not available:', e && e.message ? e.message : e);
+    }
+}
+
 // The initialize function must be run each time a new page is loaded.
 if (typeof Office !== 'undefined' && Office.onReady) {
     Office.onReady(async () => {
@@ -22,6 +62,9 @@ if (typeof Office !== 'undefined' && Office.onReady) {
 
             // Initialize managers
             await initializeManagers();
+
+            // Setup cross-page channel so SaveDialog can request the background to hide the pane
+            setupInterPageCloseChannel();
 
             console.log('Jupiter Add-in initialized successfully');
         } catch (error) {
@@ -345,13 +388,13 @@ async function saveToJupiterDMS(event) {
         // Open the Save Dialog using Office.addin.showAsTaskpane
         try {
             // Try to open the SaveDialog as a taskpane (cache-bust to ensure latest scripts)
-            await Office.addin.showAsTaskpane('SaveDialog.html?v=7');
+            await Office.addin.showAsTaskpane('SaveDialog.html?v=8');
         } catch (taskpaneError) {
             console.warn('Could not open taskpane directly, trying dialog approach:', taskpaneError);
 
             // Fallback: Open as dialog
             const dialogUrl = Office.context.requirements.isSetSupported('DialogApi', '1.1')
-                ? `${window.location.origin}/SaveDialog.html?v=7&ts=${Date.now()}`
+                ? `${window.location.origin}/SaveDialog.html?v=8&ts=${Date.now()}`
                 : null;
 
             if (dialogUrl) {

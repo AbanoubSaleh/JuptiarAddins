@@ -251,7 +251,7 @@
       <bt:Urls>
         <bt:Url id="Contoso.DesktopFunctionFile.Url" DefaultValue="~remoteAppUrl/Functions/FunctionFile.html" />
         <bt:Url id="Jupiter.DocumentBrowser.Url" DefaultValue="~remoteAppUrl/DocumentBrowser.html" />
-        <bt:Url id="Jupiter.SaveDialog.Url" DefaultValue="~remoteAppUrl/SaveDialog.html?v=7" />
+        <bt:Url id="Jupiter.SaveDialog.Url" DefaultValue="~remoteAppUrl/SaveDialog.html?v=8" />
         <bt:Url id="Jupiter.Settings.Url" DefaultValue="~remoteAppUrl/Settings.html" />
         <bt:Url id="Jupiter.Properties.Url" DefaultValue="~remoteAppUrl/Properties.html?v=4" />
         <bt:Url id="Jupiter.CheckInDialog.Url" DefaultValue="~remoteAppUrl/CheckInDialog.html" />
