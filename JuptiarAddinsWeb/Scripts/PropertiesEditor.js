@@ -19,22 +19,6 @@ class PropertiesEditor {
         // Authentication
         DOMUtils.on('#loginBtn', 'click', () => this.showLoginDialog());
 
-        // Document selection
-        DOMUtils.on('#loadFromJuptiarBtn', 'click', () => this.showDocumentSelectionModal());
-        DOMUtils.on('#useCurrentDocBtn', 'click', () => this.useCurrentDocument());
-
-        // Tab switching
-        DOMUtils.on('.tab-header', 'click', (e) => this.switchTab(e.currentTarget));
-
-        // Document selection modal
-        DOMUtils.on('#closeDocumentModal', 'click', () => this.hideDocumentSelectionModal());
-        DOMUtils.on('#selectDocumentBtn', 'click', () => this.selectDocumentFromModal());
-        DOMUtils.on('#cancelDocumentBtn', 'click', () => this.hideDocumentSelectionModal());
-        DOMUtils.on('#documentSearch', 'input', () => this.filterDocuments());
-
-        // Document list selection
-        DOMUtils.delegate(document, 'click', '.document-item', (e) => this.selectDocumentItem(e.currentTarget));
-
         // Action buttons
         DOMUtils.on('#savePropertiesBtn', 'click', () => this.saveProperties());
         DOMUtils.on('#resetPropertiesBtn', 'click', () => this.resetProperties());
@@ -51,8 +35,14 @@ class PropertiesEditor {
      */
     async initialize() {
         try {
+            // Force-hide legacy sections if cached HTML is still present
+            try {
+                const ds = document.getElementById('documentSection'); if (ds) ds.style.display = 'none';
+                const ts = document.getElementById('tabsSection'); if (ts) ts.style.display = 'none';
+            } catch (e) {}
+
             await this.checkAuthentication();
-            
+
             // Check if there's a specific document to edit
             const editDocumentId = Office.context.document.settings.get('editPropertiesDocumentId');
             if (editDocumentId) {
@@ -62,7 +52,7 @@ class PropertiesEditor {
             } else {
                 await this.useCurrentDocument();
             }
-            
+
         } catch (error) {
             console.error('Error initializing properties editor:', error);
             this.showError('Failed to initialize properties editor: ' + error.message);
@@ -100,7 +90,6 @@ class PropertiesEditor {
         DOMUtils.hide('#loginBtn');
         DOMUtils.removeClass('.status-indicator', 'offline');
         DOMUtils.addClass('.status-indicator', 'online');
-        DOMUtils.show('#documentSection');
         DOMUtils.hide('#authSection');
     }
 
@@ -112,8 +101,7 @@ class PropertiesEditor {
         DOMUtils.show('#loginBtn');
         DOMUtils.removeClass('.status-indicator', 'online');
         DOMUtils.addClass('.status-indicator', 'offline');
-        DOMUtils.hide('#documentSection');
-        DOMUtils.hide('#tabsSection');
+        DOMUtils.hide('#metaSection');
         DOMUtils.hide('#actionSection');
         DOMUtils.show('#authSection');
     }
@@ -152,6 +140,16 @@ class PropertiesEditor {
      * Load current Word document information
      */
     async loadCurrentWordDocument() {
+        // Resolve Jupiter-managed document ID from DocumentStateManager first
+        let jupiterId = null;
+        try {
+            const dsm = new DocumentStateManager();
+            await dsm.initialize();
+            const state = await dsm.getDocumentState();
+            jupiterId = (state && state.documentId) ? state.documentId : (Office.context.document.settings.get('currentJuptiarDocumentId') || null);
+        } catch (e) {
+            try { jupiterId = Office.context.document.settings.get('currentJuptiarDocumentId') || null; } catch (_) { jupiterId = null; }
+        }
         return new Promise((resolve, reject) => {
             Word.run(async (context) => {
                 try {
@@ -163,7 +161,7 @@ class PropertiesEditor {
                     await context.sync();
                     
                     this.currentDocument = {
-                        id: Office.context.document.settings.get('currentJuptiarDocumentId') || null,
+                        id: jupiterId,
                         title: properties.title,
                         author: properties.author,
                         subject: properties.subject,
@@ -185,35 +183,38 @@ class PropertiesEditor {
      * Load document metadata from Word properties
      */
     async loadDocumentMetadataFromWord() {
+        // Default empty metadata
         this.documentMetadata = {
-            title: this.currentDocument.title || '',
-            description: this.currentDocument.subject || '',
-            tags: this.currentDocument.keywords || '',
-            author: this.currentDocument.author || '',
-            language: 'en',
-            customId: '',
-            source: '',
-            originalId: this.currentDocument.id || '',
-            recipient: '',
-            object: this.currentDocument.category || '',
-            coverage: '',
-            type: '',
-            securityLevel: 'internal',
-            allowDownload: true,
-            allowPrint: true,
-            allowEdit: false
+            title: '',
+            description: '',
+            tags: ''
         };
-        
-        // If document is from Juptiar, load additional metadata
-        if (this.currentDocument.id) {
-            try {
-                const jupiterMetadata = await window.jupiterService.getDocumentMetadata(this.currentDocument.id);
-                this.documentMetadata = { ...this.documentMetadata, ...jupiterMetadata };
 
-                // Load user permissions
-                this.userPermissions = await window.jupiterService.getUserPermissions(this.currentDocument.id);
+        // If document is from Jupiter, load metadata from backend (by Id)
+        if (this.currentDocument && this.currentDocument.id) {
+            try {
+                const doc = await window.jupiterService.getDocument(this.currentDocument.id);
+                this.currentDocument = doc;
+                this.documentMetadata = {
+                    title: doc.title || '',
+                    description: doc.description || '',
+                    tags: doc.tags || ''
+                };
             } catch (error) {
-                console.warn('Could not load Juptiar metadata:', error);
+                console.warn('Could not load Jupiter document by id:', error);
+                try {
+                    const messageBar = document.getElementById('messageBar');
+                    if (messageBar) {
+                        messageBar.className = 'ms-MessageBar ms-MessageBar--warning';
+                        const messageIcon = document.querySelector('#messageIcon i');
+                        if (messageIcon) messageIcon.className = 'ms-Icon ms-Icon--Info';
+                        const messageText = document.getElementById('messageText');
+                        if (messageText) messageText.textContent = 'This dialog is for existing documents only. Use "Save to Jupiter" to save new documents first.';
+                        DOMUtils.show('#messageSection');
+                    }
+                } catch (_) {}
+                DOMUtils.hide('#metaSection');
+                DOMUtils.hide('#actionSection');
             }
         }
     }
@@ -225,22 +226,34 @@ class PropertiesEditor {
         try {
             this.showLoading('Loading document from Juptiar...');
             
-            const document = await window.jupiterService.getDocument(documentId);
-            const metadata = await window.jupiterService.getDocumentMetadata(documentId);
-            const permissions = await window.jupiterService.getUserPermissions(documentId);
-            
-            this.currentDocument = document;
-            this.documentMetadata = metadata;
-            this.userPermissions = permissions;
-            
+            const doc = await window.jupiterService.getDocument(documentId);
+            this.currentDocument = doc;
+            this.documentMetadata = {
+                title: doc.title || '',
+                description: doc.description || '',
+                tags: doc.tags || ''
+            };
+
             this.populatePropertiesForm();
             this.showPropertiesEditor();
             
             this.hideLoading();
             
         } catch (error) {
-            console.error('Error loading document:', error);
-            this.showError('Failed to load document: ' + error.message);
+            console.warn('Could not load document from Juptiar:', error);
+            try {
+                const messageBar = document.getElementById('messageBar');
+                if (messageBar) {
+                    messageBar.className = 'ms-MessageBar ms-MessageBar--warning';
+                    const messageIcon = document.querySelector('#messageIcon i');
+                    if (messageIcon) messageIcon.className = 'ms-Icon ms-Icon--Info';
+                    const messageText = document.getElementById('messageText');
+                    if (messageText) messageText.textContent = 'This dialog is for existing documents only. Use "Save to Jupiter" to save new documents first.';
+                    DOMUtils.show('#messageSection');
+                }
+            } catch (_) {}
+            DOMUtils.hide('#metaSection');
+            DOMUtils.hide('#actionSection');
         }
     }
 
@@ -366,42 +379,18 @@ class PropertiesEditor {
     populatePropertiesForm() {
         if (!this.documentMetadata) return;
 
-        // General tab
+        // Minimal fields only
         DOMUtils.val('#docTitle', this.documentMetadata.title || '');
         DOMUtils.val('#docDescription', this.documentMetadata.description || '');
         DOMUtils.val('#docTags', this.documentMetadata.tags || '');
-        DOMUtils.val('#docAuthor', this.documentMetadata.author || '');
-        DOMUtils.val('#docLanguage', this.documentMetadata.language || 'en');
-
-        // Extended tab
-        DOMUtils.val('#customId', this.documentMetadata.customId || '');
-        DOMUtils.val('#docSource', this.documentMetadata.source || '');
-        DOMUtils.val('#originalId', this.documentMetadata.originalId || '');
-        DOMUtils.val('#docRecipient', this.documentMetadata.recipient || '');
-        DOMUtils.val('#docObject', this.documentMetadata.object || '');
-        DOMUtils.val('#docCoverage', this.documentMetadata.coverage || '');
-        DOMUtils.val('#docType', this.documentMetadata.type || '');
-
-        // Permissions tab
-        DOMUtils.val('#securityLevel', this.documentMetadata.securityLevel || 'internal');
-        DOMUtils.prop('#allowDownload', 'checked', this.documentMetadata.allowDownload !== false);
-        DOMUtils.prop('#allowPrint', 'checked', this.documentMetadata.allowPrint !== false);
-        DOMUtils.prop('#allowEdit', 'checked', this.documentMetadata.allowEdit === true);
     }
 
     /**
      * Show properties editor
      */
     showPropertiesEditor() {
-        // Update document info
-        const docName = this.currentDocument?.name || this.currentDocument?.fileName || this.currentDocument?.title || 'Current Document';
-        const status = this.currentDocument?.id ? 'Saved in Juptiar' : 'Not saved to Juptiar';
-
-        DOMUtils.text('#currentDocName', docName);
-        DOMUtils.text('#documentStatus', status);
-
         // Show editor sections
-        DOMUtils.show('#tabsSection');
+        DOMUtils.show('#metaSection');
         DOMUtils.show('#actionSection');
         DOMUtils.hide('#loadingSection');
     }
@@ -475,20 +464,7 @@ class PropertiesEditor {
         return {
             title: DOMUtils.val('#docTitle').trim(),
             description: DOMUtils.val('#docDescription').trim(),
-            tags: DOMUtils.val('#docTags').trim(),
-            author: DOMUtils.val('#docAuthor').trim(),
-            language: DOMUtils.val('#docLanguage'),
-            customId: DOMUtils.val('#customId').trim(),
-            source: DOMUtils.val('#docSource').trim(),
-            originalId: DOMUtils.val('#originalId').trim(),
-            recipient: DOMUtils.val('#docRecipient').trim(),
-            object: DOMUtils.val('#docObject').trim(),
-            coverage: DOMUtils.val('#docCoverage').trim(),
-            type: DOMUtils.val('#docType'),
-            securityLevel: DOMUtils.val('#securityLevel'),
-            allowDownload: DOMUtils.prop('#allowDownload', 'checked'),
-            allowPrint: DOMUtils.prop('#allowPrint', 'checked'),
-            allowEdit: DOMUtils.prop('#allowEdit', 'checked')
+            tags: DOMUtils.val('#docTags').trim()
         };
     }
 
@@ -502,11 +478,8 @@ class PropertiesEditor {
                     const properties = context.document.properties;
 
                     properties.title = metadata.title || '';
-                    properties.author = metadata.author || '';
                     properties.subject = metadata.description || '';
                     properties.keywords = metadata.tags || '';
-                    properties.category = metadata.object || '';
-                    properties.comments = `Updated via Juptiar on ${new Date().toISOString()}`;
 
                     await context.sync();
                     resolve();

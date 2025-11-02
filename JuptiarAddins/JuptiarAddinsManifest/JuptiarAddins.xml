@@ -253,7 +253,7 @@
         <bt:Url id="Jupiter.DocumentBrowser.Url" DefaultValue="~remoteAppUrl/DocumentBrowser.html" />
         <bt:Url id="Jupiter.SaveDialog.Url" DefaultValue="~remoteAppUrl/SaveDialog.html?v=5" />
         <bt:Url id="Jupiter.Settings.Url" DefaultValue="~remoteAppUrl/Settings.html" />
-        <bt:Url id="Jupiter.Properties.Url" DefaultValue="~remoteAppUrl/Properties.html" />
+        <bt:Url id="Jupiter.Properties.Url" DefaultValue="~remoteAppUrl/Properties.html?v=4" />
         <bt:Url id="Jupiter.CheckInDialog.Url" DefaultValue="~remoteAppUrl/CheckInDialog.html" />
         <bt:Url id="Contoso.GetStarted.LearnMoreUrl" DefaultValue="https://www.jupiter.com/help" />
       </bt:Urls>
