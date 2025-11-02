@@ -11,6 +11,15 @@ class DocumentBrowser {
         this.selectedDocument = null;
         this.folderTree = [];
         // Guards to prevent duplicate backend calls
+        // Search/pagination state
+        this.isSearching = false;
+        this._serverPagination = false;
+        this.pageSize = 25;
+        this.currentPage = 1;
+        this.totalPages = 1;
+        this.totalCount = 0;
+        this.searchResults = [];
+
         this._loadingVersions = false;
         this._openingVersionKey = null;
 
@@ -48,12 +57,12 @@ class DocumentBrowser {
 
         // Search and refresh
         $.on('#fileSearchInput', 'keypress', (e) => {
-            if (e.which === 13 || e.keyCode === 13) this.performFileSearch();
-        });
-        $.on('#fullTextSearchInput', 'keypress', (e) => {
-            if (e.which === 13 || e.keyCode === 13) this.performFullTextSearch();
+            if (e.which === 13 || e.keyCode === 13) this.performSearch();
         });
         $.on('#refreshBtn', 'click', () => this.handleRefreshClick());
+        // Pagination controls
+        $.on('#prevPageBtn', 'click', () => this.goToPage(this.currentPage - 1));
+        $.on('#nextPageBtn', 'click', () => this.goToPage(this.currentPage + 1));
 
         // Action buttons
         $.on('#openBtn', 'click', () => this.openSelectedDocument());
@@ -137,7 +146,7 @@ class DocumentBrowser {
         });
 
         // Double-click to open document
-        $.delegate(document, 'dblclick', '.document-row', (e) => {
+        $.delegate(document, 'dblclick', '.document-row', () => {
             this.openSelectedDocument();
         });
 
@@ -620,6 +629,11 @@ class DocumentBrowser {
 
             this.showLoading('Loading documents...');
 
+
+            // Hide pagination when browsing folders/libraries
+            this.isSearching = false;
+            this.hidePagination();
+
             const documents = await window.jupiterService.getDocumentsByFolder(folderId);
             console.log('Documents response:', documents);
 
@@ -653,6 +667,11 @@ class DocumentBrowser {
 
     /**
      * Load documents for the selected library/folder
+
+            // Hide pagination when browsing folders/libraries
+            this.isSearching = false;
+            this.hidePagination();
+
      */
     async loadDocuments(libraryId, folderId = null) {
         try {
@@ -703,6 +722,44 @@ class DocumentBrowser {
         this.selectedDocument = null;
         $.prop('#openBtn', 'disabled', true);
     }
+
+        // Pagination helpers for search
+        hidePagination() {
+            const ctl = $.select('#paginationControls');
+            if (ctl) ctl.style.display = 'none';
+        }
+        updatePaginationUI() {
+            const ctl = $.select('#paginationControls');
+            const info = $.select('#pageInfo');
+            if (!ctl || !info) return;
+            if (!this.isSearching || (this.totalPages || 1) <= 1) {
+                ctl.style.display = 'none';
+                return;
+            }
+            ctl.style.display = 'flex';
+            info.textContent = `Page ${this.currentPage} of ${this.totalPages}`;
+            $.prop('#prevPageBtn', 'disabled', this.currentPage <= 1);
+            $.prop('#nextPageBtn', 'disabled', this.currentPage >= this.totalPages);
+        }
+        sliceSearchPage(page) {
+            const start = (page - 1) * this.pageSize;
+            return (this.searchResults || []).slice(start, start + this.pageSize);
+        }
+        async goToPage(n) {
+            if (n < 1 || n > (this.totalPages || 1)) return;
+            this.currentPage = n;
+            if (this.isSearching) {
+                if (this._serverPagination) {
+                    // Ask backend for this page
+                    await this.performSearch(this.currentPage);
+                } else {
+                    const docs = this.sliceSearchPage(this.currentPage);
+                    this.renderDocumentList(docs);
+                    this.updatePaginationUI();
+                }
+            }
+        }
+
 
     /**
      * Get file type icon based on extension
@@ -1054,21 +1111,65 @@ class DocumentBrowser {
     }
 
     /**
-     * Perform search
+     * Perform search (file name)
      */
-    async performSearch() {
+    async performSearch(page = 1) {
         const query = $.val('#fileSearchInput').trim();
         if (!query) {
+            this.isSearching = false;
+            this.hidePagination();
             this.refreshCurrentView();
             return;
         }
 
         try {
             this.showLoading('Searching...');
+            this.currentPage = page;
 
-            const results = await window.jupiterService.searchDocuments(query);
-            this.renderDocumentList(results.documents || []);
+            // Ask backend to search via DocumentsController (/documents/search). If backend
+            // doesn't paginate, we will paginate client-side.
+            const results = await window.jupiterService.searchDocuments(
+                query,
+                'filename',
+                this.currentLibrary,
+                this.currentFolder,
+                this.currentPage,
+                this.pageSize
+            );
 
+            this.isSearching = true;
+            this._serverPagination = !!(results && results.pagination);
+
+            let docs = [];
+            if (Array.isArray(results)) {
+                // Backend returned a plain array => client-side pagination
+                this.searchResults = results;
+                this.totalCount = results.length;
+                this.totalPages = Math.max(1, Math.ceil(this.totalCount / this.pageSize));
+                docs = this.sliceSearchPage(this.currentPage);
+                this.updatePaginationUI();
+            } else {
+                // Backend may return { documents, pagination }
+                const pag = results.pagination || {};
+                const arr = results.documents || results.items || [];
+                if (this._serverPagination) {
+                    this.totalCount = pag.totalCount || arr.length || 0;
+                    this.totalPages = pag.totalPages || 1;
+                    this.pageSize = pag.limit || this.pageSize;
+                    this.currentPage = pag.page || 1;
+                    docs = arr;
+                    this.updatePaginationUI();
+                } else {
+                    // No pagination wrapper; treat as client-side
+                    this.searchResults = arr;
+                    this.totalCount = arr.length;
+                    this.totalPages = Math.max(1, Math.ceil(this.totalCount / this.pageSize));
+                    docs = this.sliceSearchPage(this.currentPage);
+                    this.updatePaginationUI();
+                }
+            }
+
+            this.renderDocumentList(docs);
             this.hideLoading();
         } catch (error) {
             console.error('Search error:', error);
@@ -1080,47 +1181,9 @@ class DocumentBrowser {
      * Perform file name search
      */
     async performFileSearch() {
-        const query = $.val('#fileSearchInput').trim();
-        if (!query) {
-            this.refreshCurrentView();
-            return;
-        }
-
-        try {
-            this.showLoading('Searching files...');
-
-            const results = await window.jupiterService.searchDocuments(query, 'filename');
-            this.renderDocuments(results);
-
-            this.hideLoading();
-        } catch (error) {
-            console.error('File search failed:', error);
-            this.showError('File search failed: ' + error.message);
-        }
+        return this.performSearch();
     }
 
-    /**
-     * Perform full-text search
-     */
-    async performFullTextSearch() {
-        const query = $.val('#fullTextSearchInput').trim();
-        if (!query) {
-            this.showError('Please enter a search term for full-text search');
-            return;
-        }
-
-        try {
-            this.showLoading('Searching content...');
-
-            const results = await window.jupiterService.searchDocuments(query, 'fulltext');
-            this.renderDocuments(results);
-
-            this.hideLoading();
-        } catch (error) {
-            console.error('Full-text search failed:', error);
-            this.showError('Full-text search failed: ' + error.message);
-        }
-    }
 
     /**
      * Select a document row
@@ -1901,6 +1964,26 @@ if (typeof Office !== 'undefined' && Office.onReady) {
 
             console.log('DocumentBrowser: JupiterService initialized. Current baseUrl:', window.jupiterService.baseUrl);
         }
+
+            // Force-correct the searchDocuments implementation to avoid cached older scripts
+            try {
+                if (window.jupiterService) {
+                    window.jupiterService.searchDocuments = async function(searchTerm, _type = 'filename', libraryId = null, folderId = null, page = null, limit = null) {
+                        const params = new URLSearchParams();
+                        params.append('searchTerm', searchTerm || '');
+                        if (libraryId) params.append('libraryId', libraryId);
+                        if (folderId) params.append('folderId', folderId);
+                        if (page !== null && page !== undefined) params.append('page', String(page));
+                        if (limit !== null && limit !== undefined) params.append('limit', String(limit));
+                        const endpoint = `/documents/search?${params.toString()}`;
+                        console.log('DocumentBrowser: searchDocuments ->', endpoint);
+                        return await this.makeRequest('GET', endpoint);
+                    };
+                }
+            } catch (patchErr) {
+                console.warn('DocumentBrowser: Failed to patch searchDocuments', patchErr);
+            }
+
 
         if (!window.authManager) {
             window.authManager = new AuthManager();

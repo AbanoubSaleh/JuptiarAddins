@@ -54,7 +54,7 @@
                 </div>
                 <div class="search-right">
                     <input type="text" id="fileSearchInput" placeholder="File search" class="file-search-input" />
-                    <input type="text" id="fullTextSearchInput" placeholder="Full-text search" class="fulltext-search-input" />
+
                 </div>
             </div>
 
@@ -94,6 +94,12 @@
                                 </tbody>
                             </table>
                         </div>
+                            <div id="paginationControls" class="pagination-controls" style="display:none; align-items:center; justify-content:flex-end; gap:8px; padding:8px 0;">
+                                <button id="prevPageBtn" class="ms-Button"><span class="ms-Button-label">Prev</span></button>
+                                <span id="pageInfo" class="ms-font-s">Page 1 of 1</span>
+                                <button id="nextPageBtn" class="ms-Button"><span class="ms-Button-label">Next</span></button>
+                            </div>
+
                     </div>
                 </div>
             </div>
@@ -190,11 +196,11 @@
 
     <!-- Custom JavaScript -->
     <script type="text/javascript" src="Scripts/config.js?v=2"></script>
-    <script type="text/javascript" src="Scripts/JupiterService.js?v=3"></script>
+    <script type="text/javascript" src="Scripts/JupiterService.js?v=5"></script>
     <script type="text/javascript" src="Scripts/AuthManager.js?v=2"></script>
     <script type="text/javascript" src="Scripts/DocumentStateManager.js?v=1"></script>
     <script type="text/javascript" src="Scripts/DocumentTracker.js?v=1"></script>
-    <script type="text/javascript" src="Scripts/DocumentBrowser.js?v=5"></script>
+    <script type="text/javascript" src="Scripts/DocumentBrowser.js?v=7"></script>
 
 </body>
 </html>

@@ -357,14 +357,19 @@ class JupiterService {
         return await this.makeRequest('PUT', `/documents/${documentId}/metadata`, metadata);
     }
     // Search Methods
-    async searchDocuments(query, type = 'filename') {
-        const params = new URLSearchParams({
-            query: query,
-            type: type
-        });
-        return await this.makeRequest('GET', `/search/documents?${params.toString()}`);
+    // Note: Backend endpoint is GET /api/documents/search with searchTerm, libraryId, folderId.
+    // Pagination (page, limit) may or may not be supported by backend; safe to include and ignore if unsupported.
+    async searchDocuments(searchTerm, _type = 'filename', libraryId = null, folderId = null, page = null, limit = null) {
+        const params = new URLSearchParams();
+        params.append('searchTerm', searchTerm || '');
+        if (libraryId) params.append('libraryId', libraryId);
+        if (folderId) params.append('folderId', folderId);
+        if (page !== null && page !== undefined) params.append('page', page.toString());
+        if (limit !== null && limit !== undefined) params.append('limit', limit.toString());
+        return await this.makeRequest('GET', `/documents/search?${params.toString()}`);
     }
     async fullTextSearch(query) {
+        // Kept for backwards-compatibility; maps to same endpoint using searchTerm only
         return await this.searchDocuments(query, 'fulltext');
     }
     // Permission Methods
