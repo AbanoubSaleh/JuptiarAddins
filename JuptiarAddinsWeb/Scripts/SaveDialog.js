@@ -28,6 +28,8 @@ class SaveDialogController {
             await this.initializeServices();
             // Initialize UI components
             this.initializeUI();
+            // Remove any legacy UI sections if an older cached HTML is loaded
+            this.scrubLegacySaveOptions();
             // Load initial data
             await this.loadInitialData();
             this.isInitialized = true;
@@ -89,10 +91,6 @@ class SaveDialogController {
         // Cancel button
         DOMUtils.on('#cancelBtn', 'click', () => {
             this.handleCancel();
-        });
-        // Preview button
-        DOMUtils.on('#previewBtn', 'click', () => {
-            this.showPreview();
         });
         // Listen for authentication state changes
         window.addEventListener('juptiarAuthStateChanged', (e) => {
@@ -323,12 +321,11 @@ class SaveDialogController {
     async handleSaveDocument(e) {
         const requestId = `save-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
         console.log(`[${requestId}] handleSaveDocument called`);
-        if (this._saving || window._jupiterSaveInFlight) {
+        if (this._saving) {
             console.warn(`[${requestId}] Save already in progress; ignoring duplicate click`);
             return;
         }
         this._saving = true;
-        window._jupiterSaveInFlight = true;
         const btn = document.getElementById('saveBtn');
         if (btn) { btn.disabled = true; btn.classList.add('is-disabled'); }
         try {
@@ -350,7 +347,7 @@ class SaveDialogController {
                 duplicateAction: null // Will be determined by DocumentUploader
             };
             // Update progress
-            this.updateProgress(25, 'Checking for duplicate files...');
+            this.updateProgress(25, 'Saving document...');
             // Save document using DocumentUploader
             const result = await this.documentUploader.saveNewDocument(saveOptions);
             if (result.success) {
@@ -365,7 +362,8 @@ class SaveDialogController {
                 }, 2000);
             } else if (result.cancelled) {
                 this.hideProgress();
-                this.showInfo('Save operation was cancelled.');
+                // no toast on cancel
+                // this.showInfo('Save operation was cancelled.');
             } else {
                 this.hideProgress();
                 this.showError('Failed to save document: ' + (result.error || 'Unknown error'));
@@ -376,7 +374,6 @@ class SaveDialogController {
             this.showError('Failed to save document: ' + error.message);
         } finally {
             this._saving = false;
-            window._jupiterSaveInFlight = false;
             const btn = document.getElementById('saveBtn');
             if (btn) { btn.disabled = false; btn.classList.remove('is-disabled'); }
         }
@@ -399,21 +396,82 @@ class SaveDialogController {
         }
         return { isValid: true };
     }
+
     /**
-     * Show preview modal
+     * Hide/remove legacy Save Options and Preview elements if present (cached HTML)
      */
-    showPreview() {
-        // Implementation for preview functionality
+    scrubLegacySaveOptions() {
+        try {
+            // Remove checkboxes and info banners
+            const ids = ['autoCheckDuplicates','notifyUsers','duplicateHandlingInfo','previewModal','confirmSaveBtn','editDetailsBtn'];
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const section = el.closest('.form-section') || el.closest('.ms-Grid-col') || el.parentElement;
+                if (section && section.querySelector('#autoCheckDuplicates')) {
+                    section.remove();
+                } else {
+                    el.remove();
+                }
+            });
+            // Remove any heading labeled "Save Options"
+            const headings = Array.from(document.querySelectorAll('h3, .ms-font-l'));
+            headings.forEach(h => {
+                const txt = (h.textContent || '').trim().toLowerCase();
+                if (txt === 'save options') {
+                    const sec = h.closest('.form-section') || h.parentElement;
+                    if (sec) sec.remove(); else h.remove();
+                }
+            });
+            // Remove preview button if found by id or by label text
+            let previewBtn = document.getElementById('previewBtn');
+            if (!previewBtn) {
+                previewBtn = Array.from(document.querySelectorAll('button')).find(b => (b.textContent||'').trim().toLowerCase() === 'preview');
+            }
+            if (previewBtn) {
+                previewBtn.remove();
+            }
+        } catch (e) {
+            console.warn('SaveDialog: unable to scrub legacy options:', e);
+        }
     }
     /**
      * Handle cancel
      */
     handleCancel() {
-        // Close the task pane
-        if (Office.context.ui) {
-            Office.context.ui.closeContainer();
-        } else {
-            window.close();
+        const fallbackClose = () => {
+            try {
+                if (Office.context && Office.context.ui && typeof Office.context.ui.messageParent === 'function') {
+                    Office.context.ui.messageParent(JSON.stringify({ type: 'close' }));
+                    return true;
+                }
+                if (typeof window.close === 'function') {
+                    window.close();
+                    return true;
+                }
+            } catch (err) {
+                console.warn('Fallback close failed:', err && err.message ? err.message : err);
+            }
+            return false;
+        };
+        try {
+            if (Office.addin && typeof Office.addin.hide === 'function') {
+                const result = Office.addin.hide();
+                if (result && typeof result.then === 'function') {
+                    result.catch((err) => {
+                        console.warn('Office.addin.hide() rejected, attempting fallback:', err && err.message ? err.message : err);
+                        fallbackClose();
+                    });
+                }
+                return;
+            }
+            // If hide API not available, use fallback
+            if (!fallbackClose()) {
+                console.warn('No supported method to close Save dialog in this host.');
+            }
+        } catch (e) {
+            console.warn('Failed to close Save dialog (primary path):', e && e.message ? e.message : e);
+            fallbackClose();
         }
     }
     /**

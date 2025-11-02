@@ -196,7 +196,7 @@ class DocumentUploader {
             <div class="duplicate-dialog">
                 <div class="duplicate-dialog-header">
                     <h3>Document Already Exists</h3>
-                    <button class="close-btn" onclick="this.closest('.duplicate-dialog-overlay').remove(); resolve({action: 'cancel'})">&times;</button>
+                    <button class="close-btn" type="button">&times;</button>
                 </div>
                 <div class="duplicate-dialog-content">
                     <div class="warning-icon">⚠️</div>
@@ -227,7 +227,7 @@ class DocumentUploader {
                     </div>
                 </div>
                 <div class="duplicate-dialog-footer">
-                    <button class="btn btn-secondary" onclick="this.closest('.duplicate-dialog-overlay').remove(); resolve({action: 'cancel'})">Cancel</button>
+                    <button class="btn btn-secondary" type="button">Cancel</button>
                 </div>
             </div>
         `;
@@ -244,6 +244,22 @@ class DocumentUploader {
                 resolve(result);
             });
         });
+        // Close button (X)
+        const closeBtn = dialog.querySelector('.close-btn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                dialog.remove();
+                resolve({ action: 'cancel' });
+            });
+        }
+        // Footer cancel button
+        const footerCancelBtn = dialog.querySelector('.duplicate-dialog-footer .btn.btn-secondary');
+        if (footerCancelBtn) {
+            footerCancelBtn.addEventListener('click', () => {
+                dialog.remove();
+                resolve({ action: 'cancel' });
+            });
+        }
         return dialog;
     }
     /**

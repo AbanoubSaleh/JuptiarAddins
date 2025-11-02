@@ -345,13 +345,13 @@ async function saveToJupiterDMS(event) {
         // Open the Save Dialog using Office.addin.showAsTaskpane
         try {
             // Try to open the SaveDialog as a taskpane (cache-bust to ensure latest scripts)
-            await Office.addin.showAsTaskpane('SaveDialog.html?v=5');
+            await Office.addin.showAsTaskpane('SaveDialog.html?v=7');
         } catch (taskpaneError) {
             console.warn('Could not open taskpane directly, trying dialog approach:', taskpaneError);
 
             // Fallback: Open as dialog
             const dialogUrl = Office.context.requirements.isSetSupported('DialogApi', '1.1')
-                ? `${window.location.origin}/SaveDialog.html?v=5&ts=${Date.now()}`
+                ? `${window.location.origin}/SaveDialog.html?v=7&ts=${Date.now()}`
                 : null;
 
             if (dialogUrl) {
@@ -360,7 +360,32 @@ async function saveToJupiterDMS(event) {
                     { height: 80, width: 60, displayInIframe: true },
                     (result) => {
                         if (result.status === Office.AsyncResultStatus.Succeeded) {
+                            const dialog = result.value;
+                            window._jupiterSaveDialog = dialog;
                             console.log('Save Dialog opened successfully');
+
+                            // Allow the dialog page to request closing itself
+                            try {
+                                dialog.addEventHandler(Office.EventType.DialogMessageReceived, (arg) => {
+                                    try {
+                                        const msg = JSON.parse(arg.message);
+                                        if (msg && msg.type === 'close') {
+                                            dialog.close();
+                                            window._jupiterSaveDialog = null;
+                                        }
+                                    } catch (_) {
+                                        if (arg && arg.message === 'close') {
+                                            dialog.close();
+                                            window._jupiterSaveDialog = null;
+                                        }
+                                    }
+                                });
+                                dialog.addEventHandler(Office.EventType.DialogEventReceived, () => {
+                                    window._jupiterSaveDialog = null;
+                                });
+                            } catch (e) {
+                                console.warn('Could not attach dialog handlers:', e && e.message ? e.message : e);
+                            }
                         } else {
                             console.error('Failed to open Save Dialog:', result.error);
                         }
