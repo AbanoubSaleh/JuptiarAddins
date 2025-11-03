@@ -52,7 +52,33 @@ class JupiterService {
             const response = await fetch(url, requestOptions);
             clearTimeout(timeoutId);
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                // Try to get detailed error message from response body
+                let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                try {
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        const errorData = await response.json();
+                        // Handle different error response formats
+                        if (typeof errorData === 'string') {
+                            errorMessage = errorData;
+                        } else if (errorData.message) {
+                            errorMessage = errorData.message;
+                        } else if (errorData.error) {
+                            errorMessage = errorData.error;
+                        } else if (errorData.title) {
+                            errorMessage = errorData.title;
+                        }
+                    } else {
+                        const errorText = await response.text();
+                        if (errorText) {
+                            errorMessage = errorText;
+                        }
+                    }
+                } catch (parseError) {
+                    // If we can't parse the error response, use the default message
+                    console.warn('Could not parse error response:', parseError);
+                }
+                throw new Error(errorMessage);
             }
             const contentType = response.headers.get('content-type');
             if (contentType && contentType.includes('application/json')) {
@@ -494,6 +520,82 @@ class JupiterService {
             this.handleError(error);
         }
     }
+
+    /**
+     * Update a library (Admin only)
+     * @param {Object} libraryData - Library data {id, name, description, isActive}
+     * @returns {Promise<Object>} Updated library
+     */
+    async updateLibrary(libraryData) {
+        try {
+            const response = await this.makeRequest('PUT', '/libraries', libraryData);
+            return response;
+        } catch (error) {
+            console.error('Error updating library:', error);
+            this.handleError(error);
+        }
+    }
+
+    /**
+     * Delete a library (Admin only)
+     * @param {string} libraryId - Library ID
+     * @returns {Promise<Object>} Delete result
+     */
+    async deleteLibrary(libraryId) {
+        try {
+            const response = await this.makeRequest('DELETE', `/libraries/${libraryId}`);
+            return response;
+        } catch (error) {
+            console.error('Error deleting library:', error);
+            this.handleError(error);
+        }
+    }
+
+    /**
+     * Update a folder (Admin only)
+     * @param {Object} folderData - Folder data {id, name, description}
+     * @returns {Promise<Object>} Updated folder
+     */
+    async updateFolder(folderData) {
+        try {
+            const response = await this.makeRequest('PUT', '/folders', folderData);
+            return response;
+        } catch (error) {
+            console.error('Error updating folder:', error);
+            this.handleError(error);
+        }
+    }
+
+    /**
+     * Delete a folder (Admin only)
+     * @param {string} folderId - Folder ID
+     * @returns {Promise<Object>} Delete result
+     */
+    async deleteFolder(folderId) {
+        try {
+            const response = await this.makeRequest('DELETE', `/folders/${folderId}`);
+            return response;
+        } catch (error) {
+            console.error('Error deleting folder:', error);
+            this.handleError(error);
+        }
+    }
+
+    /**
+     * Get folder by ID
+     * @param {string} folderId - Folder ID
+     * @returns {Promise<Object>} Folder details
+     */
+    async getFolderById(folderId) {
+        try {
+            const response = await this.makeRequest('GET', `/folders/${folderId}`);
+            return response;
+        } catch (error) {
+            console.error('Error getting folder:', error);
+            this.handleError(error);
+        }
+    }
+
     /**
      * Get documents in a folder
      * @param {string} folderId - Folder ID

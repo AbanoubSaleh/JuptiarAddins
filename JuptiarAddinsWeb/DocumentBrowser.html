@@ -132,7 +132,7 @@
     <!-- Error Message -->
     <div class="error-overlay" id="errorSection" style="display: none;">
         <div class="error-content">
-            <div class="ms-MessageBar ms-MessageBar--error">
+            <div class="ms-MessageBar ms-MessageBar--error" style="position: relative;">
                 <div class="ms-MessageBar-content">
                     <div class="ms-MessageBar-icon">
                         <i class="ms-Icon ms-Icon--ErrorBadge"></i>
@@ -141,6 +141,9 @@
                         An error occurred while loading documents.
                     </div>
                 </div>
+                <button id="closeErrorBtn" class="ms-MessageBar-close" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; padding: 8px; color: #a80000; font-size: 16px; line-height: 1;" title="Close">
+                    <i class="ms-Icon ms-Icon--Clear"></i>
+                </button>
             </div>
         </div>
     </div>
@@ -190,6 +193,28 @@
             <li id="addFolderToLibrary">
                 <span class="ms-Icon ms-Icon--FolderHorizontal" style="margin-right: 8px;"></span>
                 Add Folder
+            </li>
+            <li id="editLibrary">
+                <span class="ms-Icon ms-Icon--Edit" style="margin-right: 8px;"></span>
+                Edit Library
+            </li>
+            <li id="deleteLibrary">
+                <span class="ms-Icon ms-Icon--Delete" style="margin-right: 8px;"></span>
+                Delete Library
+            </li>
+        </ul>
+    </div>
+
+    <!-- Folder Context Menu -->
+    <div id="folderContextMenu" class="context-menu" style="display: none;">
+        <ul>
+            <li id="editFolder">
+                <span class="ms-Icon ms-Icon--Edit" style="margin-right: 8px;"></span>
+                Edit Folder
+            </li>
+            <li id="deleteFolder">
+                <span class="ms-Icon ms-Icon--Delete" style="margin-right: 8px;"></span>
+                Delete Folder
             </li>
         </ul>
     </div>
@@ -265,13 +290,97 @@
         </div>
     </div>
 
+    <!-- Edit Library Modal -->
+    <div id="editLibraryModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Library</h3>
+                <span class="close" id="closeEditLibraryModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editLibraryId" />
+                <div class="ms-TextField">
+                    <label class="ms-Label">Library Name: <span style="color: red;">*</span></label>
+                    <input type="text" id="editLibraryName" class="ms-TextField-field" maxlength="200" required />
+                </div>
+                <div class="ms-TextField">
+                    <label class="ms-Label">Description:</label>
+                    <textarea id="editLibraryDescription" class="ms-TextField-field" rows="3" maxlength="1000"></textarea>
+                </div>
+                <div class="ms-TextField">
+                    <label class="ms-Label">
+                        <input type="checkbox" id="editLibraryIsActive" checked />
+                        Active
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="editLibrarySubmitBtn" class="ms-Button ms-Button--primary">
+                    <span class="ms-Button-label">Update</span>
+                </button>
+                <button id="editLibraryCancelBtn" class="ms-Button">
+                    <span class="ms-Button-label">Cancel</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Folder Modal -->
+    <div id="editFolderModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Folder</h3>
+                <span class="close" id="closeEditFolderModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editFolderId" />
+                <div class="ms-TextField">
+                    <label class="ms-Label">Folder Name: <span style="color: red;">*</span></label>
+                    <input type="text" id="editFolderName" class="ms-TextField-field" maxlength="255" required />
+                </div>
+                <div class="ms-TextField">
+                    <label class="ms-Label">Description:</label>
+                    <textarea id="editFolderDescription" class="ms-TextField-field" rows="3" maxlength="1000"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="editFolderSubmitBtn" class="ms-Button ms-Button--primary">
+                    <span class="ms-Button-label">Update</span>
+                </button>
+                <button id="editFolderCancelBtn" class="ms-Button">
+                    <span class="ms-Button-label">Cancel</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmationModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3 id="confirmationTitle">Confirm Action</h3>
+            </div>
+            <div class="modal-body">
+                <p id="confirmationMessage" style="margin: 20px 0;"></p>
+            </div>
+            <div class="modal-footer">
+                <button id="confirmationYesBtn" class="ms-Button ms-Button--primary">
+                    <span class="ms-Button-label">Yes</span>
+                </button>
+                <button id="confirmationNoBtn" class="ms-Button">
+                    <span class="ms-Button-label">No</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Custom JavaScript -->
     <script type="text/javascript" src="Scripts/config.js?v=2"></script>
-    <script type="text/javascript" src="Scripts/JupiterService.js?v=5"></script>
+    <script type="text/javascript" src="Scripts/JupiterService.js?v=7"></script>
     <script type="text/javascript" src="Scripts/AuthManager.js?v=3"></script>
     <script type="text/javascript" src="Scripts/DocumentStateManager.js?v=1"></script>
     <script type="text/javascript" src="Scripts/DocumentTracker.js?v=3"></script>
-    <script type="text/javascript" src="Scripts/DocumentBrowser.js?v=10"></script>
+    <script type="text/javascript" src="Scripts/DocumentBrowser.js?v=14"></script>
 
 </body>
 </html>

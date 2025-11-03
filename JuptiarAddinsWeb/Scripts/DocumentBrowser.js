@@ -55,6 +55,16 @@ class DocumentBrowser {
         // Dialog controls
         $.on('#closeDialogBtn', 'click', () => this.closeDialog());
 
+        // Error section close button
+        $.on('#closeErrorBtn', 'click', () => this.hideError());
+
+        // Click on error overlay background to close
+        $.on('#errorSection', 'click', (e) => {
+            if (e.target.id === 'errorSection') {
+                this.hideError();
+            }
+        });
+
         // Search and refresh
         $.on('#fileSearchInput', 'keypress', (e) => {
             if (e.which === 13 || e.keyCode === 13) this.performSearch();
@@ -151,6 +161,50 @@ class DocumentBrowser {
             this.hideLibraryContextMenu();
             this.showCreateFolderModal(this._contextMenuLibraryId);
         });
+
+        $.on('#editLibrary', 'click', () => {
+            this.hideLibraryContextMenu();
+            this.showEditLibraryModal(this._contextMenuLibraryId);
+        });
+
+        $.on('#deleteLibrary', 'click', () => {
+            this.hideLibraryContextMenu();
+            this.confirmDeleteLibrary(this._contextMenuLibraryId);
+        });
+
+        // Edit Library modal
+        $.on('#editLibrarySubmitBtn', 'click', () => this.handleUpdateLibrary());
+        $.on('#editLibraryCancelBtn', 'click', () => this.hideEditLibraryModal());
+        $.on('#closeEditLibraryModal', 'click', () => this.hideEditLibraryModal());
+
+        // Folder context menu (only for actual folders, not libraries)
+        $.delegate(document, 'contextmenu', '.folder-item', (e) => {
+            const folderElement = e.currentTarget;
+            const type = folderElement.getAttribute('data-type');
+
+            // Only show folder context menu for actual folders, not libraries
+            if (type === 'folder') {
+                e.preventDefault();
+                e.stopPropagation();
+                this.showFolderContextMenu(e, folderElement);
+            }
+        });
+
+        $.on('#editFolder', 'click', () => {
+            this.hideFolderContextMenu();
+            this.showEditFolderModal(this._contextMenuFolderId);
+        });
+
+        $.on('#deleteFolder', 'click', () => {
+            this.hideFolderContextMenu();
+            this.confirmDeleteFolder(this._contextMenuFolderId);
+        });
+
+        // Edit Folder modal
+        $.on('#editFolderSubmitBtn', 'click', () => this.handleUpdateFolder());
+        $.on('#editFolderCancelBtn', 'click', () => this.hideEditFolderModal());
+        $.on('#closeEditFolderModal', 'click', () => this.hideEditFolderModal());
+
         $.delegate(document, 'click', '.open-version-btn', async (e) => {
             e.stopPropagation();
             const btn = e.currentTarget;
@@ -196,6 +250,15 @@ class DocumentBrowser {
             } else {
                 // For folders, select and load documents
                 this.selectFolder(folderItem);
+            }
+        });
+
+        // Hide context menus when clicking elsewhere
+        $.on(document, 'click', (e) => {
+            // Don't hide if clicking on context menu itself
+            if (!e.target.closest('#libraryContextMenu') && !e.target.closest('#folderContextMenu')) {
+                this.hideLibraryContextMenu();
+                this.hideFolderContextMenu();
             }
         });
 
@@ -926,6 +989,13 @@ class DocumentBrowser {
     }
 
     /**
+     * Hide error message
+     */
+    hideError() {
+        $.hide('#errorSection');
+    }
+
+    /**
      * Show success message
      */
     showSuccess(message) {
@@ -1016,6 +1086,91 @@ class DocumentBrowser {
             $.off('#confirmDeleteClose', 'mouseleave', this.deleteConfirmationHandlers.mouseLeave);
 
             this.deleteConfirmationHandlers = null;
+        }
+    }
+
+    /**
+     * Show folder delete confirmation dialog (Office Add-ins don't support window.confirm)
+     */
+    showDeleteFolderConfirmation(folderName, onConfirm) {
+        const confirmHtml = `
+            <div class="confirmation-dialog" style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; position: relative;">
+                <div class="confirmation-header" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 15px 10px 15px; border-bottom: 1px solid #ffeaa7;">
+                    <h4 style="margin: 0; color: #856404; display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 18px;">⚠️</span>
+                        Delete Folder
+                    </h4>
+                    <button id="confirmDeleteFolderClose" class="close-dialog-btn" style="background: none; border: none; cursor: pointer; padding: 4px; border-radius: 3px; color: #856404; font-size: 16px; line-height: 1; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;" title="Close">
+                        ×
+                    </button>
+                </div>
+                <div class="confirmation-body" style="padding: 15px;">
+                    <p style="margin: 0 0 15px 0; color: #856404;">
+                        Are you sure you want to delete the folder "<strong>${folderName}</strong>"?<br>
+                        This action cannot be undone.
+                    </p>
+                    <div style="text-align: right; display: flex; justify-content: flex-end; gap: 10px;">
+                        <button id="confirmDeleteFolderYes" class="ms-Button ms-Button--primary" style="background-color: #d13438; border-color: #d13438;">
+                            <span class="ms-Button-label">Delete</span>
+                        </button>
+                        <button id="confirmDeleteFolderNo" class="ms-Button">
+                            <span class="ms-Button-label">Cancel</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Show the confirmation in the error section (reusing existing UI)
+        $.html('#errorMessage', confirmHtml);
+        $.show('#errorSection');
+        $.hide('#loadingSection');
+
+        // Store handler references for proper cleanup
+        this.deleteFolderConfirmationHandlers = {
+            confirmYes: () => {
+                this.hideDeleteFolderConfirmation();
+                onConfirm();
+            },
+            confirmNo: () => {
+                this.hideDeleteFolderConfirmation();
+            },
+            confirmClose: () => {
+                this.hideDeleteFolderConfirmation();
+            },
+            mouseEnter: (e) => {
+                e.target.style.backgroundColor = '#f0e68c';
+            },
+            mouseLeave: (e) => {
+                e.target.style.backgroundColor = 'transparent';
+            }
+        };
+
+        // Handle confirmation buttons
+        $.on('#confirmDeleteFolderYes', 'click', this.deleteFolderConfirmationHandlers.confirmYes);
+        $.on('#confirmDeleteFolderNo', 'click', this.deleteFolderConfirmationHandlers.confirmNo);
+        $.on('#confirmDeleteFolderClose', 'click', this.deleteFolderConfirmationHandlers.confirmClose);
+
+        // Add hover effect for close button
+        $.on('#confirmDeleteFolderClose', 'mouseenter', this.deleteFolderConfirmationHandlers.mouseEnter);
+        $.on('#confirmDeleteFolderClose', 'mouseleave', this.deleteFolderConfirmationHandlers.mouseLeave);
+    }
+
+    /**
+     * Hide folder delete confirmation dialog and cleanup event handlers
+     */
+    hideDeleteFolderConfirmation() {
+        $.hide('#errorSection');
+
+        // Clean up event handlers if they exist
+        if (this.deleteFolderConfirmationHandlers) {
+            $.off('#confirmDeleteFolderYes', 'click', this.deleteFolderConfirmationHandlers.confirmYes);
+            $.off('#confirmDeleteFolderNo', 'click', this.deleteFolderConfirmationHandlers.confirmNo);
+            $.off('#confirmDeleteFolderClose', 'click', this.deleteFolderConfirmationHandlers.confirmClose);
+            $.off('#confirmDeleteFolderClose', 'mouseenter', this.deleteFolderConfirmationHandlers.mouseEnter);
+            $.off('#confirmDeleteFolderClose', 'mouseleave', this.deleteFolderConfirmationHandlers.mouseLeave);
+
+            this.deleteFolderConfirmationHandlers = null;
         }
     }
 
@@ -2093,6 +2248,273 @@ class DocumentBrowser {
             } else {
                 this.showError('Failed to create folder: ' + error.message);
             }
+        }
+    }
+
+    /**
+     * Show folder context menu
+     */
+    showFolderContextMenu(event, folderElement) {
+        // Only show for admin users
+        if (!window.authManager || !window.authManager.isAdmin()) {
+            return;
+        }
+
+        const folderId = folderElement.getAttribute('data-folder-id');
+        this._contextMenuFolderId = folderId;
+
+        const menu = $.select('#folderContextMenu');
+        menu.style.display = 'block';
+        menu.style.left = event.pageX + 'px';
+        menu.style.top = event.pageY + 'px';
+    }
+
+    /**
+     * Hide folder context menu
+     */
+    hideFolderContextMenu() {
+        const menu = $.select('#folderContextMenu');
+        if (menu) {
+            menu.style.display = 'none';
+        }
+    }
+
+    /**
+     * Show edit library modal
+     */
+    async showEditLibraryModal(libraryId) {
+        try {
+            this.showLoading('Loading library details...');
+
+            // Get library details from the tree
+            const libraries = await window.jupiterService.getLibraryTree();
+            const library = libraries.find(lib => lib.id === libraryId);
+
+            if (!library) {
+                this.showError('Library not found');
+                this.hideLoading();
+                return;
+            }
+
+            // Populate form
+            $.select('#editLibraryId').value = library.id;
+            $.select('#editLibraryName').value = library.name;
+            $.select('#editLibraryDescription').value = library.description || '';
+            $.select('#editLibraryIsActive').checked = library.isActive !== false;
+
+            $.show('#editLibraryModal');
+            this.hideLoading();
+        } catch (error) {
+            console.error('Error loading library details:', error);
+            this.hideLoading();
+            this.showError('Failed to load library details: ' + error.message);
+        }
+    }
+
+    /**
+     * Hide edit library modal
+     */
+    hideEditLibraryModal() {
+        $.hide('#editLibraryModal');
+    }
+
+    /**
+     * Handle update library
+     */
+    async handleUpdateLibrary() {
+        const id = $.select('#editLibraryId').value;
+        const name = $.select('#editLibraryName').value.trim();
+        const description = $.select('#editLibraryDescription').value.trim();
+        const isActive = $.select('#editLibraryIsActive').checked;
+
+        if (!name) {
+            this.showError('Library name is required');
+            return;
+        }
+
+        try {
+            this.showLoading('Updating library...');
+
+            const libraryData = {
+                id: id,
+                name: name,
+                description: description || '',
+                isActive: isActive
+            };
+
+            await window.jupiterService.updateLibrary(libraryData);
+
+            this.hideEditLibraryModal();
+            this.showTemporarySuccess('Library updated successfully');
+
+            // Reload library tree
+            await this.loadLibraryTree();
+
+            this.hideLoading();
+        } catch (error) {
+            console.error('Error updating library:', error);
+            this.hideLoading();
+            if (error.message.includes('403') || error.message.includes('Forbidden')) {
+                this.showError('You do not have permission to update libraries. Admin access required.');
+            } else if (error.message.includes('already exists')) {
+                this.showError('A library with this name already exists.');
+            } else {
+                this.showError('Failed to update library: ' + error.message);
+            }
+        }
+    }
+
+    /**
+     * Confirm and delete library
+     */
+    async confirmDeleteLibrary(libraryId) {
+        const confirmed = confirm('Are you sure you want to delete this library? This action cannot be undone.');
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            this.showLoading('Deleting library...');
+
+            await window.jupiterService.deleteLibrary(libraryId);
+
+            this.showTemporarySuccess('Library deleted successfully');
+
+            // Reload library tree
+            await this.loadLibraryTree();
+
+            this.hideLoading();
+        } catch (error) {
+            console.error('Error deleting library:', error);
+            this.hideLoading();
+            if (error.message.includes('403') || error.message.includes('Forbidden')) {
+                this.showError('You do not have permission to delete libraries. Admin access required.');
+            } else {
+                this.showError('Failed to delete library: ' + error.message);
+            }
+        }
+    }
+
+    /**
+     * Show edit folder modal
+     */
+    async showEditFolderModal(folderId) {
+        try {
+            this.showLoading('Loading folder details...');
+
+            // Get folder details
+            const folder = await window.jupiterService.getFolderById(folderId);
+
+            if (!folder) {
+                this.showError('Folder not found');
+                this.hideLoading();
+                return;
+            }
+
+            // Populate form
+            $.select('#editFolderId').value = folder.id;
+            $.select('#editFolderName').value = folder.name;
+            $.select('#editFolderDescription').value = folder.description || '';
+
+            $.show('#editFolderModal');
+            this.hideLoading();
+        } catch (error) {
+            console.error('Error loading folder details:', error);
+            this.hideLoading();
+            this.showError('Failed to load folder details: ' + error.message);
+        }
+    }
+
+    /**
+     * Hide edit folder modal
+     */
+    hideEditFolderModal() {
+        $.hide('#editFolderModal');
+    }
+
+    /**
+     * Handle update folder
+     */
+    async handleUpdateFolder() {
+        const id = $.select('#editFolderId').value;
+        const name = $.select('#editFolderName').value.trim();
+        const description = $.select('#editFolderDescription').value.trim();
+
+        if (!name) {
+            this.showError('Folder name is required');
+            return;
+        }
+
+        try {
+            this.showLoading('Updating folder...');
+
+            const folderData = {
+                id: id,
+                name: name,
+                description: description || ''
+            };
+
+            await window.jupiterService.updateFolder(folderData);
+
+            this.hideEditFolderModal();
+            this.showTemporarySuccess('Folder updated successfully');
+
+            // Reload library tree
+            await this.loadLibraryTree();
+
+            this.hideLoading();
+        } catch (error) {
+            console.error('Error updating folder:', error);
+            this.hideLoading();
+            if (error.message.includes('403') || error.message.includes('Forbidden')) {
+                this.showError('You do not have permission to update folders. Admin access required.');
+            } else {
+                this.showError('Failed to update folder: ' + error.message);
+            }
+        }
+    }
+
+    /**
+     * Confirm and delete folder
+     */
+    async confirmDeleteFolder(folderId) {
+        try {
+            // Get folder details to show the name in confirmation
+            const folder = await window.jupiterService.getFolderById(folderId);
+
+            if (!folder) {
+                this.showError('Folder not found');
+                return;
+            }
+
+            // Show custom confirmation dialog (Office Add-ins don't support window.confirm)
+            this.showDeleteFolderConfirmation(folder.name, async () => {
+                try {
+                    this.showLoading('Deleting folder...');
+
+                    await window.jupiterService.deleteFolder(folderId);
+
+                    this.showTemporarySuccess('Folder deleted successfully');
+
+                    // Reload library tree
+                    await this.loadLibraryTree();
+
+                    this.hideLoading();
+                } catch (error) {
+                    console.error('Error deleting folder:', error);
+                    this.hideLoading();
+                    if (error.message.includes('403') || error.message.includes('Forbidden')) {
+                        this.showError('You do not have permission to delete folders. Admin access required.');
+                    } else if (error.message.includes('contains documents') || error.message.includes('contains subfolders')) {
+                        this.showError('Cannot delete folder that contains documents or subfolders. Please delete contents first.');
+                    } else {
+                        this.showError('Failed to delete folder: ' + error.message);
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Error loading folder details:', error);
+            this.showError('Failed to load folder details: ' + error.message);
         }
     }
 }
