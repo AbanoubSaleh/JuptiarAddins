@@ -1175,6 +1175,91 @@ class DocumentBrowser {
     }
 
     /**
+     * Show library delete confirmation dialog (Office Add-ins don't support window.confirm)
+     */
+    showDeleteLibraryConfirmation(libraryName, onConfirm) {
+        const confirmHtml = `
+            <div class="confirmation-dialog" style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; position: relative;">
+                <div class="confirmation-header" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 15px 10px 15px; border-bottom: 1px solid #ffeaa7;">
+                    <h4 style="margin: 0; color: #856404; display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 18px;">⚠️</span>
+                        Delete Library
+                    </h4>
+                    <button id="confirmDeleteLibraryClose" class="close-dialog-btn" style="background: none; border: none; cursor: pointer; padding: 4px; border-radius: 3px; color: #856404; font-size: 16px; line-height: 1; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;" title="Close">
+                        ×
+                    </button>
+                </div>
+                <div class="confirmation-body" style="padding: 15px;">
+                    <p style="margin: 0 0 15px 0; color: #856404;">
+                        Are you sure you want to delete the library "<strong>${libraryName}</strong>"?<br>
+                        This action cannot be undone.
+                    </p>
+                    <div style="text-align: right; display: flex; justify-content: flex-end; gap: 10px;">
+                        <button id="confirmDeleteLibraryYes" class="ms-Button ms-Button--primary" style="background-color: #d13438; border-color: #d13438;">
+                            <span class="ms-Button-label">Delete</span>
+                        </button>
+                        <button id="confirmDeleteLibraryNo" class="ms-Button">
+                            <span class="ms-Button-label">Cancel</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Show the confirmation in the error section (reusing existing UI)
+        $.html('#errorMessage', confirmHtml);
+        $.show('#errorSection');
+        $.hide('#loadingSection');
+
+        // Store handler references for proper cleanup
+        this.deleteLibraryConfirmationHandlers = {
+            confirmYes: () => {
+                this.hideDeleteLibraryConfirmation();
+                onConfirm();
+            },
+            confirmNo: () => {
+                this.hideDeleteLibraryConfirmation();
+            },
+            confirmClose: () => {
+                this.hideDeleteLibraryConfirmation();
+            },
+            mouseEnter: (e) => {
+                e.target.style.backgroundColor = '#f0e68c';
+            },
+            mouseLeave: (e) => {
+                e.target.style.backgroundColor = 'transparent';
+            }
+        };
+
+        // Handle confirmation buttons
+        $.on('#confirmDeleteLibraryYes', 'click', this.deleteLibraryConfirmationHandlers.confirmYes);
+        $.on('#confirmDeleteLibraryNo', 'click', this.deleteLibraryConfirmationHandlers.confirmNo);
+        $.on('#confirmDeleteLibraryClose', 'click', this.deleteLibraryConfirmationHandlers.confirmClose);
+
+        // Add hover effect for close button
+        $.on('#confirmDeleteLibraryClose', 'mouseenter', this.deleteLibraryConfirmationHandlers.mouseEnter);
+        $.on('#confirmDeleteLibraryClose', 'mouseleave', this.deleteLibraryConfirmationHandlers.mouseLeave);
+    }
+
+    /**
+     * Hide library delete confirmation dialog and cleanup event handlers
+     */
+    hideDeleteLibraryConfirmation() {
+        $.hide('#errorSection');
+
+        // Clean up event handlers if they exist
+        if (this.deleteLibraryConfirmationHandlers) {
+            $.off('#confirmDeleteLibraryYes', 'click', this.deleteLibraryConfirmationHandlers.confirmYes);
+            $.off('#confirmDeleteLibraryNo', 'click', this.deleteLibraryConfirmationHandlers.confirmNo);
+            $.off('#confirmDeleteLibraryClose', 'click', this.deleteLibraryConfirmationHandlers.confirmClose);
+            $.off('#confirmDeleteLibraryClose', 'mouseenter', this.deleteLibraryConfirmationHandlers.mouseEnter);
+            $.off('#confirmDeleteLibraryClose', 'mouseleave', this.deleteLibraryConfirmationHandlers.mouseLeave);
+
+            this.deleteLibraryConfirmationHandlers = null;
+        }
+    }
+
+    /**
      * Show success message
      */
     showSuccess(message) {
@@ -2368,30 +2453,42 @@ class DocumentBrowser {
      * Confirm and delete library
      */
     async confirmDeleteLibrary(libraryId) {
-        const confirmed = confirm('Are you sure you want to delete this library? This action cannot be undone.');
-        if (!confirmed) {
-            return;
-        }
-
         try {
-            this.showLoading('Deleting library...');
+            // Get library details to show the name in confirmation
+            const libraries = await window.jupiterService.getLibraryTree();
+            const library = libraries.find(lib => lib.id === libraryId);
 
-            await window.jupiterService.deleteLibrary(libraryId);
-
-            this.showTemporarySuccess('Library deleted successfully');
-
-            // Reload library tree
-            await this.loadLibraryTree();
-
-            this.hideLoading();
-        } catch (error) {
-            console.error('Error deleting library:', error);
-            this.hideLoading();
-            if (error.message.includes('403') || error.message.includes('Forbidden')) {
-                this.showError('You do not have permission to delete libraries. Admin access required.');
-            } else {
-                this.showError('Failed to delete library: ' + error.message);
+            if (!library) {
+                this.showError('Library not found');
+                return;
             }
+
+            // Show custom confirmation dialog (Office Add-ins don't support window.confirm)
+            this.showDeleteLibraryConfirmation(library.name, async () => {
+                try {
+                    this.showLoading('Deleting library...');
+
+                    await window.jupiterService.deleteLibrary(libraryId);
+
+                    this.showTemporarySuccess('Library deleted successfully');
+
+                    // Reload library tree
+                    await this.loadLibraryTree();
+
+                    this.hideLoading();
+                } catch (error) {
+                    console.error('Error deleting library:', error);
+                    this.hideLoading();
+                    if (error.message.includes('403') || error.message.includes('Forbidden')) {
+                        this.showError('You do not have permission to delete libraries. Admin access required.');
+                    } else {
+                        this.showError('Failed to delete library: ' + error.message);
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Error loading library details:', error);
+            this.showError('Failed to load library details: ' + error.message);
         }
     }
 
