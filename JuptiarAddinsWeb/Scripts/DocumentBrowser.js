@@ -457,7 +457,7 @@ class DocumentBrowser {
 
         libraryItem.innerHTML = `
             <span class="expand-icon">${expandIcon}</span>
-            <span class="folder-icon">📁</span>
+            <span class="folder-icon"><img src="Images/folder-clipart-blue-folder-2.png" alt="Library" style="width: 16px; height: 16px; vertical-align: middle;" /></span>
             <span class="folder-name">${library.name}</span>
         `;
 
