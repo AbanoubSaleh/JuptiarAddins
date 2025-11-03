@@ -103,20 +103,7 @@ class SaveDialogController {
      */
     async loadInitialData() {
         try {
-            // Start loading libraries immediately (optimistic loading)
-            // This shows the loading spinner right away for better UX
-            const librariesPromise = this.loadLibraries();
-
-            // First check if this is a new document
-            if (this.documentStateManager) {
-                const isNewDocument = await this.documentStateManager.isNewDocument();
-                if (!isNewDocument) {
-                    // Show message that this is for new documents only
-                    this.showError('This dialog is for saving new documents only. Use the Properties button to edit existing document metadata.');
-                    return;
-                }
-            }
-            // Check authentication status quickly first
+            // Check authentication status FIRST (before showing any UI)
             let isAuthenticated = false;
 
             // Try quick synchronous checks first
@@ -131,7 +118,33 @@ class SaveDialogController {
             if (!isAuthenticated && typeof window.authManager.isAuthenticated === 'function') {
                 isAuthenticated = await window.authManager.isAuthenticated();
             }
+
+            // Update auth UI state
             this.handleAuthStateChange(isAuthenticated);
+
+            // Check if this is a new document
+            if (this.documentStateManager) {
+                const isNewDocument = await this.documentStateManager.isNewDocument();
+                if (!isNewDocument) {
+                    // Hide ALL form sections since this dialog shouldn't be shown for existing documents
+                    const authSection = DOMUtils.select('#authSection');
+                    const saveFormSection = DOMUtils.select('#saveFormSection');
+                    if (authSection) {
+                        authSection.style.display = 'none';
+                    }
+                    if (saveFormSection) {
+                        saveFormSection.style.display = 'none';
+                    }
+                    // Show message that this is for new documents only
+                    this.showError('This dialog is for saving new documents only. Use the Properties button to edit existing document metadata.');
+                    return;
+                }
+            }
+
+            // Start loading libraries immediately (optimistic loading)
+            // This shows the loading spinner right away for better UX
+            const librariesPromise = this.loadLibraries();
+
             if (isAuthenticated) {
                 // Wait for libraries to finish loading (started earlier)
                 await librariesPromise;

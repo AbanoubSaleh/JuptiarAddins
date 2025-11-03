@@ -389,13 +389,13 @@ async function saveToJupiterDMS(event) {
         // Open the Save Dialog using Office.addin.showAsTaskpane
         try {
             // Try to open the SaveDialog as a taskpane (cache-bust to ensure latest scripts)
-            await Office.addin.showAsTaskpane('SaveDialog.html?v=8');
+            await Office.addin.showAsTaskpane('SaveDialog.html?v=10');
         } catch (taskpaneError) {
             console.warn('Could not open taskpane directly, trying dialog approach:', taskpaneError);
 
             // Fallback: Open as dialog
             const dialogUrl = Office.context.requirements.isSetSupported('DialogApi', '1.1')
-                ? `${window.location.origin}/SaveDialog.html?v=8&ts=${Date.now()}`
+                ? `${window.location.origin}/SaveDialog.html?v=10&ts=${Date.now()}`
                 : null;
 
             if (dialogUrl) {
