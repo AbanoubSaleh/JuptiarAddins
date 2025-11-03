@@ -1031,8 +1031,8 @@ class DocumentBrowser {
             // Perform the refresh
             await this.refreshCurrentView();
 
-            // Show success feedback briefly
-            this.showTemporarySuccess('Refreshed successfully');
+            // Success - no popup needed, just hide the loading indicator
+            this.hideLoading();
 
         } catch (error) {
             console.error('Error during refresh:', error);
