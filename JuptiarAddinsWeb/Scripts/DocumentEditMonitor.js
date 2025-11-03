@@ -173,6 +173,11 @@ class DocumentEditMonitor {
             }
 
             console.log('📄 Document checkout status:', documentInfo.checkoutStatus);
+            console.log('📄 Checked out by:', documentInfo.checkedOutBy);
+
+            // Get current user email
+            const currentUserEmail = await this.getCurrentUserEmail();
+            console.log('👤 Current user:', currentUserEmail);
 
             // SCENARIO 1: Document is available (not checked out) - PROMPT FOR CHECKOUT
             if (documentInfo.checkoutStatus === 'Available') {
@@ -183,22 +188,59 @@ class DocumentEditMonitor {
                 return;
             }
 
-            // SCENARIO 2: Document is checked out by another user - BLOCK EDITING
-            if (documentInfo.checkoutStatus === 'CheckedOut' && documentInfo.checkedOutBy) {
-                // TODO: Check if current user is the one who checked it out
-                console.log('🔒 Document checked out by another user - blocking edit');
-                await this.handleProtectedDocumentEdit();
-                return;
-            }
-
-            // SCENARIO 3: Document is checked out by current user - ALLOW EDITING
+            // SCENARIO 2: Document is checked out - check if it's by the current user
             if (documentInfo.checkoutStatus === 'CheckedOut') {
-                console.log('✅ Document checked out by current user - allowing edit');
-                return;
+                // Check if current user is the one who checked it out
+                if (documentInfo.checkedOutBy && currentUserEmail &&
+                    documentInfo.checkedOutBy.toLowerCase() === currentUserEmail.toLowerCase()) {
+                    console.log('✅ Document checked out by current user - allowing edit');
+                    // Reset the prompt flag since user has successfully checked out
+                    this.checkoutPromptShown = false;
+                    return;
+                } else {
+                    // Document is checked out by another user - BLOCK EDITING
+                    console.log('🔒 Document checked out by another user - blocking edit');
+                    if (!this.checkoutPromptShown) {
+                        await this.handleProtectedDocumentEdit();
+                        this.checkoutPromptShown = true;
+                    }
+                    return;
+                }
             }
 
         } catch (error) {
             console.error('❌ Error handling document change:', error);
+        }
+    }
+
+    /**
+     * Get current user email from Office context
+     */
+    async getCurrentUserEmail() {
+        try {
+            // Try to get from Office context
+            if (Office.context.mailbox && Office.context.mailbox.userProfile) {
+                return Office.context.mailbox.userProfile.emailAddress;
+            }
+
+            // Try to get from document state
+            const documentState = await this.documentStateManager.getDocumentState();
+            if (documentState && documentState.currentUserEmail) {
+                return documentState.currentUserEmail;
+            }
+
+            // Try to get from local storage
+            const userEmail = localStorage.getItem('jupiterUserEmail');
+            if (userEmail) {
+                return userEmail;
+            }
+
+            console.warn('⚠️  Could not determine current user email');
+            return null;
+
+        } catch (error) {
+            console.error('❌ Error getting current user email:', error);
+            return null;
         }
     }
 
@@ -302,15 +344,18 @@ class DocumentEditMonitor {
             console.log('🔒 Performing document checkout...');
 
             const result = await this.jupiterService.checkOutDocument(documentState.documentId);
-            
+
             if (result.success) {
                 // Update document state
                 await this.documentStateManager.updateCheckoutStatus('CheckedOut');
-                
+
                 // Update ribbon
                 if (this.ribbonManager) {
                     await this.ribbonManager.updateCheckoutButtons();
                 }
+
+                // Reset the checkout prompt flag - user has successfully checked out
+                this.checkoutPromptShown = false;
 
                 // Show success message
                 Office.context.ui.displayDialogAsync(
@@ -318,20 +363,20 @@ class DocumentEditMonitor {
                     { height: 30, width: 50 }
                 );
 
-                console.log('✅ Document checkout successful');
-                
+                console.log('✅ Document checkout successful - prompt flag reset');
+
             } else {
                 throw new Error(result.error || 'Checkout failed');
             }
 
         } catch (error) {
             console.error('❌ Error performing checkout:', error);
-            
+
             Office.context.ui.displayDialogAsync(
                 `Failed to check out document: ${error.message}`,
                 { height: 30, width: 50 }
             );
-            
+
             this.checkoutPromptShown = false;
         }
     }

@@ -119,11 +119,12 @@ async function initializeManagers() {
             await documentUploader.initialize(window.jupiterService, documentStateManager);
         }
 
-        // Initialize DocumentEditMonitor
-        if (typeof DocumentEditMonitor !== 'undefined' && documentStateManager && window.jupiterService && ribbonManager) {
-            documentEditMonitor = new DocumentEditMonitor(documentStateManager, window.jupiterService, ribbonManager);
-            console.log('✅ DocumentEditMonitor initialized');
-        }
+        // DISABLED: DocumentEditMonitor - replaced by DocumentTracker
+        // DocumentEditMonitor was causing duplicate event listeners and conflicting with DocumentTracker
+        // if (typeof DocumentEditMonitor !== 'undefined' && documentStateManager && window.jupiterService && ribbonManager) {
+        //     documentEditMonitor = new DocumentEditMonitor(documentStateManager, window.jupiterService, ribbonManager);
+        //     console.log('✅ DocumentEditMonitor initialized');
+        // }
 
         // Initialize DocumentTracker for comprehensive document detection and validation
         if (typeof DocumentTracker !== 'undefined') {

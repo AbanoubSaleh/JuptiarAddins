@@ -176,11 +176,38 @@ class DocumentTracker {
             // Map the response to the expected format
             const currentUserEmail = await this.getCurrentUserEmail();
 
+            // Handle both numeric (1) and string ('CheckedOut') enum values
+            // Backend may return: 0='Available', 1='CheckedOut', 2='CheckoutExpired', 3='Locked'
+            const checkoutStatus = response.checkoutStatus;
+
+            // Prefer backend's isCheckedOut if available, otherwise calculate it
+            const isCheckedOut = typeof response.isCheckedOut === 'boolean'
+                ? response.isCheckedOut
+                : (checkoutStatus === 'CheckedOut' || checkoutStatus === 1);
+
+            // Prefer backend's lockedByYou if available, otherwise calculate it
+            const lockedByYou = typeof response.lockedByYou === 'boolean'
+                ? response.lockedByYou
+                : (isCheckedOut &&
+                   response.checkedOutBy &&
+                   currentUserEmail &&
+                   response.checkedOutBy.toLowerCase() === currentUserEmail.toLowerCase());
+
+            console.log('🔍 Backend response:', {
+                checkoutStatus: checkoutStatus,
+                checkoutStatusType: typeof checkoutStatus,
+                checkedOutBy: response.checkedOutBy,
+                currentUserEmail: currentUserEmail,
+                backendIsCheckedOut: response.isCheckedOut,
+                backendLockedByYou: response.lockedByYou,
+                calculatedIsCheckedOut: isCheckedOut,
+                calculatedLockedByYou: lockedByYou
+            });
+
             return {
-                isCheckedOut: response.checkoutStatus === 'CheckedOut',
+                isCheckedOut: isCheckedOut,
                 checkedOutBy: response.checkedOutBy || null,
-                lockedByYou: response.checkoutStatus === 'CheckedOut' &&
-                           response.checkedOutBy === currentUserEmail,
+                lockedByYou: lockedByYou,
                 checkoutStatus: response.checkoutStatus,
                 documentInfo: response
             };
@@ -313,12 +340,27 @@ class DocumentTracker {
                 return;
             }
 
-            // Fast-path: trust local document state if it clearly indicates CheckedOut for this document
+            // Fast-path: trust local document state if it clearly indicates CheckedOut BY CURRENT USER
             if (window.documentStateManager && typeof window.documentStateManager.getDocumentState === 'function') {
                 try {
                     const localState = await window.documentStateManager.getDocumentState();
-                    if (localState && localState.documentId === this.documentId && localState.checkoutStatus === 'CheckedOut') {
-                        console.log('✅ Local state indicates document is already checked out by you — allowing edit');
+                    const currentUserEmail = await this.getCurrentUserEmail();
+
+                    console.log('🔍 Local state check:', {
+                        documentId: localState?.documentId,
+                        checkoutStatus: localState?.checkoutStatus,
+                        checkedOutBy: localState?.checkedOutBy,
+                        currentUserEmail: currentUserEmail
+                    });
+
+                    // Only allow edit if document is checked out by the CURRENT user
+                    if (localState &&
+                        localState.documentId === this.documentId &&
+                        localState.checkoutStatus === 'CheckedOut' &&
+                        localState.checkedOutBy &&
+                        currentUserEmail &&
+                        localState.checkedOutBy.toLowerCase() === currentUserEmail.toLowerCase()) {
+                        console.log('✅ Local state indicates document is checked out by YOU — allowing edit');
                         return; // Do not show any popup
                     }
                 } catch (e) {
@@ -543,17 +585,24 @@ class DocumentTracker {
             if (response.success) {
                 console.log('✅ Document checked out successfully');
 
+                // Get current user email
+                const currentUserEmail = await this.getCurrentUserEmail();
+
                 // Update internal state
                 this.currentStatus = {
                     isCheckedOut: true,
-                    checkedOutBy: await this.getCurrentUserEmail(),
+                    checkedOutBy: currentUserEmail,
                     lockedByYou: true,
                     checkoutStatus: 'CheckedOut'
                 };
 
-                // Update document state manager if available
+                // Update document state manager if available - INCLUDE checkedOutBy
                 if (window.documentStateManager) {
-                    await window.documentStateManager.updateCheckoutStatus('CheckedOut');
+                    await window.documentStateManager.updateCheckoutStatus('CheckedOut', {
+                        checkedOutBy: currentUserEmail,
+                        lockedByYou: true
+                    });
+                    console.log('✅ Local state updated with checkedOutBy:', currentUserEmail);
                 }
 
                 // Show success message
