@@ -467,6 +467,34 @@ class JupiterService {
         }
     }
     /**
+     * Create a new library (Admin only)
+     * @param {Object} libraryData - Library data {name, description, isActive}
+     * @returns {Promise<Object>} Created library
+     */
+    async createLibrary(libraryData) {
+        try {
+            const response = await this.makeRequest('POST', '/libraries', libraryData);
+            return response;
+        } catch (error) {
+            console.error('Error creating library:', error);
+            this.handleError(error);
+        }
+    }
+    /**
+     * Create a new folder (Admin only)
+     * @param {Object} folderData - Folder data {name, libraryId, parentFolderId, description}
+     * @returns {Promise<Object>} Created folder
+     */
+    async createFolder(folderData) {
+        try {
+            const response = await this.makeRequest('POST', '/folders', folderData);
+            return response;
+        } catch (error) {
+            console.error('Error creating folder:', error);
+            this.handleError(error);
+        }
+    }
+    /**
      * Get documents in a folder
      * @param {string} folderId - Folder ID
      * @returns {Promise<Array>} List of documents

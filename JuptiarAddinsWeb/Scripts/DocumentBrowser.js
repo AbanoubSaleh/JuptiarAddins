@@ -78,7 +78,10 @@ class DocumentBrowser {
         });
 
         // Hide context menu on click elsewhere
-        $.on(document, 'click', () => this.hideContextMenu());
+        $.on(document, 'click', () => {
+            this.hideContextMenu();
+            this.hideLibraryContextMenu();
+        });
 
         // Context menu actions
         $.on('#openDocument', 'click', async () => {
@@ -126,6 +129,28 @@ class DocumentBrowser {
 
         // Version History modal bindings
         $.on('#closeVersionModal', 'click', () => this.hideVersionHistory());
+
+        // Library/Folder creation buttons
+        $.on('#addLibraryBtn', 'click', () => this.showCreateLibraryModal());
+        $.on('#createLibrarySubmitBtn', 'click', () => this.handleCreateLibrary());
+        $.on('#createLibraryCancelBtn', 'click', () => this.hideCreateLibraryModal());
+        $.on('#closeCreateLibraryModal', 'click', () => this.hideCreateLibraryModal());
+
+        $.on('#createFolderSubmitBtn', 'click', () => this.handleCreateFolder());
+        $.on('#createFolderCancelBtn', 'click', () => this.hideCreateFolderModal());
+        $.on('#closeCreateFolderModal', 'click', () => this.hideCreateFolderModal());
+
+        // Library context menu
+        $.delegate(document, 'contextmenu', '.library-item', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.showLibraryContextMenu(e, e.currentTarget);
+        });
+
+        $.on('#addFolderToLibrary', 'click', () => {
+            this.hideLibraryContextMenu();
+            this.showCreateFolderModal(this._contextMenuLibraryId);
+        });
         $.delegate(document, 'click', '.open-version-btn', async (e) => {
             e.stopPropagation();
             const btn = e.currentTarget;
@@ -251,6 +276,13 @@ class DocumentBrowser {
 
         $.removeClass('.status-indicator', 'offline');
         $.addClass('.status-indicator', 'online');
+
+        // Show/hide admin-only buttons based on user role
+        if (window.authManager && window.authManager.isAdmin()) {
+            $.show('#addLibraryBtn');
+        } else {
+            $.hide('#addLibraryBtn');
+        }
     }
 
     /**
@@ -261,6 +293,7 @@ class DocumentBrowser {
         $.show('#loginBtn');
         $.hide('#logoutBtn');
         $.hide('#searchSection');
+        $.hide('#addLibraryBtn');
 
         // Instead of hiding main content, show a helpful login prompt
         this.showLoginPrompt();
@@ -1908,6 +1941,158 @@ class DocumentBrowser {
 
         } catch (error) {
             console.error('❌ DocumentTracker test failed:', error);
+        }
+    }
+
+    /**
+     * Show library context menu
+     */
+    showLibraryContextMenu(event, libraryElement) {
+        // Only show for admin users
+        if (!window.authManager || !window.authManager.isAdmin()) {
+            return;
+        }
+
+        const libraryId = libraryElement.getAttribute('data-library-id');
+        this._contextMenuLibraryId = libraryId;
+
+        const menu = $.select('#libraryContextMenu');
+        menu.style.display = 'block';
+        menu.style.left = event.pageX + 'px';
+        menu.style.top = event.pageY + 'px';
+    }
+
+    /**
+     * Hide library context menu
+     */
+    hideLibraryContextMenu() {
+        const menu = $.select('#libraryContextMenu');
+        if (menu) {
+            menu.style.display = 'none';
+        }
+    }
+
+    /**
+     * Show create library modal
+     */
+    showCreateLibraryModal() {
+        $.select('#libraryName').value = '';
+        $.select('#libraryDescription').value = '';
+        $.show('#createLibraryModal');
+    }
+
+    /**
+     * Hide create library modal
+     */
+    hideCreateLibraryModal() {
+        $.hide('#createLibraryModal');
+    }
+
+    /**
+     * Handle create library
+     */
+    async handleCreateLibrary() {
+        const name = $.select('#libraryName').value.trim();
+        const description = $.select('#libraryDescription').value.trim();
+
+        if (!name) {
+            this.showError('Library name is required');
+            return;
+        }
+
+        try {
+            this.showLoading('Creating library...');
+
+            const libraryData = {
+                name: name,
+                description: description || '',
+                isActive: true
+            };
+
+            await window.jupiterService.createLibrary(libraryData);
+
+            this.hideCreateLibraryModal();
+            this.showTemporarySuccess('Library created successfully');
+
+            // Reload library tree
+            await this.loadLibraryTree();
+
+            this.hideLoading();
+        } catch (error) {
+            console.error('Error creating library:', error);
+            this.hideLoading();
+            if (error.message.includes('403') || error.message.includes('Forbidden')) {
+                this.showError('You do not have permission to create libraries. Admin access required.');
+            } else {
+                this.showError('Failed to create library: ' + error.message);
+            }
+        }
+    }
+
+    /**
+     * Show create folder modal
+     */
+    showCreateFolderModal(libraryId) {
+        $.select('#folderName').value = '';
+        $.select('#folderDescription').value = '';
+        $.select('#folderLibraryId').value = libraryId;
+        $.select('#folderParentId').value = ''; // Root folder
+        $.show('#createFolderModal');
+    }
+
+    /**
+     * Hide create folder modal
+     */
+    hideCreateFolderModal() {
+        $.hide('#createFolderModal');
+    }
+
+    /**
+     * Handle create folder
+     */
+    async handleCreateFolder() {
+        const name = $.select('#folderName').value.trim();
+        const description = $.select('#folderDescription').value.trim();
+        const libraryId = $.select('#folderLibraryId').value;
+        const parentFolderId = $.select('#folderParentId').value || null;
+
+        if (!name) {
+            this.showError('Folder name is required');
+            return;
+        }
+
+        if (!libraryId) {
+            this.showError('Library ID is missing');
+            return;
+        }
+
+        try {
+            this.showLoading('Creating folder...');
+
+            const folderData = {
+                name: name,
+                libraryId: libraryId,
+                parentFolderId: parentFolderId,
+                description: description || ''
+            };
+
+            await window.jupiterService.createFolder(folderData);
+
+            this.hideCreateFolderModal();
+            this.showTemporarySuccess('Folder created successfully');
+
+            // Reload library tree
+            await this.loadLibraryTree();
+
+            this.hideLoading();
+        } catch (error) {
+            console.error('Error creating folder:', error);
+            this.hideLoading();
+            if (error.message.includes('403') || error.message.includes('Forbidden')) {
+                this.showError('You do not have permission to create folders. Admin access required.');
+            } else {
+                this.showError('Failed to create folder: ' + error.message);
+            }
         }
     }
 }

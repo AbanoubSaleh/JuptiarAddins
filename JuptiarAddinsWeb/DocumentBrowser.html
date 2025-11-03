@@ -67,6 +67,9 @@
                         <div class="panel-header">
                             <span class="ms-Icon ms-Icon--FolderOpen"></span>
                             Libraries
+                            <button id="addLibraryBtn" class="add-library-btn" title="Add Library" style="display: none;">
+                                <span class="ms-Icon ms-Icon--Add"></span>
+                            </button>
                         </div>
                         <div id="folderTree" class="folder-tree">
                             <!-- Folder tree will be populated here -->
@@ -181,6 +184,16 @@
         </ul>
     </div>
 
+    <!-- Library Context Menu -->
+    <div id="libraryContextMenu" class="context-menu" style="display: none;">
+        <ul>
+            <li id="addFolderToLibrary">
+                <span class="ms-Icon ms-Icon--FolderHorizontal" style="margin-right: 8px;"></span>
+                Add Folder
+            </li>
+        </ul>
+    </div>
+
     <!-- Version History Modal -->
     <div id="versionHistoryModal" class="modal" style="display: none;">
         <div class="modal-content">
@@ -194,13 +207,71 @@
         </div>
     </div>
 
+    <!-- Create Library Modal -->
+    <div id="createLibraryModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create New Library</h3>
+                <span class="close" id="closeCreateLibraryModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="ms-TextField">
+                    <label class="ms-Label">Library Name: <span style="color: red;">*</span></label>
+                    <input type="text" id="libraryName" class="ms-TextField-field" maxlength="200" required />
+                </div>
+                <div class="ms-TextField">
+                    <label class="ms-Label">Description:</label>
+                    <textarea id="libraryDescription" class="ms-TextField-field" rows="3" maxlength="1000"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="createLibrarySubmitBtn" class="ms-Button ms-Button--primary">
+                    <span class="ms-Button-label">Create</span>
+                </button>
+                <button id="createLibraryCancelBtn" class="ms-Button">
+                    <span class="ms-Button-label">Cancel</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Folder Modal -->
+    <div id="createFolderModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create New Folder</h3>
+                <span class="close" id="closeCreateFolderModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="ms-TextField">
+                    <label class="ms-Label">Folder Name: <span style="color: red;">*</span></label>
+                    <input type="text" id="folderName" class="ms-TextField-field" maxlength="255" required />
+                </div>
+                <div class="ms-TextField">
+                    <label class="ms-Label">Description:</label>
+                    <textarea id="folderDescription" class="ms-TextField-field" rows="3" maxlength="1000"></textarea>
+                </div>
+                <input type="hidden" id="folderLibraryId" />
+                <input type="hidden" id="folderParentId" />
+            </div>
+            <div class="modal-footer">
+                <button id="createFolderSubmitBtn" class="ms-Button ms-Button--primary">
+                    <span class="ms-Button-label">Create</span>
+                </button>
+                <button id="createFolderCancelBtn" class="ms-Button">
+                    <span class="ms-Button-label">Cancel</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Custom JavaScript -->
     <script type="text/javascript" src="Scripts/config.js?v=2"></script>
     <script type="text/javascript" src="Scripts/JupiterService.js?v=5"></script>
-    <script type="text/javascript" src="Scripts/AuthManager.js?v=2"></script>
+    <script type="text/javascript" src="Scripts/AuthManager.js?v=3"></script>
     <script type="text/javascript" src="Scripts/DocumentStateManager.js?v=1"></script>
     <script type="text/javascript" src="Scripts/DocumentTracker.js?v=3"></script>
-    <script type="text/javascript" src="Scripts/DocumentBrowser.js?v=9"></script>
+    <script type="text/javascript" src="Scripts/DocumentBrowser.js?v=10"></script>
 
 </body>
 </html>

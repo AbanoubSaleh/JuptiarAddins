@@ -321,6 +321,47 @@ class AuthManager {
     async autoLogin() {
         return false;
     }
+
+    /**
+     * Decode JWT token and extract payload
+     */
+    decodeJWT(token) {
+        try {
+            if (!token) return null;
+
+            const parts = token.split('.');
+            if (parts.length !== 3) return null;
+
+            // Decode the payload (second part)
+            const payload = parts[1];
+            const decoded = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+            return JSON.parse(decoded);
+        } catch (error) {
+            console.error('Error decoding JWT:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Get user role from current auth token
+     */
+    getUserRole() {
+        if (!this.authToken) return null;
+
+        const payload = this.decodeJWT(this.authToken);
+        if (!payload) return null;
+
+        // The role claim is stored as "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
+        return payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || payload.role || null;
+    }
+
+    /**
+     * Check if current user is Admin
+     */
+    isAdmin() {
+        const role = this.getUserRole();
+        return role === 'Admin';
+    }
     /**
      * Test connection to server
      */
