@@ -367,30 +367,59 @@ class AuthManager {
      */
     async testConnection(serverUrl, apiEndpoint = '/api') {
         try {
+            // Create a temporary service instance for testing
             const tempService = new JupiterService();
             tempService.initialize({
                 serverUrl: serverUrl,
                 apiEndpoint: apiEndpoint,
                 timeout: 10000 // Shorter timeout for testing
             });
-            // Try to make a simple request to test connectivity
-            // Use a POST to Auth/login with empty body to test if endpoint exists
-            // This should return 400 (bad request) but not 404 (not found)
+
+            // Try the health endpoint first (no authentication required)
             try {
-                await tempService.makeRequest('POST', '/Auth/login', {});
-            } catch (error) {
-                // If we get 400 (bad request), the endpoint exists - connection is good
-                // If we get 404 (not found), the endpoint doesn't exist - connection failed
-                if (error.message.includes('400')) {
-                    return { success: true, message: 'Connection successful - endpoint found' };
-                } else if (error.message.includes('404')) {
-                    throw new Error('API endpoint not found (404)');
-                } else {
-                    throw error;
+                const healthUrl = `${serverUrl}/health`;
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+                const response = await fetch(healthUrl, {
+                    method: 'GET',
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+
+                if (response.ok) {
+                    return { success: true, message: 'Connection successful - Server is healthy' };
+                }
+
+                // If health endpoint returns non-200, try API endpoint
+                throw new Error('Health endpoint returned non-200 status');
+
+            } catch (healthError) {
+                // If health endpoint fails, try the API base endpoint
+                try {
+                    await tempService.makeRequest('GET', '');
+                    return { success: true, message: 'Connection successful - API endpoint accessible' };
+                } catch (apiError) {
+                    // Network errors
+                    if (healthError.message.includes('Failed to fetch') ||
+                        healthError.message.includes('NetworkError') ||
+                        healthError.name === 'AbortError') {
+                        throw new Error('Cannot connect to server. Please check the Server URL and your network connection.');
+                    }
+
+                    // If we get 404, the endpoint doesn't exist
+                    if (apiError.message.includes('404')) {
+                        throw new Error('API endpoint not found (404). Please check the Server URL and API Endpoint.');
+                    }
+
+                    // Any other error from API endpoint, but server is reachable
+                    // This means the server exists but the endpoint might be wrong
+                    throw new Error('Server is reachable but API endpoint may be incorrect. Please verify the API Endpoint path.');
                 }
             }
-            return { success: true, response: response };
         } catch (error) {
+            console.error('Test connection error:', error);
             return { success: false, error: error.message };
         }
     }
