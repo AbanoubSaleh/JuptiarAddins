@@ -28,6 +28,15 @@ class DocumentTracker {
         try {
             console.log('🔍 Initializing Jupiter Document Tracking...');
 
+            // Prevent duplicate initialization
+            if (this.isInitialized) {
+                console.log('⚠️ DocumentTracker already initialized, skipping...');
+                return;
+            }
+
+            // Clean up any existing event listeners before re-initializing
+            await this.cleanupEventListeners();
+
             // Step 1: Detect if document is managed by Jupiter
             const jupiterInfo = await this.getJupiterDocumentId();
 
@@ -536,9 +545,8 @@ class DocumentTracker {
     async showPopup(message, options = []) {
         try {
             return new Promise((resolve) => {
-                // Create popup URL with parameters
-                const baseUrl = window.location.origin + window.location.pathname.replace(/\/[^\/]*$/, '');
-                const popupUrl = `${baseUrl}/jupiter-popup.html?message=${encodeURIComponent(message)}&options=${encodeURIComponent(JSON.stringify(options))}`;
+                // Create popup URL with parameters - use origin only to avoid /Functions/ path issue
+                const popupUrl = `${window.location.origin}/jupiter-popup.html?message=${encodeURIComponent(message)}&options=${encodeURIComponent(JSON.stringify(options))}`;
 
                 Office.context.ui.displayDialogAsync(
                     popupUrl,
@@ -654,6 +662,23 @@ class DocumentTracker {
         } catch (error) {
             console.error('❌ Error setting custom properties:', error);
             throw error;
+        }
+    }
+
+    /**
+     * Clean up event listeners to prevent duplicates
+     */
+    async cleanupEventListeners() {
+        try {
+            console.log('🧹 Cleaning up existing event listeners...');
+            await Word.run(async (context) => {
+                context.document.onContentChanged.removeAll();
+                context.document.onSelectionChanged.removeAll();
+                await context.sync();
+                console.log('✅ Event listeners cleaned up');
+            });
+        } catch (error) {
+            console.warn('⚠️ Error cleaning up event listeners (may not exist yet):', error);
         }
     }
 
