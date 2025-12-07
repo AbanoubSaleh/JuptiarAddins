@@ -41,9 +41,8 @@ class DocumentTracker {
             const jupiterInfo = await this.getJupiterDocumentId();
 
             if (!jupiterInfo) {
-                // Document is not managed by Jupiter
+                // Document is not managed by Jupiter - just log, don't show popup
                 this.isJupiterDocument = false;
-                await this.showNotManagedPopup();
                 console.log('ℹ️ Document is not managed by Jupiter DMS');
                 return;
             }

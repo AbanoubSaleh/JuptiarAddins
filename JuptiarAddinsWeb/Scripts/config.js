@@ -520,7 +520,9 @@ window.JupiterConfig = {
     // Server Configuration
     server: {
         // Base URL of the Jupiter DMS API server
-        baseUrl: 'https://localhost:7001',
+        // For production, use: 'https://juptierdms-api-g2ebftf5cmebezcp.canadacentral-01.azurewebsites.net'
+        // For local development, use: 'https://localhost:7001'
+        baseUrl: 'https://juptierdms-api-g2ebftf5cmebezcp.canadacentral-01.azurewebsites.net',
 
         // API endpoint path
         apiEndpoint: '/api',

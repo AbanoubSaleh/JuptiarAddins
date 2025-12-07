@@ -1787,7 +1787,7 @@ class DocumentBrowser {
             }
 
             // Show confirmation dialog instead of using window.confirm
-            this.showDeleteConfirmation(document.fileName, async () => {
+            this.showDeleteConfirmation(document.name || document.fileName, async () => {
                 try {
                     this.showLoading('Deleting document...');
 
@@ -1798,7 +1798,7 @@ class DocumentBrowser {
                         await this.refreshCurrentView();
 
                         // Show success message temporarily
-                        this.showTemporarySuccess(`Document "${document.fileName}" deleted successfully`);
+                        this.showTemporarySuccess(`Document "${document.name || document.fileName}" deleted successfully`);
                     } else {
                         this.showError('Failed to delete document: Unknown error occurred');
                     }

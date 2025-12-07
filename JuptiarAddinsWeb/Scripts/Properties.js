@@ -50,6 +50,7 @@ Office.onReady(() => {
                         } catch (e) { console.warn('Could not show warning banner:', e); }
                         DOMUtils.hide('#metaSection');
                         DOMUtils.hide('#actionSection');
+                        DOMUtils.hide('#loadingSection');
                         return;
                     }
                     if (window.propertiesEditor) { window.propertiesEditor.initialize(); }
@@ -80,6 +81,7 @@ Office.onReady(() => {
                         } catch (e) { console.warn('Could not show warning banner:', e); }
                         DOMUtils.hide('#metaSection');
                         DOMUtils.hide('#actionSection');
+                        DOMUtils.hide('#loadingSection');
                         return;
                     }
                     if (window.propertiesEditor) { window.propertiesEditor.initialize(); }
@@ -110,6 +112,7 @@ Office.onReady(() => {
                     } catch (e) { console.warn('Could not show warning banner:', e); }
                     DOMUtils.hide('#metaSection');
                     DOMUtils.hide('#actionSection');
+                    DOMUtils.hide('#loadingSection');
                     return;
                 }
                 if (window.propertiesEditor) { window.propertiesEditor.initialize(); }
@@ -148,6 +151,7 @@ Office.onReady(() => {
                         } catch (e) { console.warn('Could not show warning banner:', e); }
                         DOMUtils.hide('#metaSection');
                         DOMUtils.hide('#actionSection');
+                        DOMUtils.hide('#loadingSection');
                         return;
                     }
                     if (window.propertiesEditor) { window.propertiesEditor.initialize(); }
