@@ -18,25 +18,18 @@ class SettingsPage {
         // Save settings
         DOMUtils.on('#saveBtn', 'click', () => this.saveSettings());
 
-        // Reset to defaults
-        DOMUtils.on('#resetBtn', 'click', () => this.resetToDefaults());
 
-        // Clear credentials
-        DOMUtils.on('#clearCredentialsBtn', 'click', () => this.clearCredentials());
 
         // Test connection, login, and logout
         DOMUtils.on('#testConnectionBtn', 'click', () => this.testConnection());
         DOMUtils.on('#loginBtn', 'click', () => this.performLogin());
         DOMUtils.on('#logoutBtn', 'click', () => this.performLogout());
 
-        // Form validation
-        DOMUtils.on('#serverUrl', 'blur', () => this.validateServerUrl());
+        // Form validation (for authentication fields)
         DOMUtils.on('#username', 'blur', () => this.validateUsername());
         DOMUtils.on('#password', 'blur', () => this.validatePassword());
 
-        // Auto-login checkbox dependency
-        DOMUtils.on('#autoLogin', 'change', () => this.handleAutoLoginChange());
-        DOMUtils.on('#rememberCredentials', 'change', () => this.handleRememberCredentialsChange());
+
     }
 
     /**
@@ -72,25 +65,20 @@ class SettingsPage {
      * Populate form with current settings
      */
     populateForm(settings, credentials) {
-        // Connection settings
-        DOMUtils.val('#serverUrl', settings.serverUrl || '');
-        DOMUtils.val('#apiEndpoint', settings.apiEndpoint || '/api/v1');
-        DOMUtils.val('#connectionTimeout', settings.timeout / 1000 || 30);
+        // Connection settings are now pre-configured in JupiterConfig
 
-        // Authentication
-        DOMUtils.val('#username', credentials.username || '');
-        // Map old settings to new "Stay Logged In" option
-        const stayLoggedIn = settings.rememberCredentials || settings.autoLogin || false;
-        DOMUtils.prop('#stayLoggedIn', 'checked', stayLoggedIn);
+        // Authentication (only populate if fields exist)
+        if (DOMUtils.select('#username')) {
+            DOMUtils.val('#username', credentials.username || '');
+            const stayLoggedIn = settings.rememberCredentials || settings.autoLogin || false;
+            DOMUtils.prop('#stayLoggedIn', 'checked', stayLoggedIn);
+        }
 
         // Advanced settings
         DOMUtils.val('#defaultLibrary', settings.defaultLibrary || '');
         DOMUtils.val('#documentsPerPage', settings.documentsPerPage || 50);
 
         DOMUtils.prop('#enableNotifications', 'checked', settings.enableNotifications !== false);
-        
-        // Handle auto-login dependency
-        this.handleRememberCredentialsChange();
     }
 
     /**
@@ -116,6 +104,9 @@ class SettingsPage {
             // Show logout button, hide login button
             DOMUtils.hide('#loginBtn');
             DOMUtils.show('#logoutBtn');
+
+            // Hide authentication form when logged in
+            this.hideAuthenticationForm();
         } else {
             DOMUtils.removeClass(indicator, 'online');
             DOMUtils.removeClass(indicator, 'testing');
@@ -126,6 +117,9 @@ class SettingsPage {
             // Show login button, hide logout button
             DOMUtils.show('#loginBtn');
             DOMUtils.hide('#logoutBtn');
+
+            // Show authentication form when not logged in
+            this.showAuthenticationForm();
         }
     }
 
@@ -169,10 +163,7 @@ class SettingsPage {
      * Validate server URL (now pre-configured, always valid)
      */
     validateServerUrl() {
-        // Server URL is pre-configured, so always return true
-        const field = DOMUtils.select('#serverUrl');
-        DOMUtils.removeClass(field, 'error');
-        this.hideFieldError(field);
+        // Server URL is pre-configured in JupiterConfig, so always return true
         return true;
     }
 
@@ -180,17 +171,19 @@ class SettingsPage {
      * Validate username
      */
     validateUsername() {
+        const usernameField = DOMUtils.select('#username');
+        if (!usernameField) return true; // Field doesn't exist, skip validation
+
         const username = DOMUtils.val('#username').trim();
-        const field = DOMUtils.select('#username');
 
         if (!username) {
-            DOMUtils.addClass(field, 'error');
-            this.showFieldError(field, 'Username is required');
+            DOMUtils.addClass(usernameField, 'error');
+            this.showFieldError(usernameField, 'Username is required');
             return false;
         }
 
-        DOMUtils.removeClass(field, 'error');
-        this.hideFieldError(field);
+        DOMUtils.removeClass(usernameField, 'error');
+        this.hideFieldError(usernameField);
         return true;
     }
 
@@ -198,19 +191,23 @@ class SettingsPage {
      * Validate password
      */
     validatePassword() {
+        const passwordField = DOMUtils.select('#password');
+        if (!passwordField) return true; // Field doesn't exist, skip validation
+
         const password = DOMUtils.val('#password');
-        const field = DOMUtils.select('#password');
 
         if (!password) {
-            DOMUtils.addClass(field, 'error');
-            this.showFieldError(field, 'Password is required');
+            DOMUtils.addClass(passwordField, 'error');
+            this.showFieldError(passwordField, 'Password is required');
             return false;
         }
 
-        DOMUtils.removeClass(field, 'error');
-        this.hideFieldError(field);
+        DOMUtils.removeClass(passwordField, 'error');
+        this.hideFieldError(passwordField);
         return true;
     }
+
+
 
     /**
      * Show field-specific error
@@ -235,45 +232,22 @@ class SettingsPage {
         existingErrors.forEach(error => error.remove());
     }
 
-    /**
-     * Handle remember credentials checkbox change
-     */
-    handleRememberCredentialsChange() {
-        const rememberChecked = DOMUtils.prop('#rememberCredentials', 'checked');
-        DOMUtils.prop('#autoLogin', 'disabled', !rememberChecked);
 
-        if (!rememberChecked) {
-            DOMUtils.prop('#autoLogin', 'checked', false);
-        }
-    }
 
-    /**
-     * Handle auto-login checkbox change
-     */
-    handleAutoLoginChange() {
-        const autoLoginChecked = DOMUtils.prop('#autoLogin', 'checked');
 
-        if (autoLoginChecked && !DOMUtils.prop('#rememberCredentials', 'checked')) {
-            DOMUtils.prop('#rememberCredentials', 'checked', true);
-        }
-    }
 
     /**
      * Test connection to server
      */
     async testConnection() {
         if (this.isTestingConnection) return;
-        
+
         try {
             this.isTestingConnection = true;
-            
-            // Validate required fields
-            if (!this.validateServerUrl()) {
-                return;
-            }
-            
-            const serverUrl = DOMUtils.val('#serverUrl').trim();
-            const apiEndpoint = DOMUtils.val('#apiEndpoint').trim();
+
+            // Get connection settings from JupiterConfig instead of form fields
+            const serverUrl = window.JupiterConfig.get('server.baseUrl');
+            const apiEndpoint = window.JupiterConfig.get('server.apiEndpoint') || '/api';
 
             // Update UI
             DOMUtils.removeClass('#statusIndicator', 'online');
@@ -282,10 +256,10 @@ class SettingsPage {
             DOMUtils.text('#statusText', 'Testing connection...');
             DOMUtils.prop('#testConnectionBtn', 'disabled', true);
             this.showLoading('Testing connection...');
-            
+
             // Test connection
             const result = await window.authManager.testConnection(serverUrl, apiEndpoint);
-            
+
             if (result.success) {
                 DOMUtils.removeClass('#statusIndicator', 'testing');
                 DOMUtils.removeClass('#statusIndicator', 'offline');
@@ -323,6 +297,18 @@ class SettingsPage {
         try {
             this.isLoggingIn = true;
 
+            // Show authentication form if not visible
+            this.showAuthenticationForm();
+
+            // Check if we have credentials to validate
+            const usernameField = DOMUtils.select('#username');
+            const passwordField = DOMUtils.select('#password');
+
+            if (!usernameField || !passwordField) {
+                this.showError('Authentication form not available. Please refresh the page.');
+                return;
+            }
+
             // Validate credentials
             if (!this.validateUsername() || !this.validatePassword()) {
                 this.showError('Please enter valid username and password');
@@ -346,6 +332,9 @@ class SettingsPage {
                 // Update connection status
                 const authStatus = window.authManager.getAuthStatus();
                 this.updateConnectionStatus(authStatus);
+
+                // Hide authentication form
+                this.hideAuthenticationForm();
 
                 // Load library options if authenticated
                 await this.loadDefaultLibraryOptions();
@@ -383,8 +372,13 @@ class SettingsPage {
             DOMUtils.hide('#logoutBtn');
             DOMUtils.show('#loginBtn');
 
+            // Show authentication form for re-login
+            this.showAuthenticationForm();
+
             // Clear password field for security
-            DOMUtils.val('#password', '');
+            if (DOMUtils.select('#password')) {
+                DOMUtils.val('#password', '');
+            }
 
             this.showSuccess('Logged out successfully');
 
@@ -397,26 +391,40 @@ class SettingsPage {
     }
 
     /**
-     * Save settings with credential validation (Best Practice)
+     * Show authentication form when user needs to log in
+     */
+    showAuthenticationForm() {
+        const authSection = DOMUtils.select('#authSection');
+        if (authSection) {
+            DOMUtils.show('#authSection');
+        }
+    }
+
+    /**
+     * Hide authentication form when user is logged in
+     */
+    hideAuthenticationForm() {
+        const authSection = DOMUtils.select('#authSection');
+        if (authSection) {
+            DOMUtils.hide('#authSection');
+        }
+    }
+
+    /**
+     * Save settings and optionally authenticate
      */
     async saveSettings() {
         try {
-            // Validate form
-            const isValid = this.validateServerUrl() && this.validateUsername() && this.validatePassword();
-            if (!isValid) {
-                this.showError('Please fix validation errors before saving');
-                return;
-            }
-
-            this.showLoading('Validating credentials and saving settings...');
+            this.showLoading('Saving settings...');
 
             // Collect form data
-            const stayLoggedIn = DOMUtils.prop('#stayLoggedIn', 'checked');
+            const stayLoggedIn = DOMUtils.select('#stayLoggedIn') ? DOMUtils.prop('#stayLoggedIn', 'checked') : false;
             const newSettings = {
-                serverUrl: DOMUtils.val('#serverUrl').trim(),
-                apiEndpoint: DOMUtils.val('#apiEndpoint').trim(),
-                timeout: parseInt(DOMUtils.val('#connectionTimeout')) * 1000,
-                // Map new "Stay Logged In" to both old options for backward compatibility
+                // Connection settings are now pre-configured in JupiterConfig
+                serverUrl: window.JupiterConfig.get('server.baseUrl'),
+                apiEndpoint: window.JupiterConfig.get('server.apiEndpoint') || '/api',
+                timeout: window.JupiterConfig.get('server.timeout') || 30000,
+                // Authentication settings
                 rememberCredentials: stayLoggedIn,
                 autoLogin: stayLoggedIn,
                 defaultLibrary: DOMUtils.val('#defaultLibrary'),
@@ -425,56 +433,10 @@ class SettingsPage {
                 enableNotifications: DOMUtils.prop('#enableNotifications', 'checked')
             };
 
-            const username = DOMUtils.val('#username').trim();
-            const password = DOMUtils.val('#password');
+            // Save settings
+            await window.authManager.saveSettings(newSettings);
 
-            // SECURITY BEST PRACTICE: Validate credentials before saving anything
-            if (username && password) {
-                console.log('Settings: Validating credentials before saving...');
-
-                // First save settings so AuthManager can use the new server URL
-                await window.authManager.saveSettings(newSettings);
-
-                // Attempt login to validate credentials
-                const loginResult = await window.authManager.login(username, password, stayLoggedIn);
-
-                if (loginResult.success) {
-                    // ✅ Credentials are valid
-                    console.log('Settings: Credentials validated successfully');
-
-                    // Update connection status
-                    const authStatus = window.authManager.getAuthStatus();
-                    this.updateConnectionStatus(authStatus);
-
-                    // Load library options if authenticated
-                    await this.loadDefaultLibraryOptions();
-
-                    // Clear password field for security (token is now stored)
-                    DOMUtils.val('#password', '');
-
-                    this.showSuccess('✅ Settings saved and login successful! You are now authenticated.');
-
-                } else {
-                    // ❌ Invalid credentials
-                    console.log('Settings: Invalid credentials provided');
-
-                    // Still save settings (server URL, etc.) but don't store credentials
-                    await window.authManager.clearStoredCredentials();
-
-                    this.showError('❌ Settings saved, but login failed: ' + (loginResult.message || 'Invalid username or password'));
-                }
-            } else {
-                // No credentials provided, just save settings
-                await window.authManager.saveSettings(newSettings);
-
-                // Clear any stored credentials if stay logged in is unchecked
-                if (!stayLoggedIn) {
-                    await window.authManager.clearStoredCredentials();
-                }
-
-                this.showSuccess('Settings saved successfully. Enter credentials to login.');
-            }
-
+            this.showSuccess('Settings saved successfully.');
             this.currentSettings = newSettings;
 
         } catch (error) {
@@ -485,109 +447,11 @@ class SettingsPage {
         }
     }
 
-    /**
-     * Reset settings to defaults
-     */
-    resetToDefaults() {
-        // Use a custom confirmation dialog since Office Add-ins don't support window.confirm()
-        this.showConfirmation(
-            'Reset Settings',
-            'Are you sure you want to reset all settings to defaults? This action cannot be undone.',
-            () => this.performReset()
-        );
-    }
 
-    /**
-     * Perform the actual reset after confirmation
-     */
-    performReset() {
-        // Reset form to default values (but preserve server URL as it's pre-configured)
-        // Get default values from config
-        const defaultServerUrl = window.JupiterConfig?.get('server.baseUrl') || 'https://localhost:7001';
-        const defaultApiEndpoint = window.JupiterConfig?.get('server.apiEndpoint') || '/api';
 
-        // Only reset server URL if it's empty, otherwise keep the current value
-        if (!DOMUtils.val('#serverUrl').trim()) {
-            DOMUtils.val('#serverUrl', defaultServerUrl);
-        }
 
-        DOMUtils.val('#apiEndpoint', defaultApiEndpoint);
-        DOMUtils.val('#connectionTimeout', '30');
-        DOMUtils.val('#username', '');
-        DOMUtils.val('#password', '');
-        DOMUtils.prop('#stayLoggedIn', 'checked', false);
-        DOMUtils.val('#defaultLibrary', '');
-        DOMUtils.val('#documentsPerPage', '50');
 
-        DOMUtils.prop('#enableNotifications', 'checked', true);
 
-        // Clear validation errors
-        DOMUtils.removeClass('.ms-TextField-field', 'error');
-        const errorMessages = DOMUtils.selectAll('.error-message');
-        errorMessages.forEach(el => el.remove());
-
-        this.handleRememberCredentialsChange();
-        this.showSuccess('Settings reset to defaults (server URL preserved)');
-    }
-
-    /**
-     * Show a custom confirmation dialog (Office Add-ins don't support window.confirm)
-     */
-    showConfirmation(title, message, onConfirm) {
-        // Create a simple confirmation using the existing message system
-        const confirmHtml = `
-            <div class="confirmation-dialog" style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; margin: 10px 0; border-radius: 4px;">
-                <h4 style="margin: 0 0 10px 0; color: #856404;">${title}</h4>
-                <p style="margin: 0 0 15px 0; color: #856404;">${message}</p>
-                <div style="text-align: right;">
-                    <button id="confirmYes" class="ms-Button ms-Button--primary" style="margin-right: 10px;">
-                        <span class="ms-Button-label">Yes, Reset</span>
-                    </button>
-                    <button id="confirmNo" class="ms-Button">
-                        <span class="ms-Button-label">Cancel</span>
-                    </button>
-                </div>
-            </div>
-        `;
-
-        // Show the confirmation
-        DOMUtils.html('#messageSection', confirmHtml);
-        DOMUtils.show('#messageSection');
-
-        // Handle confirmation buttons
-        DOMUtils.on('#confirmYes', 'click', () => {
-            DOMUtils.hide('#messageSection');
-            onConfirm();
-        });
-
-        DOMUtils.on('#confirmNo', 'click', () => {
-            DOMUtils.hide('#messageSection');
-        });
-    }
-
-    /**
-     * Clear stored credentials
-     */
-    async clearCredentials() {
-        const confirmed = confirm('Are you sure you want to clear all stored credentials?');
-        if (!confirmed) return;
-        
-        try {
-            await window.authManager.clearStoredCredentials();
-            
-            DOMUtils.val('#username', '');
-            DOMUtils.val('#password', '');
-            DOMUtils.prop('#rememberCredentials', 'checked', false);
-            DOMUtils.prop('#autoLogin', 'checked', false);
-            
-            this.handleRememberCredentialsChange();
-            this.showSuccess('Stored credentials cleared');
-            
-        } catch (error) {
-            console.error('Error clearing credentials:', error);
-            this.showError('Failed to clear credentials: ' + error.message);
-        }
-    }
 
     /**
      * Show loading indicator

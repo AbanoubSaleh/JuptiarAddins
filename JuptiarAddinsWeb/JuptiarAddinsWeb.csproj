@@ -18,9 +18,9 @@
     <UseIISExpress>true</UseIISExpress>
     <Use64BitIISExpress />
     <IISExpressSSLPort>44316</IISExpressSSLPort>
-    <IISExpressAnonymousAuthentication />
-    <IISExpressWindowsAuthentication />
-    <IISExpressUseClassicPipelineMode />
+    <IISExpressAnonymousAuthentication>enabled</IISExpressAnonymousAuthentication>
+    <IISExpressWindowsAuthentication>disabled</IISExpressWindowsAuthentication>
+    <IISExpressUseClassicPipelineMode>false</IISExpressUseClassicPipelineMode>
     <UseGlobalApplicationHostFile />
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
@@ -69,6 +69,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="CheckInDialog.css" />
+    <Content Include="CheckInDialog.html" />
+    <Content Include="checkout-prompt.html" />
     <Content Include="Content\Button.css" />
     <Content Include="Content\fabric-11.1.0.scoped.css" />
     <Content Include="Content\fabric-11.1.0.scoped.min.css" />
@@ -135,6 +138,7 @@
     <!-- Juptiar Add-in Pages -->
     <Content Include="DocumentBrowser.html" />
     <Content Include="DocumentBrowser.css" />
+    <Content Include="IconPreview.html" />
     <Content Include="SaveDialog.html" />
     <Content Include="SaveDialog.css" />
     <Content Include="Scripts\DocumentTracker.js" />
@@ -638,6 +642,9 @@
   </ItemGroup>
   <ItemGroup>
     <Service Include="{4A0DDDB5-7A95-4FBF-97CC-616D07737A77}" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Styles\" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Start Contract Review Workflow</title>
+
+    <!-- Office JavaScript API -->
+    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
+
+    <!-- Office UI Fabric -->
+    <link rel="stylesheet" href="Content/fabric.min.css" />
+    <link rel="stylesheet" href="Content/OfficeThemes.css" />
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="ContractReview.css" />
+</head>
+
+<body class="ms-font-m ms-welcome ms-Fabric">
+    <div class="ms-Grid contract-review-container">
+        <!-- Header -->
+        <div class="ms-Grid-row header-section">
+            <div class="ms-Grid-col ms-sm12">
+                <h2 class="ms-font-xl ms-fontColor-themePrimary">Start Contract Review Workflow</h2>
+                <p class="ms-font-s">Initiate the contract review process with the required metadata.</p>
+            </div>
+        </div>
+
+        <!-- Messages -->
+        <div class="ms-Grid-row message-section" id="messageSection" style="display: none;">
+            <div class="ms-Grid-col ms-sm12">
+                <div class="ms-MessageBar" id="messageBar">
+                    <div class="ms-MessageBar-content">
+                        <div class="ms-MessageBar-icon" id="messageIcon">
+                            <i class="ms-Icon"></i>
+                        </div>
+                        <div class="ms-MessageBar-text" id="messageText">
+                            Workflow started successfully.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contract Review Form -->
+        <div class="ms-Grid-row form-section" id="formSection">
+            <!-- Contract Information -->
+            <div class="ms-Grid-col ms-sm12 form-group">
+                <h3 class="ms-font-l">Contract Information</h3>
+                
+                <div class="ms-TextField">
+                    <label class="ms-Label">Contract Title *</label>
+                    <input type="text" id="contractTitle" class="ms-TextField-field"
+                           placeholder="Loading document title..." readonly />
+                </div>
+
+                <div class="ms-TextField">
+                    <label class="ms-Label">Contract Reference No. *</label>
+                    <input type="text" id="contractRefNo" class="ms-TextField-field" 
+                           placeholder="Enter contract reference number" />
+                </div>
+
+                <div class="ms-TextField">
+                    <label class="ms-Label">Contract Type *</label>
+                    <select id="contractType" class="ms-Dropdown" required>
+                        <option value="">Select contract type...</option>
+                        <option value="lease">Lease</option>
+                        <option value="vendor_agreement">Vendor Agreement</option>
+                        <option value="service_agreement">Service Agreement</option>
+                        <option value="nda">NDA</option>
+                        <option value="framework_agreement">Framework Agreement</option>
+                    </select>
+                </div>
+
+                <div class="ms-TextField">
+                    <label class="ms-Label">Vendor</label>
+                    <input type="text" id="vendor" class="ms-TextField-field" 
+                           placeholder="Enter vendor name" />
+                </div>
+            </div>
+
+            <!-- Workflow Information -->
+            <div class="ms-Grid-col ms-sm12 form-group">
+                <h3 class="ms-font-l">Workflow Information</h3>
+                
+                <div class="ms-TextField">
+                    <label class="ms-Label">Department *</label>
+                    <select id="department" class="ms-Dropdown" required>
+                        <option value="">Select department...</option>
+                        <option value="hr">HR</option>
+                        <option value="legal">Legal</option>
+                        <option value="finance">Finance</option>
+                        <option value="procurement">Procurement</option>
+                    </select>
+                </div>
+
+                <div class="ms-TextField">
+                    <label class="ms-Label">Contract Owner *</label>
+                    <input type="text" id="contractOwner" class="ms-TextField-field"
+                           placeholder="Loading user..." readonly />
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="ms-Grid-col ms-sm12 action-section">
+                <div class="action-buttons">
+                    <button id="startWorkflowBtn" type="button" class="ms-Button ms-Button--primary">
+                        <span class="ms-Button-label">Start Workflow</span>
+                    </button>
+                    <button id="cancelBtn" type="button" class="ms-Button">
+                        <span class="ms-Button-label">Cancel</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+
+
+        <!-- Loading Section -->
+        <div class="ms-Grid-row loading-section" id="loadingSection" style="display: none;">
+            <div class="ms-Grid-col ms-sm12">
+                <div class="loading-container">
+                    <div class="loading-spinner"></div>
+                    <div class="loading-text" id="loadingText">Starting workflow...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Required Scripts -->
+    <script type="text/javascript" src="Scripts/config.js"></script>
+    <script type="text/javascript" src="Scripts/JupiterService.js"></script>
+    <script type="text/javascript" src="Scripts/AuthManager.js"></script>
+    <script type="text/javascript" src="Scripts/DocumentStateManager.js"></script>
+
+    <!-- Custom JavaScript -->
+    <script type="text/javascript" src="Scripts/ContractReview.js"></script>
+</body>
+</html>

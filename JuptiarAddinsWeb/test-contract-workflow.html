@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Test Contract Review Workflow</title>
+
+    <!-- Office JavaScript API -->
+    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
+
+    <!-- Office UI Fabric -->
+    <link rel="stylesheet" href="Content/fabric.min.css" />
+    <link rel="stylesheet" href="Content/OfficeThemes.css" />
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .test-button {
+            background: #0078d4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .test-button:hover {
+            background: #106ebe;
+        }
+        .test-result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .success { background: #dff6dd; color: #107c10; }
+        .error { background: #fde7e9; color: #d13438; }
+        .info { background: #deecf9; color: #0078d4; }
+    </style>
+</head>
+
+<body>
+    <div class="test-container">
+        <h1>Contract Review Workflow - Test Page</h1>
+        <p>This page tests the Contract Review Workflow functionality and document detection logic.</p>
+
+        <div class="test-section">
+            <h3>Document Type Detection</h3>
+            <p>Test the document type detection logic that determines if workflow should be available.</p>
+            <button class="test-button" onclick="testDocumentType()">Test Document Type</button>
+            <button class="test-button" onclick="simulateJupiterDoc()">Simulate Jupiter Document</button>
+            <button class="test-button" onclick="simulateNewDoc()">Simulate New Document</button>
+            <div id="docTypeResult" class="test-result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Data Population Test</h3>
+            <p>Test document title and user name retrieval.</p>
+            <button class="test-button" onclick="testDataPopulation()">Test Data Population</button>
+            <div id="dataResult" class="test-result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Contract Review Dialog</h3>
+            <p>Open the actual Contract Review dialog to test the full functionality.</p>
+            <button class="test-button" onclick="openContractReview()">Open Contract Review Dialog</button>
+            <div id="dialogResult" class="test-result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Authentication Status</h3>
+            <p>Check current authentication status and user information.</p>
+            <button class="test-button" onclick="checkAuthStatus()">Check Auth Status</button>
+            <button class="test-button" onclick="simulateLogin()">Simulate Login</button>
+            <div id="authResult" class="test-result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>Document State Simulation</h3>
+            <p>Simulate different document states for testing.</p>
+            <button class="test-button" onclick="clearDocumentState()">Clear Document State</button>
+            <button class="test-button" onclick="setJupiterDocumentState()">Set Jupiter Document State</button>
+            <div id="stateResult" class="test-result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        let documentStateManager;
+
+        Office.onReady(async (info) => {
+            console.log('Office is ready. Host:', info.host, 'Platform:', info.platform);
+            
+            // Initialize DocumentStateManager
+            try {
+                documentStateManager = new DocumentStateManager();
+                await documentStateManager.initialize();
+                showResult('stateResult', 'DocumentStateManager initialized successfully', 'success');
+            } catch (error) {
+                showResult('stateResult', 'Failed to initialize DocumentStateManager: ' + error.message, 'error');
+            }
+        });
+
+        async function testDocumentType() {
+            try {
+                if (!documentStateManager) {
+                    throw new Error('DocumentStateManager not initialized');
+                }
+
+                const isNew = await documentStateManager.isNewDocument();
+                const isExisting = await documentStateManager.isExistingDocument();
+                const documentType = await documentStateManager.detectDocumentType();
+
+                const result = `
+Document Analysis:
+- Is New Document: ${isNew}
+- Is Existing Document: ${isExisting}
+- Document Type: ${documentType}
+- Workflow Available: ${isExisting || documentType === 'jupiter'}
+                `;
+
+                showResult('docTypeResult', result, 'info');
+            } catch (error) {
+                showResult('docTypeResult', 'Error: ' + error.message, 'error');
+            }
+        }
+
+        async function simulateJupiterDoc() {
+            try {
+                // Simulate a Jupiter document by setting custom properties
+                await Word.run(async (context) => {
+                    const properties = context.document.properties.customProperties;
+                    properties.add('JupiterDocumentId', 'TEST-DOC-123');
+                    await context.sync();
+                });
+
+                showResult('docTypeResult', 'Simulated Jupiter document (added JupiterDocumentId property)', 'success');
+                
+                // Test again
+                setTimeout(testDocumentType, 500);
+            } catch (error) {
+                showResult('docTypeResult', 'Error simulating Jupiter document: ' + error.message, 'error');
+            }
+        }
+
+        async function simulateNewDoc() {
+            try {
+                // Clear Jupiter properties to simulate new document
+                await Word.run(async (context) => {
+                    const properties = context.document.properties.customProperties;
+                    properties.load('items');
+                    await context.sync();
+
+                    // Remove Jupiter properties
+                    const jupiterProp = properties.items.find(p => p.key === 'JupiterDocumentId');
+                    if (jupiterProp) {
+                        jupiterProp.delete();
+                        await context.sync();
+                    }
+                });
+
+                showResult('docTypeResult', 'Simulated new document (removed Jupiter properties)', 'success');
+                
+                // Test again
+                setTimeout(testDocumentType, 500);
+            } catch (error) {
+                showResult('docTypeResult', 'Error simulating new document: ' + error.message, 'error');
+            }
+        }
+
+        async function checkAuthStatus() {
+            try {
+                if (!window.authManager) {
+                    showResult('authResult', 'AuthManager not available', 'error');
+                    return;
+                }
+
+                const authStatus = window.authManager.getAuthStatus();
+                const result = `
+Authentication Status:
+- Is Authenticated: ${authStatus.isAuthenticated}
+- Server URL: ${authStatus.serverUrl}
+- User: ${authStatus.user ? JSON.stringify(authStatus.user, null, 2) : 'None'}
+                `;
+
+                showResult('authResult', result, authStatus.isAuthenticated ? 'success' : 'info');
+            } catch (error) {
+                showResult('authResult', 'Error checking auth status: ' + error.message, 'error');
+            }
+        }
+
+        async function simulateLogin() {
+            try {
+                if (!window.authManager) {
+                    showResult('authResult', 'AuthManager not available', 'error');
+                    return;
+                }
+
+                // Simulate a logged-in user for testing
+                window.authManager._isAuthenticated = true;
+                window.authManager.currentUser = {
+                    username: 'john.doe',
+                    displayName: 'John Doe',
+                    email: 'john.doe@company.com',
+                    fullName: 'John Doe',
+                    userId: 'user123'
+                };
+
+                showResult('authResult', 'Simulated login successful. User: John Doe', 'success');
+            } catch (error) {
+                showResult('authResult', 'Error simulating login: ' + error.message, 'error');
+            }
+        }
+
+        async function testDataPopulation() {
+            try {
+                let results = [];
+
+                // Test document title retrieval
+                results.push('=== DOCUMENT TITLE TEST ===');
+                try {
+                    await Word.run(async (context) => {
+                        const properties = context.document.properties;
+                        properties.load('title');
+                        await context.sync();
+
+                        const title = properties.title || 'Untitled Document';
+                        results.push(`Document Title: "${title}"`);
+                    });
+                } catch (titleError) {
+                    results.push(`Document Title Error: ${titleError.message}`);
+                }
+
+                // Test user retrieval
+                results.push('\n=== USER NAME TEST ===');
+                if (window.authManager) {
+                    const authStatus = window.authManager.getAuthStatus();
+                    results.push(`AuthManager Available: Yes`);
+                    results.push(`Is Initialized: ${window.authManager.isInitialized}`);
+                    results.push(`Is Authenticated: ${authStatus.isAuthenticated}`);
+                    results.push(`User Object: ${authStatus.user ? JSON.stringify(authStatus.user, null, 2) : 'None'}`);
+                } else {
+                    results.push(`AuthManager Available: No`);
+                }
+
+                // Test Office context
+                results.push('\n=== OFFICE CONTEXT TEST ===');
+                if (Office.context && Office.context.mailbox && Office.context.mailbox.userProfile) {
+                    const userProfile = Office.context.mailbox.userProfile;
+                    results.push(`Office User Profile: ${JSON.stringify(userProfile, null, 2)}`);
+                } else {
+                    results.push(`Office User Profile: Not available`);
+                }
+
+                showResult('dataResult', results.join('\n'), 'info');
+
+            } catch (error) {
+                showResult('dataResult', 'Error testing data population: ' + error.message, 'error');
+            }
+        }
+
+        function openContractReview() {
+            try {
+                // Open the Contract Review dialog
+                window.open('ContractReview.html', '_blank', 'width=600,height=800');
+                showResult('dialogResult', 'Contract Review dialog opened in new window', 'success');
+            } catch (error) {
+                showResult('dialogResult', 'Error opening dialog: ' + error.message, 'error');
+            }
+        }
+
+        function showResult(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `test-result ${type}`;
+            element.style.display = 'block';
+        }
+    </script>
+
+    <!-- Required Scripts -->
+    <script type="text/javascript" src="Scripts/config.js"></script>
+    <script type="text/javascript" src="Scripts/JupiterService.js"></script>
+    <script type="text/javascript" src="Scripts/AuthManager.js"></script>
+    <script type="text/javascript" src="Scripts/DocumentStateManager.js"></script>
+</body>
+</html>

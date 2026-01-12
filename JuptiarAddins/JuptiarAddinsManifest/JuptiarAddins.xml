@@ -177,6 +177,49 @@
                 </Control>
               </Group>
 
+              <!-- Workflow Group -->
+              <Group id="Jupiter.WorkflowGroup">
+                <Label resid="Jupiter.WorkflowGroup.Label" />
+                <Icon>
+                  <bt:Image size="16" resid="Jupiter.workflow_16x16" />
+                  <bt:Image size="32" resid="Jupiter.workflow_32x32" />
+                  <bt:Image size="80" resid="Jupiter.workflow_80x80" />
+                </Icon>
+
+                <!-- Start Workflow Menu -->
+                <Control xsi:type="Menu" id="Jupiter.StartWorkflowMenu">
+                  <Label resid="Jupiter.StartWorkflow.Label" />
+                  <Supertip>
+                    <Title resid="Jupiter.StartWorkflow.Label" />
+                    <Description resid="Jupiter.StartWorkflow.Tooltip" />
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="Jupiter.workflow_16x16" />
+                    <bt:Image size="32" resid="Jupiter.workflow_32x32" />
+                    <bt:Image size="80" resid="Jupiter.workflow_80x80" />
+                  </Icon>
+                  <Items>
+                    <!-- Contract Review Workflow -->
+                    <Item id="Jupiter.ContractReviewWorkflow">
+                      <Label resid="Jupiter.ContractReview.Label" />
+                      <Supertip>
+                        <Title resid="Jupiter.ContractReview.Label" />
+                        <Description resid="Jupiter.ContractReview.Tooltip" />
+                      </Supertip>
+                      <Icon>
+                        <bt:Image size="16" resid="Jupiter.contract_16x16" />
+                        <bt:Image size="32" resid="Jupiter.contract_32x32" />
+                        <bt:Image size="80" resid="Jupiter.contract_80x80" />
+                      </Icon>
+                      <Action xsi:type="ShowTaskpane">
+                        <TaskpaneId>JupiterContractReview</TaskpaneId>
+                        <SourceLocation resid="Jupiter.ContractReview.Url" />
+                      </Action>
+                    </Item>
+                  </Items>
+                </Control>
+              </Group>
+
               <!-- System Configuration Group -->
               <Group id="Jupiter.ConfigGroup">
                 <Label resid="Jupiter.ConfigGroup.Label" />
@@ -247,6 +290,16 @@
         <bt:Image id="Jupiter.checkin_16x16" DefaultValue="~remoteAppUrl/Images/CheckInIcon16x16.png?v=1" />
         <bt:Image id="Jupiter.checkin_32x32" DefaultValue="~remoteAppUrl/Images/CheckInIcon32x32.png?v=1" />
         <bt:Image id="Jupiter.checkin_80x80" DefaultValue="~remoteAppUrl/Images/CheckInIcon80x80.png?v=1" />
+
+        <!-- Workflow Icons (using existing icons as placeholders) -->
+        <bt:Image id="Jupiter.workflow_16x16" DefaultValue="~remoteAppUrl/Images/PropertiesIcon16x16.png" />
+        <bt:Image id="Jupiter.workflow_32x32" DefaultValue="~remoteAppUrl/Images/PropertiesIcon32x32.png" />
+        <bt:Image id="Jupiter.workflow_80x80" DefaultValue="~remoteAppUrl/Images/PropertiesIcon80x80.png" />
+
+        <!-- Contract Review Icons (using existing icons as placeholders) -->
+        <bt:Image id="Jupiter.contract_16x16" DefaultValue="~remoteAppUrl/Images/SaveIcon16x16.png" />
+        <bt:Image id="Jupiter.contract_32x32" DefaultValue="~remoteAppUrl/Images/SaveIcon32x32.png" />
+        <bt:Image id="Jupiter.contract_80x80" DefaultValue="~remoteAppUrl/Images/SaveIcon80x80.png" />
       </bt:Images>
       <bt:Urls>
         <bt:Url id="Contoso.DesktopFunctionFile.Url" DefaultValue="~remoteAppUrl/Functions/FunctionFile.html" />
@@ -255,6 +308,7 @@
         <bt:Url id="Jupiter.Settings.Url" DefaultValue="~remoteAppUrl/Settings.html" />
         <bt:Url id="Jupiter.Properties.Url" DefaultValue="~remoteAppUrl/Properties.html?v=4" />
         <bt:Url id="Jupiter.CheckInDialog.Url" DefaultValue="~remoteAppUrl/CheckInDialog.html" />
+        <bt:Url id="Jupiter.ContractReview.Url" DefaultValue="~remoteAppUrl/ContractReview.html" />
         <bt:Url id="Contoso.GetStarted.LearnMoreUrl" DefaultValue="https://www.jupiter.com/help" />
       </bt:Urls>
       <bt:ShortStrings>
@@ -263,6 +317,7 @@
         <bt:String id="Jupiter.DocumentGroup.Label" DefaultValue="Open" />
         <bt:String id="Jupiter.SaveGroup.Label" DefaultValue="Save" />
         <bt:String id="Jupiter.PropertiesGroup.Label" DefaultValue="Properties" />
+        <bt:String id="Jupiter.WorkflowGroup.Label" DefaultValue="Workflow" />
         <bt:String id="Jupiter.ConfigGroup.Label" DefaultValue="Settings" />
 
         <!-- Button Labels -->
@@ -271,6 +326,8 @@
         <bt:String id="Jupiter.SaveToJupiter.Label" DefaultValue="Save to Jupiter" />
         <bt:String id="Jupiter.CheckOut.Label" DefaultValue="Check Out" />
         <bt:String id="Jupiter.CheckIn.Label" DefaultValue="Check In" />
+        <bt:String id="Jupiter.StartWorkflow.Label" DefaultValue="Start Workflow" />
+        <bt:String id="Jupiter.ContractReview.Label" DefaultValue="Contract Review" />
         <bt:String id="Jupiter.Settings.Label" DefaultValue="Settings" />
         <bt:String id="Jupiter.Properties.Label" DefaultValue="Properties" />
 
@@ -283,6 +340,8 @@
         <bt:String id="Jupiter.SaveToJupiter.Tooltip" DefaultValue="Save new document to Jupiter document management system with metadata" />
         <bt:String id="Jupiter.CheckOut.Tooltip" DefaultValue="Check out document for editing (prevents others from editing)" />
         <bt:String id="Jupiter.CheckIn.Tooltip" DefaultValue="Check in document with changes and create new version" />
+        <bt:String id="Jupiter.StartWorkflow.Tooltip" DefaultValue="Start a new workflow process for document review and approval" />
+        <bt:String id="Jupiter.ContractReview.Tooltip" DefaultValue="Initiate contract review workflow with required metadata" />
         <bt:String id="Jupiter.Settings.Tooltip" DefaultValue="Configure Jupiter connection settings and credentials" />
         <bt:String id="Jupiter.Properties.Tooltip" DefaultValue="Edit document metadata and properties" />
 
