@@ -12,7 +12,7 @@
   <!-- IMPORTANT! Id must be unique for your add-in, if you reuse this manifest ensure that you change this id to a new GUID. -->
   <Id>20270141-3bb0-4463-94a9-2ee7bcc96d5a</Id>
 
-  <Version>1.4.7.0</Version>
+  <Version>1.4.7.2</Version>
   <ProviderName>Jupiter</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <!-- The display name of your add-in. Used on the store and various places of the Office UI such as the add-ins dialog. -->
@@ -258,43 +258,44 @@
     <Resources>
       <bt:Images>
         <!-- Jupiter Icons -->
-        <bt:Image id="Jupiter.icon_16x16" DefaultValue="~remoteAppUrl/Images/JupiterIcon16x16.png" />
-        <bt:Image id="Jupiter.icon_32x32" DefaultValue="~remoteAppUrl/Images/JupiterIcon32x32.png" />
-        <bt:Image id="Jupiter.icon_80x80" DefaultValue="~remoteAppUrl/Images/JupiterIcon80x80.png" />
+        <bt:Image id="Jupiter.icon_16x16" DefaultValue="~remoteAppUrl/Images/JupiterIcon16x16.png?v=10" />
+        <bt:Image id="Jupiter.icon_32x32" DefaultValue="~remoteAppUrl/Images/JupiterIcon32x32.png?v=10" />
+        <bt:Image id="Jupiter.icon_80x80" DefaultValue="~remoteAppUrl/Images/JupiterIcon80x80.png?v=10" />
 
-        <!-- Professional Folder Icons for Open/Browse -->
-        <bt:Image id="Jupiter.open_16x16" DefaultValue="~remoteAppUrl/Images/FolderIcon16x16.png?v=10" />
-        <bt:Image id="Jupiter.open_32x32" DefaultValue="~remoteAppUrl/Images/FolderIcon32x32.png?v=10" />
-        <bt:Image id="Jupiter.open_80x80" DefaultValue="~remoteAppUrl/Images/FolderIcon80x80.png?v=10" />
+        <!-- Open/Browse Icons - Using template with correct format -->
+        <bt:Image id="Jupiter.open_16x16" DefaultValue="~remoteAppUrl/Images/open_converted.png" />
+        <bt:Image id="Jupiter.open_32x32" DefaultValue="~remoteAppUrl/Images/open_converted.png" />
+        <bt:Image id="Jupiter.open_80x80" DefaultValue="~remoteAppUrl/Images/open_converted.png" />
 
-        <!-- Professional Save Icons -->
-        <bt:Image id="Jupiter.save_16x16" DefaultValue="~remoteAppUrl/Images/Save16x16.png?v=10" />
-        <bt:Image id="Jupiter.save_32x32" DefaultValue="~remoteAppUrl/Images/Save32x32.png?v=10" />
-        <bt:Image id="Jupiter.save_80x80" DefaultValue="~remoteAppUrl/Images/Save80x80.png?v=10" />
+        <!-- Save Icons -->
+        <bt:Image id="Jupiter.save_16x16" DefaultValue="~remoteAppUrl/Images/save.png" />
+        <bt:Image id="Jupiter.save_32x32" DefaultValue="~remoteAppUrl/Images/save.png" />
+        <bt:Image id="Jupiter.save_80x80" DefaultValue="~remoteAppUrl/Images/save.png" />
 
-        <!-- Professional Settings/Gear Icons -->
-        <bt:Image id="Jupiter.settings_16x16" DefaultValue="~remoteAppUrl/Images/SettingsIcon16x16.png?v=10" />
-        <bt:Image id="Jupiter.settings_32x32" DefaultValue="~remoteAppUrl/Images/SettingsIcon32x32.png?v=10" />
-        <bt:Image id="Jupiter.settings_80x80" DefaultValue="~remoteAppUrl/Images/SettingsIcon80x80.png?v=10" />
+        <!-- Settings Icons - Using exact workflow.png -->
+        <bt:Image id="Jupiter.settings_16x16" DefaultValue="~remoteAppUrl/Images/settings_converted.png" />
+        <bt:Image id="Jupiter.settings_32x32" DefaultValue="~remoteAppUrl/Images/settings_converted.png" />
+        <bt:Image id="Jupiter.settings_80x80" DefaultValue="~remoteAppUrl/Images/settings_converted.png" />
 
-        <!-- Professional Properties/Document Icons -->
-        <bt:Image id="Jupiter.properties_16x16" DefaultValue="~remoteAppUrl/Images/Properties16x16.png?v=10" />
-        <bt:Image id="Jupiter.properties_32x32" DefaultValue="~remoteAppUrl/Images/Properties32x32.png?v=10" />
-        <bt:Image id="Jupiter.properties_80x80" DefaultValue="~remoteAppUrl/Images/Properties80x80.png?v=10" />
+        <!-- Properties Icons -->
+        <bt:Image id="Jupiter.properties_16x16" DefaultValue="~remoteAppUrl/Images/props.png" />
+        <bt:Image id="Jupiter.properties_32x32" DefaultValue="~remoteAppUrl/Images/props.png" />
+        <bt:Image id="Jupiter.properties_80x80" DefaultValue="~remoteAppUrl/Images/props.png" />
 
-        <!-- Check-in/Check-out Icons -->
-        <bt:Image id="Jupiter.checkout_16x16" DefaultValue="~remoteAppUrl/Images/CheckOutIcon16x16.png?v=10" />
-        <bt:Image id="Jupiter.checkout_32x32" DefaultValue="~remoteAppUrl/Images/CheckOutIcon32x32.png?v=10" />
-        <bt:Image id="Jupiter.checkout_80x80" DefaultValue="~remoteAppUrl/Images/CheckOutIcon80x80.png?v=10" />
+        <!-- Check-out Icons - New checkout.png with correct format -->
+        <bt:Image id="Jupiter.checkout_16x16" DefaultValue="~remoteAppUrl/Images/checkout.png" />
+        <bt:Image id="Jupiter.checkout_32x32" DefaultValue="~remoteAppUrl/Images/checkout.png" />
+        <bt:Image id="Jupiter.checkout_80x80" DefaultValue="~remoteAppUrl/Images/checkout.png" />
 
-        <bt:Image id="Jupiter.checkin_16x16" DefaultValue="~remoteAppUrl/Images/CheckInIcon16x16.png?v=10" />
-        <bt:Image id="Jupiter.checkin_32x32" DefaultValue="~remoteAppUrl/Images/CheckInIcon32x32.png?v=10" />
-        <bt:Image id="Jupiter.checkin_80x80" DefaultValue="~remoteAppUrl/Images/CheckInIcon80x80.png?v=10" />
+        <!-- Check-in Icons -->
+        <bt:Image id="Jupiter.checkin_16x16" DefaultValue="~remoteAppUrl/Images/checkin.png" />
+        <bt:Image id="Jupiter.checkin_32x32" DefaultValue="~remoteAppUrl/Images/checkin.png" />
+        <bt:Image id="Jupiter.checkin_80x80" DefaultValue="~remoteAppUrl/Images/checkin.png" />
 
-        <!-- Workflow Icons - Use Button icons for maximum visual distinction -->
-        <bt:Image id="Jupiter.workflow_16x16" DefaultValue="~remoteAppUrl/Images/Button16x16.png?v=10" />
-        <bt:Image id="Jupiter.workflow_32x32" DefaultValue="~remoteAppUrl/Images/Button32x32.png?v=10" />
-        <bt:Image id="Jupiter.workflow_80x80" DefaultValue="~remoteAppUrl/Images/Button80x80.png?v=10" />
+        <!-- Workflow Icons -->
+        <bt:Image id="Jupiter.workflow_16x16" DefaultValue="~remoteAppUrl/Images/workflow.png" />
+        <bt:Image id="Jupiter.workflow_32x32" DefaultValue="~remoteAppUrl/Images/workflow.png" />
+        <bt:Image id="Jupiter.workflow_80x80" DefaultValue="~remoteAppUrl/Images/workflow.png" />
 
         <!-- Contract Review Icons - Use Close icon for maximum visual distinction -->
         <bt:Image id="Jupiter.contract_16x16" DefaultValue="~remoteAppUrl/Images/Close.png?v=10" />
